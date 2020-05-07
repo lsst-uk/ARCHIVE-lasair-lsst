@@ -1,5 +1,6 @@
 import datetime
 from time import gmtime
+# This code deals with the 'night id' or nid of ZTF, that starts 1 Jan 2107 
 
 def date_to_nid(d):
     """ Converts date string yyyymmdd to ZTF night id (nid)
