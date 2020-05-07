@@ -134,7 +134,6 @@ def produce(conf, log):
     n = 0
     try:
         for name,alert in alerts.items():
-            print ('>>> ' + json.dumps(alert))
             p.produce(conf['output_topic'], value=json.dumps(alert))
             n += 1
     finally:
@@ -194,7 +193,7 @@ if __name__ == '__main__':
 
     while True:
         consume(conf, log)
-        if len(alerts > 0):
+        if len(alerts) > 0:
             classify(conf, log)
             produce(conf, log)
 
