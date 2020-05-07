@@ -190,7 +190,9 @@ if __name__ == '__main__':
         log.error("output topic not set")
         sys.exit(2)
 
-    consume(conf, log)
-    classify(conf, log)
-    produce(conf, log)
+    while True:
+        consume(conf, log)
+        if len(alerts > 0):
+            classify(conf, log)
+            produce(conf, log)
 
