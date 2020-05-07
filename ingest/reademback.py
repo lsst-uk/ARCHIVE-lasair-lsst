@@ -1,11 +1,10 @@
 import sys
 import json
 from confluent_kafka import Consumer, KafkaError
+# Toy code to read back the ingested test stream and extract objectId, ra, dec
 
 conf = {
     'bootstrap.servers': '192.41.108.22:9092',
-#    'bootstrap.servers': '192.41.108.24:9092',
-#    'bootstrap.servers': '192.41.108.36:9092',
     'group.id': 'LASAIR5',
     'session.timeout.ms': 6000,
     'default.topic.config': {'auto.offset.reset': 'smallest'}

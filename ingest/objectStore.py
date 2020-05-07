@@ -6,11 +6,14 @@ import hashlib
 
 class objectStore():
     def __init__(self, suffix='txt', fileroot='/data'):
+        # make the directories if needed
         os.system('mkdir -p ' + fileroot)
         self.fileroot = fileroot
         self.suffix = suffix
     
     def getFileName(self, objectId, mkdir=False):
+        # hash the filename for the directory, use the last 3 digits
+        # max number of directories 16**3 = 4096
         h = hashlib.md5(objectId.encode())
         dir = h.hexdigest()[:3]
         if mkdir:
@@ -35,19 +38,14 @@ class objectStore():
         f.close()
 
     def getObjects(self, objectIdList):
+        # get a bunch of objects from a bunch of identifiers
         D = {}
-        for objectId in L:
+        for objectId in objectIdList:
             s = self.getObject(objectId)
             D[objectId] = json.loads(s)
         return json.dumps(D, indent=2)
 
-        L = []
-        for objectId in objectIdList:
-            L.append(self.getObject(objectId))
-        return L
-    
-    def putObjects(self, objectBlobList):
-        for (objectId, objectBlob) in objectBlobList:
+    def putObjects(self, objectBlobDict):
+        # put a bunch of objects from a dict of objectId:object
+        for (objectId, objectBlob) in objectBlobDict.items():
             self.putObject(objectId, objectBlob)
-
-

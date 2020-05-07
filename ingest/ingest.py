@@ -4,6 +4,10 @@ from socket import gethostname
 from datetime import datetime
 import settings
 import date_nid
+""" Ingest a kafka stream from ZTF
+   Usage: python ingest.py       ... means today's stream
+   Usage: python ingest.py <nid> ... means a previous night
+   Usage: python ingest.py test  ... means the test stream
 
 nid = 0
 if len(sys.argv) > 1:
