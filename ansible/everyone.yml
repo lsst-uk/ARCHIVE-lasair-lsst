@@ -1,0 +1,11 @@
+---
+- hosts: ingest_nodes:filter_nodes:ingest_archive
+  tasks:
+    - name: apt update
+      command: apt update
+      become: yes
+
+    - name: install pip3
+      command: apt install python3-pip -y
+      become: yes
+

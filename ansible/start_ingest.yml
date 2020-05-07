@@ -1,0 +1,7 @@
+---
+- hosts: ingest_nodes
+  tasks:
+    - name: start up ingestion in parallel
+      shell:
+        chdir: /home/ubuntu/lasair-lsst/ingest
+        cmd: sudo python3 ingest.py 1163 >> /home/ubuntu/logs.txt &

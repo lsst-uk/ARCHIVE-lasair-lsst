@@ -1,0 +1,16 @@
+- hosts: filter_nodes:filter_archive
+  tasks:
+    - name: install mysql.connector
+      command: pip3 install mysql-connector-python
+      become: yes
+
+    - name: install mysql
+      command: apt install mysql-server -y
+      become: yes
+
+    - name: Start the MySQL service
+      action: service name=mysql state=started
+
+    - name: permissions on mysql-files
+      command: chmod 777 /var/lib/mysql-files
+      become: yes
