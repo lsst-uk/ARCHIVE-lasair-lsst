@@ -5,6 +5,7 @@ adds the Sherlock classification and crossmatches back into the alert and
 republishes on the output topic.
 """
 
+import json
 import yaml
 import argparse
 import logging
@@ -101,12 +102,12 @@ def classify(conf, log):
     
     # process classifications
     for name,classes in classifications.items():
-        alerts['name']['objClass'] = classes[0]
+        alerts[name]['objClass'] = classes[0]
 
     # process crossmatches
     for cm in crossmatches:
         name = cm['transient_object_id']
-        if 'matches' in alerts['name']:
+        if 'matches' in alerts[name]:
             alerts[name]['matches'].append(cm)
         else:
             alerts[name]['matches'] = [cm]
@@ -133,7 +134,7 @@ def produce(conf, log):
     n = 0
     try:
         for name,alert in alerts.items():
-            p.produce(output_topic, value=json.dumps(alert))
+            p.produce(conf['output_topic'], value=json.dumps(alert))
             n += 1
     finally:
         p.flush()
@@ -190,7 +191,9 @@ if __name__ == '__main__':
         log.error("output topic not set")
         sys.exit(2)
 
-    consume(conf, log)
-    classify(conf, log)
-    produce(conf, log)
+    while True:
+        consume(conf, log)
+        if len(alerts) > 0:
+            classify(conf, log)
+            produce(conf, log)
 

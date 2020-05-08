@@ -25,7 +25,7 @@ class transient_classifier:
         classifications = {}
         crossmatches = []
         for (name, ra, dec) in zip(self.name, self.ra, self.dec):
-            print ("{:s} {:f} {:f}".format(name, ra, dec))
+            #print ("{:s} {:f} {:f}".format(name, ra, dec))
             sum = ra + dec
             classifications[name] = 'XX'
             crossmatches.append({ 'transient_object_id':name, 'sum':sum })
