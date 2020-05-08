@@ -1,0 +1,27 @@
+---
+- hosts: ingest_nodes
+  gather_facts: no
+  tasks:
+    - name: install pip3
+      apt: 
+          name: python3-pip
+          state: present
+          update_cache: true
+      become: yes
+
+    - name: install confluent kafka
+      pip: 
+          executable: pip3 
+          name: confluent-kafka
+      become: yes
+
+    - name: install fastavro
+      pip:
+          executable: pip3 
+          name: fastavro
+      become: yes
+
+    - name: Make sure the repo is up to date
+      git: 
+          repo: https://github.com/lsst-uk/lasair-lsst.git
+          dest: /home/ubuntu/lasair-lsst
