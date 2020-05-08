@@ -120,7 +120,7 @@ class Consumer(threading.Thread):
             print('Producing Kafka to %s with topic %s' % (settings.KAFKA_OUTPUT, topicout))
         else:
             producer = None
-            kafkaout = None
+            topicout = None
     
         if self.args.maxalert:
             maxalert = self.args.maxalert
