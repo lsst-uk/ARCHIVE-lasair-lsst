@@ -9,7 +9,7 @@ RUN pip3 install confluent-kafka==1.4.0
 
 RUN mkdir /opt/lasair
 
-COPY wrapper.py config.yaml settings.yaml /opt/lasair/
+COPY wrapper.py /opt/lasair/
 
 COPY mock_sherlock.py /opt/lasair/
 

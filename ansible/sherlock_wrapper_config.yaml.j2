@@ -1,0 +1,43 @@
+--- # Configuration for sherlock wrapper
+
+# Setting any option on the command line overrides the value in this file
+
+#####################################################################
+# REQUIRED SETTINGS
+#####################################################################
+
+# comma separated list of Kafka brokers and ports
+broker: {{ brokers }}
+
+# topic to consume input messages
+input_topic: {{ input_topic }}
+
+# topic to produce output messages
+output_topic: {{ output_topic }}
+
+
+#####################################################################
+# OPTIONAL SETTINGS
+#####################################################################
+
+# Kafka client group id
+##group: dev-sherlock-1
+group: {{ group_id }}
+
+# Kafka consumer timeout in s
+##timeout: 10
+
+# number of messages to process per batch
+##batch_size: 1000
+
+##max_messages: 1
+
+# log only critical and error messages
+##quiet: false
+
+# log info messages and above
+##verbose: false
+verbose: true
+
+# log debug messages and above
+##debug: false

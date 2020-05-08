@@ -1,0 +1,20 @@
+version: "3.2"
+
+services:
+
+    sherlock_wrapper:
+
+        image:
+                gpfrancis/sherlock-wrapper:0.1
+        network_mode: host
+        volumes:
+            - /opt/lasair/config.yaml
+            - /opt/lasair/sherlock_settings.yaml
+        command: [
+             "/opt/lasair/wrapper.py",
+             "--config",
+             "/opt/lasair/config.yaml",
+             "--sherlock_settings",
+             "/opt/lasair/sherlock_settings.yaml"
+             ]
+
