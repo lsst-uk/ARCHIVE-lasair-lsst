@@ -1,0 +1,43 @@
+---
+- hosts: filter_nodes:rdbms
+  gather_facts: no
+  tasks:
+    - name: install pip3
+      apt: 
+          name: python3-pip
+          state: present
+          update_cache: true
+      become: yes
+
+    - name: install confluent kafka
+      pip: 
+          executable: pip3 
+          name: confluent-kafka
+      become: yes
+
+    - name: install mysql.connector
+      pip: 
+          executable: pip3 
+          name: mysql-connector-python
+
+    - name: install mysql
+      apt: 
+          name: mysql-server
+          state: present
+          update_cache: true
+      become: yes
+
+    - name: Start the MySQL service
+      service:
+          name: mysql
+          state: started
+
+    - name: permissions on mysql-files
+      file:
+          path: /var/lib/mysql-files
+          mode: '777'
+
+    - name: Make sure the repo is up to date
+      git: 
+          repo: https://github.com/lsst-uk/lasair-lsst.git
+          dest: /home/ubuntu/lasair-lsst
