@@ -41,6 +41,7 @@ def consume(conf, log):
     c.subscribe([conf['input_topic']])
 
     n = 0
+    n_error = 0
     try:
         while n < conf['batch_size']:
             # Poll for messages
@@ -56,9 +57,20 @@ def consume(conf, log):
                 name = alert.get('objectId', alert.get('candid'))
                 alerts[name] = alert
             else:
-                # TODO handle this better
+                n_error += 1
                 log.warning(str(msg))
-                continue
+                try:
+                    if msg.error().fatal:
+                        break
+                except:
+                    pass
+                if conf['max_errors'] < 0:
+                    continue
+                elif conf['max_errors'] < n_error:
+                    log.error("maximum number of errors reached")
+                    break
+                else:
+                    continue
             n += 1
     except KafkaError as e:
         # TODO handle this properly
@@ -155,6 +167,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input_topic', type=str, help='name of input topic')
     parser.add_argument('-o', '--output_topic', type=str, help='name of output topic')
     parser.add_argument('-n', '--batch_size', type=int, default=1000, help='number of messages to process per batch')
+    parser.add_argument('-e', '--max_errors', type=int, default=-1, help='maximum number of non-fatal errors before aborting') # negative=no limit
     parser.add_argument('-s', '--sherlock_settings', type=str, default='sherlock.yaml', help='location of Sherlock settings file (default sherlock.yaml)')
     parser.add_argument('-q', '--quiet', action="store_true", default=None, help='minimal output')
     parser.add_argument('-v', '--verbose', action="store_true", default=None, help='verbose output')
