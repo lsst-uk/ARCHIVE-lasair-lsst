@@ -12,12 +12,13 @@ import logging
 import sys
 from confluent_kafka import Consumer, Producer, KafkaError
 from mock_sherlock import transient_classifier
+#from sherlock import transient_classifier
 
 # TODO replace with a proper queue(s) for multi-threading?
 alerts = {}
 
 def consume(conf, log):
-    "fetch a batch of alerts from kafka"
+    "fetch a batch of alerts from kafka, return number of alerts consumed"
 
     global alerts
 
@@ -65,6 +66,7 @@ def consume(conf, log):
     finally:
         c.close()
     log.info("consumed {:d} alerts".format(n))
+    return n
 
 
 def classify(conf, log):
@@ -114,7 +116,7 @@ def classify(conf, log):
 
 
 def produce(conf, log):
-    "produce a batch of alerts on the kafka output topic"
+    "produce a batch of alerts on the kafka output topic, return number of alerts produced"
 
     global alerts
 
@@ -149,7 +151,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', type=str, default='config.yaml', help='location of config file (default config.yaml)')
     parser.add_argument('-b', '--broker', type=str, help='address:port of Kafka broker(s)')
     parser.add_argument('-g', '--group', type=str, default='sherlock-dev-1', help='group id to use for Kafka')
-    parser.add_argument('-t', '--timeout', type=int, default=10, help='kafka consumer timeout in ms')
+    parser.add_argument('-t', '--timeout', type=int, default=10, help='kafka consumer timeout in s')
     parser.add_argument('-i', '--input_topic', type=str, help='name of input topic')
     parser.add_argument('-o', '--output_topic', type=str, help='name of output topic')
     parser.add_argument('-n', '--batch_size', type=int, default=1000, help='number of messages to process per batch')
