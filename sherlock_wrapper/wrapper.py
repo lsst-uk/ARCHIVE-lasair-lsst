@@ -82,7 +82,7 @@ def consume(conf, log):
 
 
 def classify(conf, log):
-    "send a batch of alerts to sherlock and add the responses to the alerts"
+    "send a batch of alerts to sherlock and add the responses to the alerts, return the number of alerts classified"
     
     global alerts
 
@@ -126,6 +126,7 @@ def classify(conf, log):
         else:
             alerts[name]['matches'] = [cm]
 
+    return len(classifications)
 
 def produce(conf, log):
     "produce a batch of alerts on the kafka output topic, return number of alerts produced"
@@ -153,9 +154,9 @@ def produce(conf, log):
     finally:
         p.flush()
     log.info("produced {:d} alerts".format(n))
-
     # clear alerts
     alerts = {}
+    return n
 
 if __name__ == '__main__':
     # parse cmd line arguments
