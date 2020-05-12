@@ -11,15 +11,29 @@ log.level = logging.ERROR
 stream_handler = logging.StreamHandler(sys.stdout)
 log.addHandler(stream_handler)
 
-def non_fatal_error_on_1st_call():
-    global called_nfe
-    try:
-        called_nfe
-    except:
-        called_nfe = True
-        return KafkaError(KafkaError._APPLICATION, "Test Error", fatal=False, retriable=True)
+# mock kafka message class for use by mock poll
+class MockMessage:
+    def __init__(self,err=None):
+        self.err = err
+    def value(self):
+        with open("tests/example_ingested.json", 'r') as f:
+            example_input_data = f.read()
+        return example_input_data
+    def error(self):
+        return self.err
+    def offset(self):
+        return 0
+
+# mock poll method that returns an error the 1st time called
+nfe_call_count = 0
+def non_fatal_error_on_1st_call(timeout):
+    global nfe_call_count
+    nfe_call_count += 1
+    if nfe_call_count > 1:
+        return MockMessage()
     else:
-        return None
+        e = KafkaError(KafkaError._APPLICATION, "Test Error", fatal=False, retriable=True)
+        return MockMessage(e)
 
 class TestConsumer(TestCase):
 
@@ -40,11 +54,11 @@ class TestConsumer(TestCase):
     def test_consume_end_of_topic(self):
         with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             mock_kafka_consumer.return_value.poll.return_value = None
-            wrapper.alerts = {}
+            alerts = []
             # consume should report consuming 0 alerts
-            self.assertEqual(wrapper.consume(self.conf, log), 0)
+            self.assertEqual(wrapper.consume(self.conf, log, alerts), 0)
             # alerts should be empty
-            self.assertEqual(wrapper.alerts, {})
+            self.assertEqual(alerts, [])
             # poll should have been called once with timeout 1
             mock_kafka_consumer.return_value.poll.assert_called_once_with(1)
 
@@ -54,13 +68,13 @@ class TestConsumer(TestCase):
         with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             mock_kafka_consumer.return_value.poll.return_value.error.return_value = None
             mock_kafka_consumer.return_value.poll.return_value.value.return_value = self.example_input_data
+            alerts = []
             # consume should report consuming 5 alerts
-            self.assertEqual(wrapper.consume(self.conf, log), 5)
+            self.assertEqual(wrapper.consume(self.conf, log, alerts), 5)
             # alerts should have len 5
-            self.assertEqual(len(wrapper.alerts), 5)
+            self.assertEqual(len(alerts), 5)
             # content of alerts should be as expected
-            # will need rewriting when we fix bug #5
-            self.assertEqual(wrapper.alerts.get('ZTF18aapubnx')['candidate']['jd'], 2458943.9334606)
+            self.assertEqual(alerts[0]['candidate']['jd'], 2458943.9334606)
             # poll should have been called 5 times
             self.assertEqual(mock_kafka_consumer.return_value.poll.call_count, 5)
 
@@ -71,11 +85,11 @@ class TestConsumer(TestCase):
             e = KafkaError(KafkaError._FATAL, "Test Error", fatal=True, retriable=False)
             mock_kafka_consumer.return_value.poll.return_value.error.return_value = e
             mock_kafka_consumer.return_value.poll.return_value.value.return_value = self.example_input_data
-            wrapper.alerts = {}
+            alerts = []
             # consume should report consuming 0 alerts
-            self.assertEqual(wrapper.consume(self.conf, log), 0)
+            self.assertEqual(wrapper.consume(self.conf, log, alerts), 0)
             # alerts should be empty
-            self.assertEqual(wrapper.alerts, {})
+            self.assertEqual(alerts, [])
             # poll should have been called once with timeout 1
             mock_kafka_consumer.return_value.poll.assert_called_once_with(1)
 
@@ -83,24 +97,24 @@ class TestConsumer(TestCase):
     def test_non_fatal_error(self):
         with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             # poll returns None when no messages left to consume
-            mock_kafka_consumer.return_value.poll.return_value.error = non_fatal_error_on_1st_call
-            mock_kafka_consumer.return_value.poll.return_value.value.return_value = self.example_input_data
-            wrapper.alerts = {}
+            mock_kafka_consumer.return_value.poll = non_fatal_error_on_1st_call
+            ##mock_kafka_consumer.return_value.poll.return_value.value.return_value = self.example_input_data
+            alerts = []
             # consume should report consuming 0 alerts
-            self.assertEqual(wrapper.consume(self.conf, log), 5)
+            self.assertEqual(wrapper.consume(self.conf, log, alerts), 5)
             # alerts should have len 5
-            self.assertEqual(len(wrapper.alerts), 5)
+            self.assertEqual(len(alerts), 5)
             # content of alerts should be as expected
-            # will need rewriting when we fix bug #5
-            self.assertEqual(wrapper.alerts.get('ZTF18aapubnx')['candidate']['jd'], 2458943.9334606)
+            self.assertEqual(alerts[0]['candidate']['jd'], 2458943.9334606)
             # poll should have been called 6 times
-            self.assertEqual(mock_kafka_consumer.return_value.poll.call_count, 6)
+            self.assertEqual(nfe_call_count, 6)
 
     # test max non-fatal errors 
     def test_max_errors(self):
         with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             # poll returns None when no messages left to consume
-            mock_kafka_consumer.return_value.poll.return_value.error = non_fatal_error_on_1st_call
+            e = KafkaError(KafkaError._APPLICATION, "Test Error", fatal=False, retriable=True)
+            mock_kafka_consumer.return_value.poll.return_value.error.return_value = e
             mock_kafka_consumer.return_value.poll.return_value.value.return_value = self.example_input_data
             conf = {
                 'broker':'',
@@ -111,11 +125,11 @@ class TestConsumer(TestCase):
                 'timeout':1,
                 'max_errors':0
                 }
-            wrapper.alerts = {}
+            alerts = []
             # consume should report consuming 0 alerts
-            self.assertEqual(wrapper.consume(conf, log), 0)
+            self.assertEqual(wrapper.consume(conf, log, alerts), 0)
             # alerts should be empty
-            self.assertEqual(wrapper.alerts, {})
+            self.assertEqual(alerts, [])
             # poll should have been called once with timeout 1
             mock_kafka_consumer.return_value.poll.assert_called_once_with(1)
 
@@ -137,17 +151,17 @@ class TestClassifier(TestCase):
 
     def test_classify_alert_batch(self):
         with mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
-            wrapper.alerts = { "ZTF18aapubnx": self.example_input_data }
+            alerts = [ self.example_input_data ]
             classifications = { "ZTF18aapubnx": "Q" }
             crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'thing':'foo' } ]
             mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
             # should report classifying 1 alert
-            self.assertEqual(wrapper.classify(self.conf, log), 1)
-            # length of alerts shouls still be 
-            self.assertEqual(len(wrapper.alerts), 1)
+            self.assertEqual(wrapper.classify(self.conf, log, alerts), 1)
+            # length of alerts shouls still be 1
+            self.assertEqual(len(alerts), 1)
             # content of alerts should be as expected
-            self.assertEqual(wrapper.alerts['ZTF18aapubnx']['objClass'], 'Q')
-            self.assertEqual(wrapper.alerts['ZTF18aapubnx']['matches'], crossmatches)
+            self.assertEqual(alerts[0]['objClass'], 'Q')
+            self.assertEqual(alerts[0]['matches'], crossmatches)
             # classify should have been called once 
             mock_classifier.return_value.classify.assert_called_once()
 
@@ -165,11 +179,13 @@ class TestProducer(TestCase):
     # test consuming a batch of alerts
     def test_produce_alert_batch(self):
         with mock.patch('sherlock_wrapper.wrapper.Producer') as mock_kafka_producer:
-            wrapper.alerts = { "one": {}, "two": {}, "three": {} }
+            alerts = [ {}, {}, {} ]
+            self.assertEqual(len(alerts), 3)
             # should report producing 3 alerts
-            self.assertEqual(wrapper.produce(self.conf, log), 3)
+            self.assertEqual(wrapper.produce(self.conf, log, alerts), 3)
             # alerts should now be empty
-            self.assertEqual(wrapper.alerts, {})
+            self.assertEqual(alerts, [])
+            self.assertEqual(len(alerts), 0)
             # produce should have been called 3 times
             self.assertEqual(mock_kafka_producer.return_value.produce.call_count, 3)
 

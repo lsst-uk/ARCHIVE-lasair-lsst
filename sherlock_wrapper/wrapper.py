@@ -15,12 +15,12 @@ from mock_sherlock import transient_classifier
 #from sherlock import transient_classifier
 
 # TODO replace with a proper queue(s) for multi-threading?
-alerts = {}
+#alerts = {}
 
-def consume(conf, log):
+def consume(conf, log, alerts):
     "fetch a batch of alerts from kafka, return number of alerts consumed"
 
-    global alerts
+    #global alerts
 
     log.debug('called consume with config: ' + str(conf))
     
@@ -54,13 +54,15 @@ def consume(conf, log):
             elif not msg.error():
                 log.debug("Got message with offset " + str(msg.offset()))
                 alert = json.loads(msg.value())
-                name = alert.get('objectId', alert.get('candid'))
-                alerts[name] = alert
+                #name = alert.get('objectId', alert.get('candid'))
+                #alerts[name] = alert
+                alerts.append(alert)
+                n += 1
             else:
                 n_error += 1
-                log.warning(str(msg))
+                log.warning(str(msg.error()))
                 try:
-                    if msg.error().fatal:
+                    if msg.error().fatal():
                         break
                 except:
                     pass
@@ -71,7 +73,6 @@ def consume(conf, log):
                     break
                 else:
                     continue
-            n += 1
     except KafkaError as e:
         # TODO handle this properly
         log.warning(str(e))
@@ -81,10 +82,10 @@ def consume(conf, log):
     return n
 
 
-def classify(conf, log):
+def classify(conf, log, alerts):
     "send a batch of alerts to sherlock and add the responses to the alerts, return the number of alerts classified"
     
-    global alerts
+    #global alerts
 
     log.debug('called classify with config: ' + str(conf))
     
@@ -92,7 +93,8 @@ def classify(conf, log):
     names = []
     ra = []
     dec = []
-    for name,alert in alerts.items():
+    for alert in alerts:
+        name = alert.get('objectId', alert.get('candid'))
         names.append(name)
         ra.append(alert['candidate']['ra'])
         dec.append(alert['candidate']['dec'])
@@ -115,23 +117,36 @@ def classify(conf, log):
     log.info("got {:d} crossmatches".format(len(crossmatches)))
     
     # process classifications
-    for name,classes in classifications.items():
-        alerts[name]['objClass'] = classes[0]
+    for alert in alerts:
+        name = alert.get('objectId', alert.get('candid'))
+        if name in classifications:
+            alert['objClass'] = classifications[name][0]
+    #for name,classes in classifications.items():
+    #    alerts[name]['objClass'] = classes[0]
 
     # process crossmatches
+    cm_by_name = {}
     for cm in crossmatches:
         name = cm['transient_object_id']
-        if 'matches' in alerts[name]:
-            alerts[name]['matches'].append(cm)
+        if name in cm_by_name:
+            cm_by_name[name].append(cm)
         else:
-            alerts[name]['matches'] = [cm]
+            cm_by_name[name] = [cm]
+    for alert in alerts:
+        name = alert.get('objectId', alert.get('candid'))
+        if name in cm_by_name:
+            alert['matches'] = cm_by_name[name]
+    #    if 'matches' in alerts[name]:
+    #        alerts[name]['matches'].append(cm)
+    #    else:
+    #        alerts[name]['matches'] = [cm]
 
     return len(classifications)
 
-def produce(conf, log):
+def produce(conf, log, alerts):
     "produce a batch of alerts on the kafka output topic, return number of alerts produced"
 
-    global alerts
+    #global alerts
 
     log.debug('called produce with config: ' + str(conf))
 
@@ -148,14 +163,16 @@ def produce(conf, log):
     # produce alerts
     n = 0
     try:
-        for name,alert in alerts.items():
+        while alerts:
+            alert = alerts.pop(0)
             p.produce(conf['output_topic'], value=json.dumps(alert))
             n += 1
+    #    for name,alert in alerts.items():
+    #        p.produce(conf['output_topic'], value=json.dumps(alert))
+    #        n += 1
     finally:
         p.flush()
     log.info("produced {:d} alerts".format(n))
-    # clear alerts
-    alerts = {}
     return n
 
 if __name__ == '__main__':
@@ -208,8 +225,8 @@ if __name__ == '__main__':
         sys.exit(2)
 
     while True:
-        consume(conf, log)
-        if len(alerts) > 0:
-            classify(conf, log)
-            produce(conf, log)
+        alerts = []
+        if consume(conf, log, alerts) > 0:
+            classify(conf, log, alerts)
+            produce(conf, log, alerts)
 
