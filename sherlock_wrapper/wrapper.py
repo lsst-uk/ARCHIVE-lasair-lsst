@@ -12,14 +12,15 @@ import logging
 import sys
 from confluent_kafka import Consumer, Producer, KafkaError
 from mock_sherlock import transient_classifier
+#from sherlock import transient_classifier
 
 # TODO replace with a proper queue(s) for multi-threading?
-alerts = {}
+#alerts = {}
 
-def consume(conf, log):
-    "fetch a batch of alerts from kafka"
+def consume(conf, log, alerts):
+    "fetch a batch of alerts from kafka, return number of alerts consumed"
 
-    global alerts
+    #global alerts
 
     log.debug('called consume with config: ' + str(conf))
     
@@ -40,6 +41,7 @@ def consume(conf, log):
     c.subscribe([conf['input_topic']])
 
     n = 0
+    n_error = 0
     try:
         while n < conf['batch_size']:
             # Poll for messages
@@ -52,25 +54,38 @@ def consume(conf, log):
             elif not msg.error():
                 log.debug("Got message with offset " + str(msg.offset()))
                 alert = json.loads(msg.value())
-                name = alert.get('objectId', alert.get('candid'))
-                alerts[name] = alert
+                #name = alert.get('objectId', alert.get('candid'))
+                #alerts[name] = alert
+                alerts.append(alert)
+                n += 1
             else:
-                # TODO handle this better
-                log.warning(str(msg))
-                continue
-            n += 1
+                n_error += 1
+                log.warning(str(msg.error()))
+                try:
+                    if msg.error().fatal():
+                        break
+                except:
+                    pass
+                if conf['max_errors'] < 0:
+                    continue
+                elif conf['max_errors'] < n_error:
+                    log.error("maximum number of errors reached")
+                    break
+                else:
+                    continue
     except KafkaError as e:
         # TODO handle this properly
         log.warning(str(e))
     finally:
         c.close()
     log.info("consumed {:d} alerts".format(n))
+    return n
 
 
-def classify(conf, log):
-    "send a batch of alerts to sherlock and add the responses to the alerts"
+def classify(conf, log, alerts):
+    "send a batch of alerts to sherlock and add the responses to the alerts, return the number of alerts classified"
     
-    global alerts
+    #global alerts
 
     log.debug('called classify with config: ' + str(conf))
     
@@ -78,7 +93,8 @@ def classify(conf, log):
     names = []
     ra = []
     dec = []
-    for name,alert in alerts.items():
+    for alert in alerts:
+        name = alert.get('objectId', alert.get('candid'))
         names.append(name)
         ra.append(alert['candidate']['ra'])
         dec.append(alert['candidate']['dec'])
@@ -101,22 +117,36 @@ def classify(conf, log):
     log.info("got {:d} crossmatches".format(len(crossmatches)))
     
     # process classifications
-    for name,classes in classifications.items():
-        alerts[name]['objClass'] = classes[0]
+    for alert in alerts:
+        name = alert.get('objectId', alert.get('candid'))
+        if name in classifications:
+            alert['objClass'] = classifications[name][0]
+    #for name,classes in classifications.items():
+    #    alerts[name]['objClass'] = classes[0]
 
     # process crossmatches
+    cm_by_name = {}
     for cm in crossmatches:
         name = cm['transient_object_id']
-        if 'matches' in alerts[name]:
-            alerts[name]['matches'].append(cm)
+        if name in cm_by_name:
+            cm_by_name[name].append(cm)
         else:
-            alerts[name]['matches'] = [cm]
+            cm_by_name[name] = [cm]
+    for alert in alerts:
+        name = alert.get('objectId', alert.get('candid'))
+        if name in cm_by_name:
+            alert['matches'] = cm_by_name[name]
+    #    if 'matches' in alerts[name]:
+    #        alerts[name]['matches'].append(cm)
+    #    else:
+    #        alerts[name]['matches'] = [cm]
 
+    return len(classifications)
 
-def produce(conf, log):
-    "produce a batch of alerts on the kafka output topic"
+def produce(conf, log, alerts):
+    "produce a batch of alerts on the kafka output topic, return number of alerts produced"
 
-    global alerts
+    #global alerts
 
     log.debug('called produce with config: ' + str(conf))
 
@@ -133,15 +163,17 @@ def produce(conf, log):
     # produce alerts
     n = 0
     try:
-        for name,alert in alerts.items():
+        while alerts:
+            alert = alerts.pop(0)
             p.produce(conf['output_topic'], value=json.dumps(alert))
             n += 1
+    #    for name,alert in alerts.items():
+    #        p.produce(conf['output_topic'], value=json.dumps(alert))
+    #        n += 1
     finally:
         p.flush()
     log.info("produced {:d} alerts".format(n))
-
-    # clear alerts
-    alerts = {}
+    return n
 
 if __name__ == '__main__':
     # parse cmd line arguments
@@ -149,10 +181,11 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', type=str, default='config.yaml', help='location of config file (default config.yaml)')
     parser.add_argument('-b', '--broker', type=str, help='address:port of Kafka broker(s)')
     parser.add_argument('-g', '--group', type=str, default='sherlock-dev-1', help='group id to use for Kafka')
-    parser.add_argument('-t', '--timeout', type=int, default=10, help='kafka consumer timeout in ms')
+    parser.add_argument('-t', '--timeout', type=int, default=10, help='kafka consumer timeout in s')
     parser.add_argument('-i', '--input_topic', type=str, help='name of input topic')
     parser.add_argument('-o', '--output_topic', type=str, help='name of output topic')
     parser.add_argument('-n', '--batch_size', type=int, default=1000, help='number of messages to process per batch')
+    parser.add_argument('-e', '--max_errors', type=int, default=-1, help='maximum number of non-fatal errors before aborting') # negative=no limit
     parser.add_argument('-s', '--sherlock_settings', type=str, default='sherlock.yaml', help='location of Sherlock settings file (default sherlock.yaml)')
     parser.add_argument('-q', '--quiet', action="store_true", default=None, help='minimal output')
     parser.add_argument('-v', '--verbose', action="store_true", default=None, help='verbose output')
@@ -192,8 +225,8 @@ if __name__ == '__main__':
         sys.exit(2)
 
     while True:
-        consume(conf, log)
-        if len(alerts) > 0:
-            classify(conf, log)
-            produce(conf, log)
+        alerts = []
+        if consume(conf, log, alerts) > 0:
+            classify(conf, log, alerts)
+            produce(conf, log, alerts)
 
