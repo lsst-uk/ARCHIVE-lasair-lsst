@@ -1,6 +1,10 @@
 import json
+# This code reads in a forma definition of a schema, loosely based on 
+# AVRO schema files (.avsc) and converts it to any of several formats
+# required by Lasair
 
 def create_table(schema):
+    # Build the CREATE TABLE statement for MySQL to create this table
     tablename = schema['name']
     lines = []
     for f in schema['fields']:
@@ -40,12 +44,14 @@ def create_table(schema):
     return sql
 
 def attribute_list(schema):
+    # Just a list of attribute names
     list = []
     for f in schema['fields']:
         list.append(f['name'])
     return list
 
 def autocomplete_tags(schema):
+    # Something for the javascript in the autocomplete functionality on the query builder
     tablename = schema['name']
     js = ''
     for f in schema['fields']:
@@ -53,6 +59,8 @@ def autocomplete_tags(schema):
     return js
 
 def html(schema):
+    # HTML table of attribute and description
+    # NEEDS unit, UCD, etc
     s = '<h3>Schema for "%s" table</h3>\n' % schema['name']
     s += '<table border=1>\n'
     for f in schema['fields']:
@@ -62,10 +70,13 @@ def html(schema):
 
 import sys
 if __name__ == '__main__':
+    # read in the definition file
     filename = 'object.json'
     if len(sys.argv) > 1: 
         filename = sys.argv[1]
     schema = json.loads(open(filename).read())
+
+    # try out the methods
 #    print(json.dumps(schema, indent=2))
     print(create_table(schema))
 #    print(attribute_list(schema))
