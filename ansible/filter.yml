@@ -1,5 +1,5 @@
 ---
-- hosts: filter_nodes:rdbms
+- hosts: filter_nodes
   gather_facts: no
   tasks:
     - name: install pip3
@@ -7,6 +7,12 @@
           name: python3-pip
           state: present
           update_cache: true
+      become: yes
+
+    - name: install numpy
+      pip: 
+          executable: pip3 
+          name: numpy
       become: yes
 
     - name: install confluent kafka
