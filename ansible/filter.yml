@@ -15,6 +15,12 @@
           name: numpy
       become: yes
 
+    - name: install ephem
+      pip: 
+          executable: pip3 
+          name: ephem
+      become: yes
+
     - name: install confluent kafka
       pip: 
           executable: pip3 
