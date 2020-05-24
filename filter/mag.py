@@ -1,6 +1,6 @@
 import math
 
-def dc_mag(fid, magpsf,sigmapsf, magnr,sigmagnr, magzpsci, isdiffpos):
+def dc_mag_dict(fid, magpsf,sigmapsf, magnr,sigmagnr, magzpsci, isdiffpos):
     """ Compute apparent magnitude from difference magnitude supplied by ZTF
     Parameters
     ----------
