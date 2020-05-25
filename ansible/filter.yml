@@ -50,6 +50,11 @@
           mode: '777'
       become: yes
 
+    - name: Creates directory
+      file:
+          path: /home/ubuntu/scratch
+          state: directory
+
     - name: Make sure the repo is up to date
       git: 
           repo: https://github.com/lsst-uk/lasair-lsst.git
