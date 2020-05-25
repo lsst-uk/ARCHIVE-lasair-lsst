@@ -53,7 +53,7 @@ out = gethostname()
 cmd = 'scp /home/ubuntu/scratch/out.txt %s:scratch/%s' % (settings.DB_HOST_REMOTE, out)
 os.system(cmd)
 
-cmd = 'ssh %s "python3 /home/ubuntu/LasairTech/database_tests/ingest/archive_in.py %s"' % (settings.DB_HOST_REMOTE, out)
+cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s"' % (settings.DB_HOST_REMOTE, out)
 os.system(cmd)
 print('SEND %.1f seconds' % (time.time() - t))
 

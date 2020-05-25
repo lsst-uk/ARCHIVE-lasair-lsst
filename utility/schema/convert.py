@@ -12,8 +12,7 @@ def create_table(schema):
         primtype = ''
         if 'type'    in f: 
             t = f['type']
-            if isinstance(t, str):
-                primtype = t
+            primtype = t
             if isinstance(t, list) and len(t) == 2 and t[1] == 'null':
                 primtype = t[0]
         if   primtype == 'float':  s += ' float'

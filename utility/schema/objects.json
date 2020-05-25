@@ -6,15 +6,9 @@
   "type": "record",
   "fields": [
     {
-      "name": "primaryId",
-      "type": "long",
-      "extra": "NOT NULL AUTO_INCREMENT",
-      "doc": "Integer identifier"
-    },
-    {
       "name": "objectId",
       "type": "string",
-      "extra": "CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL",
+      "extra": "CHARACTER SET utf8 COLLATE utf8_unicode_ci",
       "doc": "ZTF object identifier"
     },
     {
@@ -184,8 +178,7 @@
     }
   ],
   "indexes": [
-    "PRIMARY KEY (`primaryId`)",
-    "UNIQUE KEY `objectId_UNIQUE` (`objectId`)",
+    "PRIMARY KEY (`objectId`)",
     "KEY `htmid16idx` (`htm16`)",
     "KEY `idx_ncand` (`ncand`)",
     "KEY `idx_ramean` (`ramean`)",
