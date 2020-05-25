@@ -1,5 +1,5 @@
 ---
-- hosts: filter_nodes
+- hosts: rdbms
   gather_facts: no
   tasks:
     - name: install pip3
@@ -8,29 +8,6 @@
           state: present
           update_cache: true
       become: yes
-
-    - name: install numpy
-      pip: 
-          executable: pip3 
-          name: numpy
-      become: yes
-
-    - name: install ephem
-      pip: 
-          executable: pip3 
-          name: ephem
-      become: yes
-
-    - name: install confluent kafka
-      pip: 
-          executable: pip3 
-          name: confluent-kafka
-      become: yes
-
-    - name: install mysql.connector
-      pip: 
-          executable: pip3 
-          name: mysql-connector-python
 
     - name: install mysql
       apt: 

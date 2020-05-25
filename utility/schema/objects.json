@@ -1,0 +1,216 @@
+{
+  "namespace": "ztf.alert",
+  "name": "objects",
+  "doc": "avro alert schema",
+  "version": "3.3",
+  "type": "record",
+  "fields": [
+    {
+      "name": "primaryId",
+      "type": "long",
+      "extra": "NOT NULL AUTO_INCREMENT",
+      "doc": "Integer identifier"
+    },
+    {
+      "name": "objectId",
+      "type": "string",
+      "extra": "CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL",
+      "doc": "ZTF object identifier"
+    },
+    {
+      "name": "decmean",
+      "type": "double",
+      "doc": "mean Dec in degrees"
+    },
+    {
+      "name": "decstd",
+      "type": "double",
+      "doc": "standard deviation of Dec in arcseconds"
+    },
+    {
+      "name": "distpsnr1",
+      "type": "float",
+      "doc": "Distance of closest source from PS1 catalog; if exists within 30 arcsec [arcsec]"
+    },
+    {
+      "name": "glatmean",
+      "type": "double",
+      "doc": "mean galactic latitude in degrees"
+    },
+    {
+      "name": "glonmean",
+      "type": "double",
+      "doc": "mean galactic longitude in degrees"
+    },
+    {
+      "name": "jdmax",
+      "type": "double",
+      "doc": "latest Julian Day of candidates that cite this object"
+    },
+    {
+      "name": "jdmin",
+      "type": "double",
+      "doc": "earliest Julian Day of candidates that cite this object"
+    },
+    {
+      "name": "latest_dc_mag_g",
+      "type": "float",
+      "doc": "Latest computed apparent g magnitude (see Note about Photometry in this page"
+    },
+    {
+      "name": "latest_dc_mag_g02",
+      "type": "float",
+      "doc": "Latest Exponential Moving Average of apparent magnitude in g band, with 2-day timescale (see note)"
+    },
+    {
+      "name": "latest_dc_mag_g08",
+      "type": "float",
+      "doc": "Latest Exponential Moving Average of apparent magnitude in g band, with 8-day timescale (see note)"
+    },
+    {
+      "name": "latest_dc_mag_g28",
+      "type": "float",
+      "doc": "Latest Exponential Moving Average of apparent magnitude in g band, with 28-day timescale (see note)"
+    },
+    {
+      "name": "latest_dc_mag_r",
+      "type": "float",
+      "doc": "Latest computed apparent r magnitude (see Note about Photometry in this page"
+    },
+    {
+      "name": "latest_dc_mag_r02",
+      "type": "float",
+      "doc": "Latest Exponential Moving Average of apparent magnitude in r band, with 2-day timescale (see note)"
+    },
+    {
+      "name": "latest_dc_mag_r08",
+      "type": "float",
+      "doc": "Latest Exponential Moving Average of apparent magnitude in r band, with 8-day timescale (see note)"
+    },
+    {
+      "name": "latest_dc_mag_r28",
+      "type": "float",
+      "doc": "Latest Exponential Moving Average of apparent magnitude in r band, with 28-day timescale (see note)"
+    },
+    {
+      "name": "latestgmag",
+      "type": "float",
+      "doc": "latest g magnitude of candidates that cite this object"
+    },
+    {
+      "name": "latestrmag",
+      "type": "float",
+      "doc": "latest r magnitude of candidates that cite this object"
+    },
+    {
+      "name": "maggmax",
+      "type": "float",
+      "doc": "maximum g magnitude of candidates that cite this object"
+    },
+    {
+      "name": "maggmean",
+      "type": "float",
+      "doc": "mean g magnitude of candidates that cite thisobject"
+    },
+    {
+      "name": "maggmedian",
+      "type": "float",
+      "doc": "median g magnitude of candidates that cite thisobject"
+    },
+    {
+      "name": "maggmin",
+      "type": "float",
+      "doc": "minimum g magnitude of candidates that cite this object"
+    },
+    {
+      "name": "magrmax",
+      "type": "float",
+      "doc": "maximum r magnitude of candidates that cite thisobject"
+    },
+    {
+      "name": "magrmean",
+      "type": "float",
+      "doc": "mean r magnitude of candidates that cite thisobject"
+    },
+    {
+      "name": "magrmedian",
+      "type": "float",
+      "doc": "median r magnitude of candidates that cite thisobject"
+    },
+    {
+      "name": "magrmin",
+      "type": "float",
+      "doc": "minimum r magnitude of candidates that cite thisobject"
+    },
+    {
+      "name": "ncand",
+      "type": "int",
+      "doc": "number of candidates that cite this object (integer)"
+    },
+    {
+      "name": "ncandgp",
+      "type": "int",
+      "doc": "number of candidates that cite this object which have drb > 0.75 and isdiffpos = t(integer)"
+    },
+    {
+      "name": "ramean",
+      "type": "double",
+      "doc": "mean RA in degrees"
+    },
+    {
+      "name": "rastd",
+      "type": "double",
+      "doc": "standard deviation of RA in arcseconds"
+    },
+    {
+      "name": "sgmag1",
+      "type": "float",
+      "doc": "g-band PSF magnitude of closest source from PS1 catalog; if exists within 30 arcsec [mag]"
+    },
+    {
+      "name": "sgscore1",
+      "type": "float",
+      "doc": "Star/Galaxy score of closest source from PS1 catalog 0 <= sgscore <= 1 where closer to 1 implies higher likelihood of being a star"
+    },
+    {
+      "name": "srmag1",
+      "type": "float",
+      "doc": "r-band PSF magnitude of closest source from PS1 catalog; if exists within 30 arcsec"
+    },
+    {
+      "name": "htm16",
+      "type": "bigint",
+      "doc": "Hierarchical Triangular Mesh level 16"
+    }
+  ],
+  "indexes": [
+    "PRIMARY KEY (`primaryId`)",
+    "UNIQUE KEY `objectId_UNIQUE` (`objectId`)",
+    "KEY `htmid16idx` (`htm16`)",
+    "KEY `idx_ncand` (`ncand`)",
+    "KEY `idx_ramean` (`ramean`)",
+    "KEY `idx_rastd` (`rastd`)",
+    "KEY `idx_decmean` (`decmean`)",
+    "KEY `idx_decstd` (`decstd`)",
+    "KEY `idx_maggmin` (`maggmin`)",
+    "KEY `idx_maggmax` (`maggmax`)",
+    "KEY `idx_maggmedian` (`maggmedian`)",
+    "KEY `idx_maggmean` (`maggmean`)",
+    "KEY `idx_magrmin` (`magrmin`)",
+    "KEY `idx_magrmax` (`magrmax`)",
+    "KEY `idx_magrmedian` (`magrmedian`)",
+    "KEY `idx_magrmean` (`magrmean`)",
+    "KEY `idx_latestgmag` (`latestgmag`)",
+    "KEY `idx_latestrmag` (`latestrmag`)",
+    "KEY `idx_jdmin` (`jdmin`)",
+    "KEY `idx_jdmax` (`jdmax`)",
+    "KEY `idx_glatmean` (`glatmean`)",
+    "KEY `idx_glonmean` (`glonmean`)",
+    "KEY `idx_htm16` (`htm16`)",
+    "KEY `idx_sgmag1` (`sgmag1`)",
+    "KEY `idx_srmag1` (`srmag1`)",
+    "KEY `idx_sgscore1` (`sgscore1`)",
+    "KEY `idx_distpsnr1` (`distpsnr1`)",
+    "KEY `idx_ncandgp` (`ncandgp`)"
+  ]
+}
