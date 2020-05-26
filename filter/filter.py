@@ -13,6 +13,9 @@ else:
 date = date_nid.nid_to_date(nid)
 topic  = 'ztf_' + date + '_programid1'
 
+######  test topic
+topic = 'ztf_test_ingested'
+
 os.system('date')
 print('clear local caches')
 cmd = 'python3 refresh.py'

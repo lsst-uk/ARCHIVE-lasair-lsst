@@ -9,26 +9,10 @@ import os
 import time
 import settings
 import mysql.connector
-from mag import dc_mag
 import threading
 import alertConsumer
 import make_query
 import json
-
-def alert_filter(alert, msl):
-    """Filter to apply to each alert.
-    """
-    candid = 0
-    data = alert
-    if alert:
-        query = create_query.create_insert_query(alert)
-        try:
-            cursor = msl.cursor(buffered=True)
-            cursor.execute(query)
-            cursor.close()
-        except mysql.connector.Error as err:
-            print('INGEST Database insert candidate failed: %s' % str(err))
-        msl.commit()
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -59,6 +43,21 @@ def make_database_connection():
         )
     return msl
 
+def alert_filter(alert, msl):
+    """Filter to apply to each alert.
+    """
+    candid = 0
+    data = alert
+    if alert:
+        query = make_query.create_insert_query(alert)
+        try:
+            cursor = msl.cursor(buffered=True)
+            cursor.execute(query)
+            cursor.close()
+        except mysql.connector.Error as err:
+            print('INGEST Database insert candidate failed: %s' % str(err))
+        msl.commit()
+
 class Consumer(threading.Thread):
     def __init__(self, threadID, args, conf):
         threading.Thread.__init__(self)
@@ -88,22 +87,21 @@ class Consumer(threading.Thread):
         startt = time.time()
         while nalert < maxalert:
             try:
-                msg = streamReader.poll(decode=True, timeout=settings.KAFKA_TIMEOUT)
+                msg = streamReader.poll(decode=False, timeout=settings.KAFKA_TIMEOUT)
             except alertConsumer.EopError as e:
                 continue
 
             if msg is None:
                 continue
             else:
-                for record in msg:
-                    # Apply filter to each alert
-                    alert = json.loads(record)
-                    alert_filter(alert, msl)
-                    nalert += 1
-                    if nalert%1000 == 0:
-                        print('thread %d nalert %d time %.1f' % ((self.threadID, nalert, time.time()-startt)))
-                        msl.close()
-                        msl = make_database_connection()
+                # Apply filter to each alert
+                alert = json.loads(msg)
+                alert_filter(alert, msl)
+                nalert += 1
+                if nalert%1000 == 0:
+                    print('thread %d nalert %d time %.1f' % ((self.threadID, nalert, time.time()-startt)))
+                    msl.close()
+                    msl = make_database_connection()
     
         print('INGEST %d finished with %d alerts' % (self.threadID, nalert))
 

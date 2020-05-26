@@ -175,6 +175,26 @@
       "name": "htm16",
       "type": "bigint",
       "doc": "Hierarchical Triangular Mesh level 16"
+    },
+    {
+      "name": "sherlock_classification",
+      "type": "string",
+      "doc": "Sherlock classification (NULL, AGN, BS, CV, NT, ORPHAN, SN, UNCLEAR, VS)"
+    },
+    {
+      "name": "sherlock_annotation",
+      "type": "bigstring",
+      "doc": "Sherlock annotation"
+    },
+    {
+      "name": "sherlock_summary",
+      "type": "bigstring",
+      "doc": "Sherlock summary"
+    },
+    {
+      "name": "sherlock_separation_arcsec",
+      "type": "float",
+      "doc": "Sherlock separation from best crossmatch"
     }
   ],
   "indexes": [

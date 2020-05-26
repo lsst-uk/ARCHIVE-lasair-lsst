@@ -74,13 +74,15 @@ class AlertConsumer(object):
             if msg.error():
                 raise EopError(msg)
             else:
-                self.raw_msg = msg.value()   # added by RDW to keep raw msg
-                if verbose is True:
-                    if decode is True:
-                        return self.decodeMessage(msg)
-                    else:
-                        ast_msg = literal_eval(str(msg.value(), encoding='utf-8'))
-                        return ast_msg
+                return msg.value()
+
+#                self.raw_msg = msg.value()   # added by RDW to keep raw msg
+#                if verbose is True:
+#                    if decode is True:
+#                        return self.decodeMessage(msg)
+#                    else:
+##                        ast_msg = literal_eval(str(msg.value(), encoding='utf-8'))
+#                        return msg.value()
         else:
             try:
                 raise EopError(msg)
