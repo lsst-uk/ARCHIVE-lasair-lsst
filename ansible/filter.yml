@@ -59,3 +59,7 @@
       git: 
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
+
+# mysql -u ztf -p ztf < ../utility/mysql_setup.sql
+# mysql -u ztf -p ztf < ../utility/schema/objects.sql
+# mysql -u ztf -p ztf < ../utility/schema/sherlock_crossmatches.sql
