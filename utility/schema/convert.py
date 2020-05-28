@@ -15,13 +15,14 @@ def create_table(schema):
             primtype = t
             if isinstance(t, list) and len(t) == 2 and t[1] == 'null':
                 primtype = t[0]
-        if   primtype == 'float':  s += ' float'
-        elif primtype == 'double': s += ' double'
-        elif primtype == 'int':    s += ' int'
-        elif primtype == 'long':   s += ' int(11)'
-        elif primtype == 'bigint': s += ' bigint(20)'
-        elif primtype == 'string': s += ' varchar(16)'
-        elif primtype == 'bigstring': s += ' varchar(50)'
+        if   primtype == 'float':    s += ' float'
+        elif primtype == 'double':   s += ' double'
+        elif primtype == 'int':      s += ' int'
+        elif primtype == 'long':     s += ' int(11)'
+        elif primtype == 'bigint':   s += ' bigint(20)'
+        elif primtype == 'string':   s += ' varchar(16)'
+        elif primtype == 'bigstring':s += ' varchar(80)'
+        elif primtype == 'text':     s += ' text'
         else: print('ERROR unknown type ', primtype)
     
         if 'default' in f:
