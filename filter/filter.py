@@ -13,6 +13,9 @@ else:
 date = date_nid.nid_to_date(nid)
 topic  = 'ztf_' + date + '_programid1'
 
+######  test topic
+topic = 'ztf_test_ingested'
+
 os.system('date')
 print('clear local caches')
 cmd = 'python3 refresh.py'
@@ -53,7 +56,7 @@ out = gethostname()
 cmd = 'scp /home/ubuntu/scratch/out.txt %s:scratch/%s' % (settings.DB_HOST_REMOTE, out)
 os.system(cmd)
 
-cmd = 'ssh %s "python3 /home/ubuntu/LasairTech/database_tests/ingest/archive_in.py %s"' % (settings.DB_HOST_REMOTE, out)
+cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s"' % (settings.DB_HOST_REMOTE, out)
 os.system(cmd)
 print('SEND %.1f seconds' % (time.time() - t))
 

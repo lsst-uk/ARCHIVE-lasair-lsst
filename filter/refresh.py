@@ -9,6 +9,6 @@ config = {
 msl = mysql.connector.connect(**config)
 
 cursor = msl.cursor(buffered=True, dictionary=True)
-query = 'TRUNCATE TABLE candidates'
+query = 'TRUNCATE TABLE objects'
 cursor.execute(query)
 

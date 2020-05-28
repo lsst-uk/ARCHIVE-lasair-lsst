@@ -6,15 +6,9 @@
   "type": "record",
   "fields": [
     {
-      "name": "primaryId",
-      "type": "long",
-      "extra": "NOT NULL AUTO_INCREMENT",
-      "doc": "Integer identifier"
-    },
-    {
       "name": "objectId",
       "type": "string",
-      "extra": "CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL",
+      "extra": "CHARACTER SET utf8 COLLATE utf8_unicode_ci",
       "doc": "ZTF object identifier"
     },
     {
@@ -181,11 +175,30 @@
       "name": "htm16",
       "type": "bigint",
       "doc": "Hierarchical Triangular Mesh level 16"
+    },
+    {
+      "name": "sherlock_classification",
+      "type": "string",
+      "doc": "Sherlock classification (NULL, AGN, BS, CV, NT, ORPHAN, SN, UNCLEAR, VS)"
+    },
+    {
+      "name": "sherlock_annotation",
+      "type": "text",
+      "doc": "Sherlock annotation"
+    },
+    {
+      "name": "sherlock_summary",
+      "type": "bigstring",
+      "doc": "Sherlock summary"
+    },
+    {
+      "name": "sherlock_separation_arcsec",
+      "type": "float",
+      "doc": "Sherlock separation from best crossmatch"
     }
   ],
   "indexes": [
-    "PRIMARY KEY (`primaryId`)",
-    "UNIQUE KEY `objectId_UNIQUE` (`objectId`)",
+    "PRIMARY KEY (`objectId`)",
     "KEY `htmid16idx` (`htm16`)",
     "KEY `idx_ncand` (`ncand`)",
     "KEY `idx_ramean` (`ramean`)",

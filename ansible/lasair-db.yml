@@ -27,7 +27,17 @@
           mode: '777'
       become: yes
 
+    - name: Creates directory
+      file:
+          path: /home/ubuntu/scratch
+          state: directory
+
     - name: Make sure the repo is up to date
       git: 
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
+
+# # mysql -u ztf -p ztf < ../utility/mysql_setup.sql
+# mysql -u ztf -p ztf < ../utility/schema/objects.sql
+# mysql -u ztf -p ztf < ../utility/schema/sherlock_crossmatches.sql
+

@@ -1,0 +1,196 @@
+{
+  "namespace": "ztf.alert",
+  "name": "sherlock_crossmatches",
+  "doc": "avro alert schema",
+  "version": "3.3",
+  "type": "record",
+  "fields": [
+    {
+      "name": "objectId",
+      "type": "string",
+      "extra": "CHARACTER SET utf8 COLLATE utf8_unicode_ci",
+      "doc": "ZTF object identifier"
+    },
+    {
+      "name": "catalogue_object_id",
+      "type": "bigint",
+      "doc": "ID in the named catalog (integer)"
+    },
+    {
+      "name": "catalogue_table_id",
+      "type": "int",
+      "doc": "some kind of ID"
+    },
+    {
+      "name": "separationArcsec",
+      "type": "float",
+      "doc": "separation in arcseconds"
+    },
+    {
+      "name": "northSeparationArcsec",
+      "type": "float",
+      "doc": "North separation in arcseconds"
+    },
+    {
+      "name": "eastSeparationArcsec",
+      "type": "float",
+      "doc": "East separation in arcseconds"
+    },
+    {
+      "name": "id",
+      "type": "bigint",
+      "doc": "ID in the catalogue"
+    },
+    {
+      "name": "z",
+      "type": "float",
+      "doc": "redshift"
+    },
+    {
+      "name": "scale",
+      "type": "float",
+      "doc": "scale of something"
+    },
+    {
+      "name": "distance",
+      "type": "float",
+      "doc": "distance of host"
+    },
+    {
+      "name": "distance_modulus",
+      "type": "float",
+      "doc": "No idea"
+    },
+    {
+      "name": "photoZ",
+      "type": "float",
+      "doc": "Photometric redshift"
+    },
+    {
+      "name": "photoZErr",
+      "type": "float",
+      "doc": "Error in photometric redshift"
+    },
+    {
+      "name": "association_type",
+      "type": "string",
+      "doc": "Assocation type"
+    },
+    {
+      "name": "physical_separation_kpc",
+      "type": "float",
+      "doc": "Physical separation in kilo parsecs"
+    },
+    {
+      "name": "catalogue_object_type",
+      "type": "string",
+      "doc": "Catalogue object type"
+    },
+    {
+      "name": "catalogue_object_subtype",
+      "type": "string",
+      "doc": "Catalogue object subtype"
+    },
+    {
+      "name": "association_rank",
+      "type": "int",
+      "doc": "Rank of association"
+    },
+    {
+      "name": "catalogue_table_name",
+      "type": "bigstring",
+      "doc": "Catalogue table name"
+    },
+    {
+      "name": "rank",
+      "type": "int",
+      "doc": "Rank"
+    },
+    {
+      "name": "rankScore",
+      "type": "float",
+      "doc": "Rank score"
+    },
+    {
+      "name": "search_name",
+      "type": "bigstring",
+      "doc": "Search name"
+    },
+    {
+      "name": "major_axis_arcsec",
+      "type": "float",
+      "doc": "Major axis arcsec"
+    },
+    {
+      "name": "direct_distance",
+      "type": "float",
+      "doc": "Direct distance"
+    },
+    {
+      "name": "direct_distance_scale",
+      "type": "float",
+      "doc": "Direct distance scale"
+    },
+    {
+      "name": "direct_distance_modulus",
+      "type": "float",
+      "doc": "Direct distance modulus"
+    },
+    {
+      "name": "raDeg",
+      "type": "double",
+      "doc": "Right Ascension"
+    },
+    {
+      "name": "decDeg",
+      "type": "double",
+      "doc": "Declination"
+    },
+    {
+      "name": "original_search_radius_arcsec",
+      "type": "float",
+      "doc": "Original search radius arcsec"
+    },
+    {
+      "name": "catalogue_view_id",
+      "type": "int",
+      "doc": "Catalogue view ID"
+    },
+    {"name": "_u", "type": "float", "doc":"u magnitude"}, {"name": "_uErr", "type": "float", "doc":"u magnitude error"},
+    {"name": "_g", "type": "float", "doc":"g magnitude"}, {"name": "_gErr", "type": "float", "doc":"g magnitude error"},
+    {"name": "_r", "type": "float", "doc":"r magnitude"}, {"name": "_rErr", "type": "float", "doc":"r magnitude error"},
+    {"name": "_i", "type": "float", "doc":"i magnitude"}, {"name": "_iErr", "type": "float", "doc":"i magnitude error"},
+    {"name": "_z", "type": "float", "doc":"z magnitude"}, {"name": "_zErr", "type": "float", "doc":"z magnitude error"},
+    {"name": "_y", "type": "float", "doc":"y magnitude"}, {"name": "_yErr", "type": "float", "doc":"y magnitude error"},
+
+    {"name": "U",  "type": "float", "doc":"U magnitude"}, {"name":  "UErr", "type": "float", "doc":"U magnitude error"},
+    {"name": "B",  "type": "float", "doc":"B magnitude"}, {"name":  "BErr", "type": "float", "doc":"B magnitude error"},
+    {"name": "V",  "type": "float", "doc":"V magnitude"}, {"name":  "VErr", "type": "float", "doc":"V magnitude error"},
+    {"name": "R",  "type": "float", "doc":"R magnitude"}, {"name":  "RErr", "type": "float", "doc":"R magnitude error"},
+    {"name": "I",  "type": "float", "doc":"I magnitude"}, {"name":  "IErr", "type": "float", "doc":"I magnitude error"},
+
+    {"name": "J",  "type": "float", "doc":"J magnitude"}, {"name":  "JErr", "type": "float", "doc":"J magnitude error"},
+    {"name": "H",  "type": "float", "doc":"H magnitude"}, {"name":  "HErr", "type": "float", "doc":"H magnitude error"},
+    {"name": "K",  "type": "float", "doc":"K magnitude"}, {"name":  "KErr", "type": "float", "doc":"K magnitude error"},
+    {"name": "G",  "type": "float", "doc":"G magnitude"}, {"name":  "GErr", "type": "float", "doc":"G magnitude error"},
+    {
+      "name": "classificationReliability",
+      "type": "int",
+      "doc": "classification reliability"
+    },
+    {
+      "name": "transientAbsMag",
+      "type": "float",
+      "doc": "Transient absolute magnitude"
+    },
+    {
+      "name": "merged_rank",
+      "type": "int",
+      "doc": "Merged rank"
+    }
+  ],
+  "indexes": [
+    "PRIMARY KEY (`id`)",
+    "KEY `key_objectId` (`objectId`)"
+  ]
+}

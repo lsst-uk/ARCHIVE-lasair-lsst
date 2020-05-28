@@ -24,7 +24,6 @@ def make_ema(candlist):
             c['magnr'],  c['sigmagnr'], 
             c['magzpsci'], c['isdiffpos'])
         dc_mag = d['dc_mag']
-        print(dc_mag)
 
         if c['fid'] == 1:
             f02 = math.exp(-(jd-oldgjd)/2.0)
@@ -81,24 +80,18 @@ def create_insert_query(alert):
             magr.append(cand['magpsf'])
             latestrmag = cand['magpsf']
 
-        try:
+        if 'drb' in cand:
             sgmag1    = cand['sgmag1']
             srmag1    = cand['srmag1']
-        except:
-            pass
-
-        try:
-            if(cand['sgscore1']):  sgscore1  = cand['sgscore1']
-            if(cand['distpsnr1']): distpsnr1 = cand['distpsnr1']
-        except:
-            pass
-
-        ncand += 1
-        try:
-            if cand['drb'] and cand['drb'] > 0.75 and cand['isdiffpos'] == 't':
+            sgscore1  = cand['sgscore1']
+            distpsnr1 = cand['distpsnr1']
+            if cand['drb'] > 0.75 and cand['isdiffpos'] == 't':
                 ncandgp += 1
-        except:
-            pass
+        ncand += 1
+
+    # only want light curves with at least 2 candidates
+    if ncand <= 1:
+        return None
 
     if len(magg) > 0:
         maggmin = np.min(magg)
@@ -128,11 +121,10 @@ def create_insert_query(alert):
         htm16 = htmCircle.htmID(16, ramean, decmean)
     except:
         htm16 = 0
-        print('Cannot get HTMID for ra=%f, dec=%f' % (ramean, decmean))
+        #print('Cannot get HTMID for ra=%f, dec=%f' % (ramean, decmean))
 
     sets = {}
     sets['ncand']      = ncand
-    sets['stale']      = 0
     sets['ramean']     = ramean
     sets['rastd']      = 3600*np.std(ra)
     sets['decmean']    = decmean
@@ -169,13 +161,11 @@ def create_insert_query(alert):
     sets['latest_dc_mag_r28'] = ema['r28']
 
     list = []
-    query = 'UPDATE objects SET '
+    query = 'REPLACE INTO objects SET objectId="%s", ' % objectId
     for key,value in sets.items():
         list.append(key + '=' + str(value))
     query += ', '.join(list)
-    query += ' WHERE objectId="' + objectId + '"'
     query = query.replace('None', 'NULL')
-    print ('%s with %d candidates' % (objectId, ncand))
     return query
 
 import os
@@ -184,6 +174,7 @@ if __name__ == '__main__':
     for hex3 in os.listdir(root):
         for jsonfile in os.listdir(root + hex3):
             filename = root + hex3 + '/' + jsonfile
-            print(filename)
             alert = json.loads(open(filename).read()) 
             query = create_insert_query(alert)
+            if query:
+                print(query + ';\n')
