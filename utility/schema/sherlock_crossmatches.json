@@ -73,7 +73,7 @@
     },
     {
       "name": "association_type",
-      "type": "bigstring",
+      "type": "string",
       "doc": "Assocation type"
     },
     {
@@ -83,12 +83,12 @@
     },
     {
       "name": "catalogue_object_type",
-      "type": "bigstring",
+      "type": "string",
       "doc": "Catalogue object type"
     },
     {
       "name": "catalogue_object_subtype",
-      "type": "bigstring",
+      "type": "string",
       "doc": "Catalogue object subtype"
     },
     {
@@ -100,11 +100,6 @@
       "name": "catalogue_table_name",
       "type": "bigstring",
       "doc": "Catalogue table name"
-    },
-    {
-      "name": "catalogue_view_name",
-      "type": "bigstring",
-      "doc": "Catalogue view name"
     },
     {
       "name": "rank",

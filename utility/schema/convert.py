@@ -21,7 +21,7 @@ def create_table(schema):
         elif primtype == 'long':   s += ' int(11)'
         elif primtype == 'bigint': s += ' bigint(20)'
         elif primtype == 'string': s += ' varchar(16)'
-        elif primtype == 'bigstring': s += ' varchar(50)'
+        elif primtype == 'bigstring': s += ' varchar(80)'
         else: print('ERROR unknown type ', primtype)
     
         if 'default' in f:
