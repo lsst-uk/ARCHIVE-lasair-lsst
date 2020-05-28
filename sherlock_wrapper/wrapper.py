@@ -11,8 +11,8 @@ import argparse
 import logging
 import sys
 from confluent_kafka import Consumer, Producer, KafkaError
-from mock_sherlock import transient_classifier
-#from sherlock import transient_classifier
+#from mock_sherlock import transient_classifier
+from sherlock import transient_classifier
 
 # TODO replace with a proper queue(s) for multi-threading?
 #alerts = {}
@@ -88,7 +88,15 @@ def classify(conf, log, alerts):
     #global alerts
 
     log.debug('called classify with config: ' + str(conf))
-    
+  
+    # read Sherlock settings file
+    sherlock_settings = {}
+    try:
+        with open(conf['sherlock_settings'], "r") as f:
+            sherlock_settings = yaml.safe_load(f)
+    except IOError as e:
+        print (e)
+
     # make lists of names, ra, dec
     names = []
     ra = []
@@ -102,7 +110,7 @@ def classify(conf, log, alerts):
     # set up sherlock
     classifier = transient_classifier(
         log=log,
-        settings=conf['sherlock_settings'],
+        settings=sherlock_settings,
         ra=ra,
         dec=dec,
         name=names,
@@ -175,6 +183,17 @@ def produce(conf, log, alerts):
     log.info("produced {:d} alerts".format(n))
     return n
 
+def run(conf, log):
+    while True:
+        alerts = []
+        n = consume(conf, log, alerts)
+        if n > 0:
+            classify(conf, log, alerts)
+            produce(conf, log, alerts)
+        elif conf['stop_at_end']:
+            break
+
+
 if __name__ == '__main__':
     # parse cmd line arguments
     parser = argparse.ArgumentParser(description=__doc__)
@@ -182,10 +201,11 @@ if __name__ == '__main__':
     parser.add_argument('-b', '--broker', type=str, help='address:port of Kafka broker(s)')
     parser.add_argument('-g', '--group', type=str, default='sherlock-dev-1', help='group id to use for Kafka')
     parser.add_argument('-t', '--timeout', type=int, default=10, help='kafka consumer timeout in s')
+    parser.add_argument('-e', '--stop_at_end', action='store_true', default=False, help='stop when no more messages to consume')
     parser.add_argument('-i', '--input_topic', type=str, help='name of input topic')
     parser.add_argument('-o', '--output_topic', type=str, help='name of output topic')
     parser.add_argument('-n', '--batch_size', type=int, default=1000, help='number of messages to process per batch')
-    parser.add_argument('-e', '--max_errors', type=int, default=-1, help='maximum number of non-fatal errors before aborting') # negative=no limit
+    parser.add_argument('-m', '--max_errors', type=int, default=-1, help='maximum number of non-fatal errors before aborting') # negative=no limit
     parser.add_argument('-s', '--sherlock_settings', type=str, default='sherlock.yaml', help='location of Sherlock settings file (default sherlock.yaml)')
     parser.add_argument('-q', '--quiet', action="store_true", default=None, help='minimal output')
     parser.add_argument('-v', '--verbose', action="store_true", default=None, help='verbose output')
@@ -224,9 +244,5 @@ if __name__ == '__main__':
         log.error("output topic not set")
         sys.exit(2)
 
-    while True:
-        alerts = []
-        if consume(conf, log, alerts) > 0:
-            classify(conf, log, alerts)
-            produce(conf, log, alerts)
+    run(conf, log)
 

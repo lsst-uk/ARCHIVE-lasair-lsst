@@ -11,13 +11,18 @@ log.level = logging.ERROR
 stream_handler = logging.StreamHandler(sys.stdout)
 log.addHandler(stream_handler)
 
+with open("tests/example_ingested.json", 'r') as f:
+    data = json.load(f)
+    example_alert = data[0]
+    example_input_data = json.dumps(data[0])
+
 # mock kafka message class for use by mock poll
 class MockMessage:
     def __init__(self,err=None):
         self.err = err
     def value(self):
-        with open("tests/example_ingested.json", 'r') as f:
-            example_input_data = f.read()
+        #with open("tests/example_ingested.json", 'r') as f:
+        #    example_input_data = f.read()[0]
         return example_input_data
     def error(self):
         return self.err
@@ -47,8 +52,8 @@ class TestConsumer(TestCase):
         'max_errors':-1
         }
 
-    with open("tests/example_ingested.json", 'r') as f:
-        example_input_data = f.read()
+    #with open("tests/example_ingested.json", 'r') as f:
+    #    example_input_data = f.read()[0]
 
     # test consumer reaching end of topic
     def test_consume_end_of_topic(self):
@@ -67,7 +72,7 @@ class TestConsumer(TestCase):
     def test_consume_alert_batch(self):
         with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             mock_kafka_consumer.return_value.poll.return_value.error.return_value = None
-            mock_kafka_consumer.return_value.poll.return_value.value.return_value = self.example_input_data
+            mock_kafka_consumer.return_value.poll.return_value.value.return_value = example_input_data
             alerts = []
             # consume should report consuming 5 alerts
             self.assertEqual(wrapper.consume(self.conf, log, alerts), 5)
@@ -84,7 +89,7 @@ class TestConsumer(TestCase):
             # poll returns None when no messages left to consume
             e = KafkaError(KafkaError._FATAL, "Test Error", fatal=True, retriable=False)
             mock_kafka_consumer.return_value.poll.return_value.error.return_value = e
-            mock_kafka_consumer.return_value.poll.return_value.value.return_value = self.example_input_data
+            mock_kafka_consumer.return_value.poll.return_value.value.return_value = example_input_data
             alerts = []
             # consume should report consuming 0 alerts
             self.assertEqual(wrapper.consume(self.conf, log, alerts), 0)
@@ -98,7 +103,6 @@ class TestConsumer(TestCase):
         with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             # poll returns None when no messages left to consume
             mock_kafka_consumer.return_value.poll = non_fatal_error_on_1st_call
-            ##mock_kafka_consumer.return_value.poll.return_value.value.return_value = self.example_input_data
             alerts = []
             # consume should report consuming 0 alerts
             self.assertEqual(wrapper.consume(self.conf, log, alerts), 5)
@@ -115,7 +119,7 @@ class TestConsumer(TestCase):
             # poll returns None when no messages left to consume
             e = KafkaError(KafkaError._APPLICATION, "Test Error", fatal=False, retriable=True)
             mock_kafka_consumer.return_value.poll.return_value.error.return_value = e
-            mock_kafka_consumer.return_value.poll.return_value.value.return_value = self.example_input_data
+            mock_kafka_consumer.return_value.poll.return_value.value.return_value = example_input_data
             conf = {
                 'broker':'',
                 'group':'',
@@ -146,12 +150,12 @@ class TestClassifier(TestCase):
         'sherlock_settings': ''
         }
 
-    with open("tests/example_ingested.json", 'r') as f:
-        example_input_data = json.load(f)
+    #with open("tests/example_ingested.json", 'r') as f:
+    #    example_input_data = json.load(f)[0]
 
     def test_classify_alert_batch(self):
         with mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
-            alerts = [ self.example_input_data ]
+            alerts = [ example_alert ]
             classifications = { "ZTF18aapubnx": "Q" }
             crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'thing':'foo' } ]
             mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
