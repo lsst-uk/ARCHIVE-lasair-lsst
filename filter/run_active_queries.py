@@ -1,7 +1,7 @@
 import time
 import json
 import settings
-from query_utilities import make_query
+import query_utilities
 from confluent_kafka import Producer, KafkaError
 import datetime
 
@@ -29,8 +29,10 @@ def datetime_converter(o):
     if isinstance(o, datetime.datetime):
         return o.__str__()
 
-def run_query(query, msl, active, email, topic):
-    sqlquery_real = make_query(
+def run_query(query, msl, topic):
+    active = query['active']
+    email = query['email']
+    sqlquery_real = query_utilities.make_query(
             query['selected'], query['tables'], query['conditions'], 0, 1000, False, 0.0)
 
     cursor = msl.cursor(buffered=True, dictionary=True)
@@ -113,26 +115,47 @@ def run_query(query, msl, active, email, topic):
     return n
 
 def run_queries():
+    ############### first get the user queries from the database that the webserver uses
     config = {
-        'user'    : settings.DB_USER_WRITE,
-        'password': settings.DB_PASS_WRITE,
-        'host'    : settings.DB_HOST_LOCAL,
+        'user'    : settings.DB_USER_REMOTE,
+        'password': settings.DB_PASS_REMOTE,
+        'host'    : settings.DB_HOST_REMOTE,
         'database': 'ztf'
     }
-    msl = mysql.connector.connect(**config)
+    msl_remote = mysql.connector.connect(**config)
 
-    cursor   = msl.cursor(buffered=True, dictionary=True)
+    cursor   = msl_remote.cursor(buffered=True, dictionary=True)
     query = 'SELECT user, name, email, active, selected, tables, conditions '
     query += 'FROM myqueries, auth_user WHERE myqueries.user = auth_user.id AND active > 0'
     cursor.execute(query)
 
+    query_list = []
     for query in cursor:
-        topic = queries.topic_name(query['user'], query['name'])
+        query_dict = {
+            'user':      query['user'],
+            'name':      query['name'],
+            'active':    query['active'],
+            'email':     query['email'],
+            'selected':  query['selected'],
+            'tables':    query['tables'],
+            'conditions':query['conditions'],
+        }
+        query_list.append(query_dict)
+
+    ############### now run those queries on the local objects we have just made
+    config = {
+        'user'    : settings.DB_USER_LOCAL,
+        'password': settings.DB_PASS_LOCAL,
+        'host'    : settings.DB_HOST_LOCAL,
+        'database': 'ztf'
+    }
+    msl_local = mysql.connector.connect(**config)
+
+    for query in query_list:
+        topic = query_utilities.topic_name(query['user'], query['name'])
         print('query %s' % topic)
-        active = query['active']
-        email = query['email']
         t = time.time()
-        n = run_query(query, msl, active, email, topic)
+        n = run_query(query, msl_local, topic)
         t = time.time() - t
         print('   --- got %d in %.1f seconds' % (n, t))
 

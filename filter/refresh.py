@@ -1,8 +1,8 @@
 import settings
 import mysql.connector
 config = {
-    'user'    : settings.DB_USER_WRITE,
-    'password': settings.DB_PASS_WRITE,
+    'user'    : settings.DB_USER_LOCAL,
+    'password': settings.DB_PASS_LOCAL,
     'host'    : settings.DB_HOST_LOCAL,
     'database': 'ztf'
 }

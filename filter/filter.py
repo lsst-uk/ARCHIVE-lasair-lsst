@@ -4,6 +4,7 @@ from socket import gethostname
 from datetime import datetime
 import settings
 import date_nid
+import run_active_queries
 
 if len(sys.argv) > 1:
     nid = int(sys.argv[1])
@@ -16,11 +17,13 @@ topic  = 'ztf_' + date + '_programid1'
 ######  test topic
 topic = 'ztf_test_ingested'
 
+##### clear out the local database
 os.system('date')
 print('clear local caches')
 cmd = 'python3 refresh.py'
 os.system(cmd)
 
+##### fetch a batch of annotated alerts
 print('INGEST start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 print('ingest from kafka')
 print("Topic is %s, nid is %d" % (topic, nid))
@@ -37,27 +40,35 @@ print(cmd)
 os.system(cmd)
 print('INGEST duration %.1f seconds' % (time.time() - t))
 
+##### run the user queries
+t = time.time()
+run_active_queries.run_queries()
+print('QUERIES %.1f seconds' % (time.time() - t))
+
+##### build CSV file with local database
 t = time.time()
 print('SEND to ARCHIVE')
-cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_WRITE
+cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_LOCAL
 os.system(cmd)
 
-outfile = '/home/ubuntu/scratch/out.txt'
-cmd = 'mv /var/lib/mysql-files/out.txt %s' % outfile
-os.system(cmd)
+for table in ['objects', 'sherlock_crossmatches']:
+    cmd = 'mv /var/lib/mysql-files/%s.txt /home/ubuntu/scratch/%s.txt' % (table, table)
+    os.system(cmd)
 
-if os.path.exists(outfile) and os.stat(outfile).st_size == 0:
-    print('SEND outfile is empty')
-    print('SEND %.1f seconds' % (time.time() - t))
-    sys.exit(1)
+##### send CSV file to central database
+for table in ['objects', 'sherlock_crossmatches']:
+    outfile = '/home/ubuntu/scratch/%s.txt' % table
+    if os.path.exists(outfile) and os.stat(outfile).st_size == 0:
+        print('SEND %s file is empty' % table)
+        print('SEND %.1f seconds' % (time.time() - t))
+    else:
+        vm = gethostname()
+        cmd = 'scp /home/ubuntu/scratch/%s.txt %s:scratch/%s-%s' % (table, settings.DB_HOST_REMOTE, vm, table)
+        os.system(cmd)
 
-out = gethostname()
-
-cmd = 'scp /home/ubuntu/scratch/out.txt %s:scratch/%s' % (settings.DB_HOST_REMOTE, out)
-os.system(cmd)
-
-cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s"' % (settings.DB_HOST_REMOTE, out)
-os.system(cmd)
+##### ingest CSV file to central database
+        cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s-%s"' % (settings.DB_HOST_REMOTE, vm, table)
+        os.system(cmd)
 print('SEND %.1f seconds' % (time.time() - t))
 
 sys.exit(0)

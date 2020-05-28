@@ -11,7 +11,7 @@ import settings
 import mysql.connector
 import threading
 import alertConsumer
-import make_query
+import insert_query
 import json
 
 def parse_args():
@@ -36,8 +36,8 @@ def parse_args():
 
 def make_database_connection():
     msl = mysql.connector.connect(
-        user     = settings.DB_USER_WRITE, 
-        password = settings.DB_PASS_WRITE, 
+        user     = settings.DB_USER_LOCAL, 
+        password = settings.DB_PASS_LOCAL, 
         host     = settings.DB_HOST_LOCAL, 
         database = settings.DB_DATABASE,
         )
@@ -49,7 +49,7 @@ def alert_filter(alert, msl):
     candid = 0
     data = alert
     if alert:
-        query = make_query.create_insert_query(alert)
+        query = insert_query.create_insert_query(alert)
         try:
             cursor = msl.cursor(buffered=True)
             cursor.execute(query)
