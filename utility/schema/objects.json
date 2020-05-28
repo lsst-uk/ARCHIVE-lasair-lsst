@@ -183,7 +183,7 @@
     },
     {
       "name": "sherlock_annotation",
-      "type": "bigstring",
+      "type": "text",
       "doc": "Sherlock annotation"
     },
     {
