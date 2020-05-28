@@ -166,7 +166,18 @@
     {"name": "_r", "type": "float", "doc":"r magnitude"}, {"name": "_rErr", "type": "float", "doc":"r magnitude error"},
     {"name": "_i", "type": "float", "doc":"i magnitude"}, {"name": "_iErr", "type": "float", "doc":"i magnitude error"},
     {"name": "_z", "type": "float", "doc":"z magnitude"}, {"name": "_zErr", "type": "float", "doc":"z magnitude error"},
-    {"name": "_y", "type": "float", "doc":"y magnitude"}, {"name": "_yErr", "type": "float", "doc":" magnitude error"},
+    {"name": "_y", "type": "float", "doc":"y magnitude"}, {"name": "_yErr", "type": "float", "doc":"y magnitude error"},
+
+    {"name": "U",  "type": "float", "doc":"U magnitude"}, {"name":  "UErr", "type": "float", "doc":"U magnitude error"},
+    {"name": "B",  "type": "float", "doc":"B magnitude"}, {"name":  "BErr", "type": "float", "doc":"B magnitude error"},
+    {"name": "V",  "type": "float", "doc":"V magnitude"}, {"name":  "VErr", "type": "float", "doc":"V magnitude error"},
+    {"name": "R",  "type": "float", "doc":"R magnitude"}, {"name":  "RErr", "type": "float", "doc":"R magnitude error"},
+    {"name": "I",  "type": "float", "doc":"I magnitude"}, {"name":  "IErr", "type": "float", "doc":"I magnitude error"},
+
+    {"name": "J",  "type": "float", "doc":"J magnitude"}, {"name":  "JErr", "type": "float", "doc":"J magnitude error"},
+    {"name": "H",  "type": "float", "doc":"H magnitude"}, {"name":  "HErr", "type": "float", "doc":"H magnitude error"},
+    {"name": "K",  "type": "float", "doc":"K magnitude"}, {"name":  "KErr", "type": "float", "doc":"K magnitude error"},
+    {"name": "G",  "type": "float", "doc":"G magnitude"}, {"name":  "GErr", "type": "float", "doc":"G magnitude error"},
     {
       "name": "classificationReliability",
       "type": "int",
