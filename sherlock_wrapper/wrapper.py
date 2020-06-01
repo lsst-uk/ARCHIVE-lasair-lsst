@@ -128,7 +128,7 @@ def classify(conf, log, alerts):
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
         if name in classifications:
-            alert['objClass'] = classifications[name][0]
+            alert['sherlock_classification'] = classifications[name][0]
     #for name,classes in classifications.items():
     #    alerts[name]['objClass'] = classes[0]
 
@@ -184,7 +184,9 @@ def produce(conf, log, alerts):
     return n
 
 def run(conf, log):
-    while True:
+    batches = conf['max_batches']
+    while batches != 0:
+        batches -= 1
         alerts = []
         n = consume(conf, log, alerts)
         if n > 0:
@@ -192,6 +194,7 @@ def run(conf, log):
             produce(conf, log, alerts)
         elif conf['stop_at_end']:
             break
+         
 
 
 if __name__ == '__main__':
@@ -205,6 +208,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input_topic', type=str, help='name of input topic')
     parser.add_argument('-o', '--output_topic', type=str, help='name of output topic')
     parser.add_argument('-n', '--batch_size', type=int, default=1000, help='number of messages to process per batch')
+    parser.add_argument('-l', '--max_batches', type=int, default=-1, help='max number of batches to process')
     parser.add_argument('-m', '--max_errors', type=int, default=-1, help='maximum number of non-fatal errors before aborting') # negative=no limit
     parser.add_argument('-s', '--sherlock_settings', type=str, default='sherlock.yaml', help='location of Sherlock settings file (default sherlock.yaml)')
     parser.add_argument('-q', '--quiet', action="store_true", default=None, help='minimal output')
