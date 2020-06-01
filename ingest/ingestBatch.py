@@ -80,6 +80,11 @@ def handle_alert(alert, store, producer, topicout):
             objectId = nonimage['objectId']
             slc.putObject(objectId, s)
 
+        # do not put known solar system objects into kafka
+        ss_mag = nonimage['candidate']['ssmagnr']
+        if ss_mag > 0:
+            return
+
         # produce to kafka
         if producer is not None:
             try:
