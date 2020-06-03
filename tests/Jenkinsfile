@@ -3,14 +3,18 @@ pipeline {
   stages {
     stage('build') {
       steps {
-        sh 'pwd'
-        sh 'pip install -r ../sherlock_wrapper/requirements.txt'
+        dir('tests') {
+          sh 'pwd'
+          sh 'pip install -r ../sherlock_wrapper/requirements.txt'
+        }
       }
     }
     stage('test') {
       steps {
-        sh 'python3 test_sherlock_wrapper.py'
-      }   
+        dir('tests') {
+          sh 'python3 test_sherlock_wrapper.py'
+        }
+      }
     }
   }
 }
