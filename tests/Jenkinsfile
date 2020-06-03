@@ -3,10 +3,7 @@ pipeline {
   stages {
     stage('build') {
       steps {
-        dir('tests') {
-          sh 'pwd'
-          sh 'pip install -r ../sherlock_wrapper/requirements.txt'
-        }
+        sh 'pip install -r sherlock_wrapper/requirements.txt'
       }
     }
     stage('test') {
