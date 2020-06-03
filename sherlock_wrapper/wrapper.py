@@ -203,7 +203,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', type=str, default='config.yaml', help='location of config file (default config.yaml)')
     parser.add_argument('-b', '--broker', type=str, help='address:port of Kafka broker(s)')
     parser.add_argument('-g', '--group', type=str, default='sherlock-dev-1', help='group id to use for Kafka')
-    parser.add_argument('-t', '--timeout', type=int, default=10, help='kafka consumer timeout in s')
+    parser.add_argument('-t', '--timeout', type=int, default=30, help='kafka consumer timeout in s') # 10s is probably a sensible minimum
     parser.add_argument('-e', '--stop_at_end', action='store_true', default=False, help='stop when no more messages to consume')
     parser.add_argument('-i', '--input_topic', type=str, help='name of input topic')
     parser.add_argument('-o', '--output_topic', type=str, help='name of output topic')

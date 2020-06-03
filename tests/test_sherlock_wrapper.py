@@ -1,8 +1,9 @@
-from unittest import TestCase, mock
+import unittest, unittest.mock
 import logging
 import sys
 import json
 
+import context
 from sherlock_wrapper import wrapper
 from confluent_kafka import KafkaError
 
@@ -11,7 +12,7 @@ log.level = logging.ERROR
 stream_handler = logging.StreamHandler(sys.stdout)
 log.addHandler(stream_handler)
 
-with open("tests/example_ingested.json", 'r') as f:
+with open("example_ingested.json", 'r') as f:
     data = json.load(f)
     example_alert = data[0]
     example_input_data = json.dumps(data[0])
@@ -40,7 +41,7 @@ def non_fatal_error_on_1st_call(timeout):
         e = KafkaError(KafkaError._APPLICATION, "Test Error", fatal=False, retriable=True)
         return MockMessage(e)
 
-class TestConsumer(TestCase):
+class TestConsumer(unittest.TestCase):
 
     conf = {
         'broker':'',
@@ -57,7 +58,7 @@ class TestConsumer(TestCase):
 
     # test consumer reaching end of topic
     def test_consume_end_of_topic(self):
-        with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
+        with unittest.mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             mock_kafka_consumer.return_value.poll.return_value = None
             alerts = []
             # consume should report consuming 0 alerts
@@ -70,7 +71,7 @@ class TestConsumer(TestCase):
              
     # test consuming a batch of alerts
     def test_consume_alert_batch(self):
-        with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
+        with unittest.mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             mock_kafka_consumer.return_value.poll.return_value.error.return_value = None
             mock_kafka_consumer.return_value.poll.return_value.value.return_value = example_input_data
             alerts = []
@@ -85,7 +86,7 @@ class TestConsumer(TestCase):
 
     # test that a fatal error is fatal
     def test_fatal_error(self):
-        with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
+        with unittest.mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             # poll returns None when no messages left to consume
             e = KafkaError(KafkaError._FATAL, "Test Error", fatal=True, retriable=False)
             mock_kafka_consumer.return_value.poll.return_value.error.return_value = e
@@ -100,7 +101,7 @@ class TestConsumer(TestCase):
 
     # test that a non-fatal error is non-fatal
     def test_non_fatal_error(self):
-        with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
+        with unittest.mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             # poll returns None when no messages left to consume
             mock_kafka_consumer.return_value.poll = non_fatal_error_on_1st_call
             alerts = []
@@ -115,7 +116,7 @@ class TestConsumer(TestCase):
 
     # test max non-fatal errors 
     def test_max_errors(self):
-        with mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
+        with unittest.mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
             # poll returns None when no messages left to consume
             e = KafkaError(KafkaError._APPLICATION, "Test Error", fatal=False, retriable=True)
             mock_kafka_consumer.return_value.poll.return_value.error.return_value = e
@@ -138,7 +139,7 @@ class TestConsumer(TestCase):
             mock_kafka_consumer.return_value.poll.assert_called_once_with(1)
 
 
-class TestClassifier(TestCase):
+class TestClassifier(unittest.TestCase):
     conf = {
         'broker':'',
         'group':'',
@@ -147,14 +148,14 @@ class TestClassifier(TestCase):
         'batch_size':5,
         'timeout':1,
         'max_errors':-1,
-        'sherlock_settings': ''
+        'sherlock_settings': 'sherlock_test.yaml'
         }
 
     #with open("tests/example_ingested.json", 'r') as f:
     #    example_input_data = json.load(f)[0]
 
     def test_classify_alert_batch(self):
-        with mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
+        with unittest.mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
             alerts = [ example_alert ]
             classifications = { "ZTF18aapubnx": "Q" }
             crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'thing':'foo' } ]
@@ -164,12 +165,12 @@ class TestClassifier(TestCase):
             # length of alerts shouls still be 1
             self.assertEqual(len(alerts), 1)
             # content of alerts should be as expected
-            self.assertEqual(alerts[0]['objClass'], 'Q')
+            self.assertEqual(alerts[0]['sherlock_classification'], 'Q')
             self.assertEqual(alerts[0]['matches'], crossmatches)
             # classify should have been called once 
             mock_classifier.return_value.classify.assert_called_once()
 
-class TestProducer(TestCase):
+class TestProducer(unittest.TestCase):
     conf = {
         'broker':'',
         'group':'',
@@ -180,9 +181,9 @@ class TestProducer(TestCase):
         'max_errors':-1
         }
 
-    # test consuming a batch of alerts
+    # test producing a batch of alerts
     def test_produce_alert_batch(self):
-        with mock.patch('sherlock_wrapper.wrapper.Producer') as mock_kafka_producer:
+        with unittest.mock.patch('sherlock_wrapper.wrapper.Producer') as mock_kafka_producer:
             alerts = [ {}, {}, {} ]
             self.assertEqual(len(alerts), 3)
             # should report producing 3 alerts
@@ -195,4 +196,7 @@ class TestProducer(TestCase):
 
 
 if __name__ == '__main__':
+    import xmlrunner 
+    runner = xmlrunner.XMLTestRunner(output='test-reports')
+    unittest.main(testRunner=runner)
     unittest.main()
