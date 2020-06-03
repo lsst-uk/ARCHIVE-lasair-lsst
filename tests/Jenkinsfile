@@ -9,7 +9,7 @@ pipeline {
     stage('test') {
       steps {
         dir('tests') {
-          sh 'python test_sherlock_wrapper.py'
+          sh 'python3 test_sherlock_wrapper.py'
         }
       }
     }
