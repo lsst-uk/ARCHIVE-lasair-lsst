@@ -7,6 +7,11 @@ pipeline {
           sh 'python3 test_sherlock_wrapper.py'
         }
       }
+      post {
+        always {
+          junit 'tests/test-reports/*.xml'
+        }  
+      }
     }
   }
 }
