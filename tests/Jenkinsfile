@@ -1,11 +1,6 @@
 pipeline {
   agent { docker { image 'gpfrancis/sherlock-test:0.2' } }
   stages {
-    stage('build') {
-      steps {
-        sh 'id'
-      }
-    }
     stage('test') {
       steps {
         dir('tests') {
