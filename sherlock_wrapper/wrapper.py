@@ -129,8 +129,11 @@ def classify(conf, log, alerts):
         name = alert.get('objectId', alert.get('candid'))
         if name in classifications:
             alert['sherlock_classification'] = classifications[name][0]
-    #for name,classes in classifications.items():
-    #    alerts[name]['objClass'] = classes[0]
+            # placeholders until sherlock returns these
+            alert['sherlock_annotation']        = 'Placeholder'
+            alert['sherlock_summary']           = 'Placeholder'
+            alert['sherlock_separation_arcsec'] = -1.0
+
 
     # process crossmatches
     cm_by_name = {}
