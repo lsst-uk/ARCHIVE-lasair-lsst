@@ -135,6 +135,13 @@ def classify(conf, log, alerts):
     # process crossmatches
     cm_by_name = {}
     for cm in crossmatches:
+
+        # coi may be integer or string. Here we force it to be string.
+        if 'catalogue_object_id' in cm:
+            coi = cm['catalogue_object_id']
+            if isinstance(coi, int):
+                cm['catalogue_object_id'] = '%d' % coi
+
         name = cm['transient_object_id']
         if name in cm_by_name:
             cm_by_name[name].append(cm)
