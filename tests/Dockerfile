@@ -1,5 +1,6 @@
 FROM ubuntu:20.04
 
+# Required for Sherlock
 RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-install-recommends \
   gcc \
   g++ \
@@ -7,14 +8,35 @@ RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-insta
   python3-dev \
   python3-yaml \
   python3-pip 
-
 RUN pip3 install \
   confluent-kafka==1.4.2 \
   qub-sherlock==2.1.2
 
+# Required for tests
 RUN pip3 install \
   xmlrunner
+RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-install-recommends \
+  mysql-client \
+  mysql-server \
+  openjdk-11-jre-headless \
+  wget
+RUN cd /opt && \
+  wget -q https://www.mirrorservice.org/sites/ftp.apache.org/kafka/2.5.0/kafka_2.12-2.5.0.tgz && \
+  tar -zxf kafka_2.12-2.5.0.tgz && \
+  ln -s kafka_2.12-2.5.0 kafka
 
+# Set up test database
+RUN update-rc.d mysql enable && \
+  service mysql start && \
+  cd /tmp && \
+  wget -q -O sherlock_schema.sql https://www.dropbox.com/s/qwh1gtrf0ewiw82/sherlock_schema.sql?dl=1 && \
+  mysql -e "CREATE DATABASE crossmatch_catalogues" && \
+  mysql crossmatch_catalogues < sherlock_schema.sql && \
+  mysql -e "CREATE USER 'sherlock'@'%' IDENTIFIED BY 'sherlock'" && \
+  mysql -e "GRANT SELECT, SHOW VIEW ON crossmatch_catalogues.* TO 'sherlock'@'%'" && \
+  rm sherlock_schema.sql
+
+# Required for Jenkins
 RUN groupadd --gid 1000 jenkins &&\
   useradd -m --uid 1000 --gid 1000 jenkins
 

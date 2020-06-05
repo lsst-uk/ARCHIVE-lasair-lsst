@@ -32,6 +32,12 @@ galaxy radius stetch factor: 1.2
 synonym radius arcsec: 1.5
 
 search algorithm:
+    milliquas agn:
+        database table: tcs_view_agn_milliquas_v5_2
+        general:
+            angular radius arcsec: 3.0
+            synonym: AGN
+            association: AGN
 
 logging settings:
     formatters:
