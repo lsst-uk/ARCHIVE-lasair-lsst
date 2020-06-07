@@ -5,6 +5,7 @@ from datetime import datetime
 import settings
 import date_nid
 import run_active_queries
+from check_alerts_watchlists import get_watchlist_hits
 
 if len(sys.argv) > 1:
     nid = int(sys.argv[1])
@@ -39,6 +40,11 @@ cmd += '--topic ' + topic
 print(cmd)
 os.system(cmd)
 print('INGEST duration %.1f seconds' % (time.time() - t))
+
+##### run the watchlists
+hits = get_watchlist_hits()
+for hit in hits:
+    print(hit)
 
 ##### run the user queries
 t = time.time()

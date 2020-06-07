@@ -4,15 +4,10 @@ import settings
 import query_utilities
 from confluent_kafka import Producer, KafkaError
 import datetime
-
-candidates = 'candidates'
-objects    = 'objects'
-
-# setup database connection
 import mysql.connector
-
 import smtplib
 from email.message import EmailMessage
+
 def send_email(email, topic, message):
     msg = EmailMessage()
     msg.set_content(message)

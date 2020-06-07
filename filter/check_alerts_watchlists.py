@@ -140,21 +140,34 @@ def check_alerts_against_watchlists(alertlist, watchlistlist):
         hits += check_alerts_against_watchlist(alertlist, watchlist)
     return hits
 
-if __name__ == "__main__":
-    import random
-    Nwatch = 1000000
+def fetch_alerts():
+    config = {
+        'user'    : settings.DB_USER_LOCAL,
+        'password': settings.DB_PASS_LOCAL,
+        'host'    : settings.DB_HOST_LOCAL,
+        'database': 'ztf'
+    }
+    msl_local = mysql.connector.connect(**config)
+    cursor = msl.cursor(buffered=True, dictionary=True)
+    query = 'SELECT ramean, decmean from objects'
+    cursor.execute(query)
     ralist = []
     delist = []
-    for i in range(Nwatch):
-        ralist.append(360*random.random())
-        delist.append(-85 + 170*random.random())
-    alertlist = {"ra":ralist, "de":delist}
-    print('alertlist with %d points' % Nwatch)
+    for row in cursor:
+        ralist.append(row['ramean'])
+        delist.append(row['demean'])
+    return {"ra":ralist, "de":delist}
 
+def get_watchlist_hits():
     # read in the cache files
     watchlistlist = read_watchlist_cache_files()
+
+    # get the alert positions from the database
+    alertlist = fetch_alerts()
 
     # check the list against the watchlists
     hits = check_alerts_against_watchlists(alertlist, watchlistlist)
 
+if __name__ == "__main__":
+    hits = get_watchlist_hits()
     for hit in hits: print(hit)
