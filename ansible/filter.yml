@@ -32,6 +32,11 @@
           executable: pip3 
           name: mysql-connector-python
 
+    - name: install MOC
+      pip: 
+          executable: pip3 
+          name: mocpy
+
     - name: install mysql
       apt: 
           name: mysql-server
