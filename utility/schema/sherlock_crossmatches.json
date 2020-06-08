@@ -1,10 +1,13 @@
 {
-  "namespace": "ztf.alert",
   "name": "sherlock_crossmatches",
-  "doc": "avro alert schema",
-  "version": "3.3",
-  "type": "record",
+  "version": "1.0",
   "fields": [
+    {
+      "name": "id",
+      "type": "int",
+      "extra": "NOT NULL AUTO_INCREMENT",
+      "doc": "Auto-incrementing Primary Key (UUID) of `sherlock_crossmatches` tables (mainly used for book-keeping proposes)"
+    },
     {
       "name": "objectId",
       "type": "string",
@@ -13,7 +16,7 @@
     },
     {
       "name": "catalogue_object_id",
-      "type": "string",
+      "type": "bigstring",
       "doc": "The UUID of the matched source from the original catalogue (all converted to strings)"
     },
     {
@@ -35,11 +38,6 @@
       "name": "eastSeparationArcsec",
       "type": "float",
       "doc": "How far east the matched source is located from the transient position (arcseconds)"
-    },
-    {
-      "name": "id",
-      "type": "bigint",
-      "doc": "Auto-incrementing Primary Key (UUID) of `sherlock_crossmatches` tables (mainly used for book-keeping proposes)"
     },
     {
       "name": "z",
@@ -148,7 +146,7 @@
     },
     {
       "name": "original_search_radius_arcsec",
-      "type": "float",
+      "type": "bigstring",
       "doc": "The search radius used by Sherlock to make this association (arcseconds)"
     },
     {

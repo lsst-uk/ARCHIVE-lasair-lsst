@@ -19,6 +19,7 @@ import math
 import settings
 from mocpy import MOC
 import astropy.units as u
+import mysql.connector
 
 def read_watchlist_cache_files():
     """
@@ -76,8 +77,9 @@ def check_alerts_against_moc(alertlist, wl_id, moc, cones):
     """ For a given moc, check the alerts in the batch 
     """
     # alert positions
-    alertralist = alertlist['ra']
-    alertdelist = alertlist['de']
+    alertobjlist = alertlist['obj']
+    alertralist  = alertlist['ra']
+    alertdelist  = alertlist['de']
 
     # watchlist cones
     watchralist = cones['ra']
@@ -92,8 +94,9 @@ def check_alerts_against_moc(alertlist, wl_id, moc, cones):
     for ialert in range(len(alertralist)):
         if(result[ialert]):
             # when there is a hit, we need to know *which* cone contains the alert
-            ra = alertralist[ialert]
-            de = alertdelist[ialert]
+            objectId = alertobjlist[ialert]
+            ra       = alertralist[ialert]
+            de       = alertdelist[ialert]
             for iw in range(len(watchralist)):
                 # don't forget the loxodrome
                 dra = (ra - watchralist[iw])*math.cos(de*math.pi/180)
@@ -103,11 +106,11 @@ def check_alerts_against_moc(alertlist, wl_id, moc, cones):
                 if d < watchradius[iw]:
                     # got a real hit -- record the crossmatch
                     hits.append({
-                        'ialert' :ialert,
-                        'wl_id'  :wl_id, 
-                        'cone_id':cones['cone_ids'][iw],
-                        'name'   :cones['names'][iw],
-                        'arcsec' : d*3600
+                        'ialert'  :ialert,
+                        'wl_id'   :wl_id, 
+                        'objectId':objectId,
+                        'name'    :cones['names'][iw],
+                        'arcsec'  : d*3600
                     })
 
     return hits
@@ -148,15 +151,17 @@ def fetch_alerts():
         'database': 'ztf'
     }
     msl_local = mysql.connector.connect(**config)
-    cursor = msl.cursor(buffered=True, dictionary=True)
-    query = 'SELECT ramean, decmean from objects'
+    cursor = msl_local.cursor(buffered=True, dictionary=True)
+    query = 'SELECT objectId, ramean, decmean from objects'
     cursor.execute(query)
+    objlist = []
     ralist = []
     delist = []
     for row in cursor:
-        ralist.append(row['ramean'])
-        delist.append(row['demean'])
-    return {"ra":ralist, "de":delist}
+        objlist.append(row['objectId'])
+        ralist.append (row['ramean'])
+        delist.append (row['decmean'])
+    return {"obj":objlist, "ra":ralist, "de":delist}
 
 def get_watchlist_hits():
     # read in the cache files

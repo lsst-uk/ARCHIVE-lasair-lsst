@@ -16,7 +16,7 @@ date = date_nid.nid_to_date(nid)
 topic  = 'ztf_' + date + '_programid1'
 
 ######  test topic
-topic = 'ztf_test_ingested'
+topic = 'ztf_test_sherlock'
 
 ##### clear out the local database
 os.system('date')
@@ -43,8 +43,9 @@ print('INGEST duration %.1f seconds' % (time.time() - t))
 
 ##### run the watchlists
 hits = get_watchlist_hits()
-for hit in hits:
-    print(hit)
+if hits:
+   for hit in hits:
+        print(hit)
 
 ##### run the user queries
 t = time.time()
@@ -69,7 +70,7 @@ for table in ['objects', 'sherlock_crossmatches']:
         print('SEND %.1f seconds' % (time.time() - t))
     else:
         vm = gethostname()
-        cmd = 'scp /home/ubuntu/scratch/%s.txt %s:scratch/%s-%s' % (table, settings.DB_HOST_REMOTE, vm, table)
+        cmd = 'scp /home/ubuntu/scratch/%s.txt %s:scratch/%s__%s' % (table, settings.DB_HOST_REMOTE, vm, table)
         os.system(cmd)
 
 ##### ingest CSV file to central database

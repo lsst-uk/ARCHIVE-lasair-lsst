@@ -1,7 +1,5 @@
 """Consumes stream for ingesting to database
-
 """
-
 from __future__ import print_function
 import argparse
 import sys
@@ -10,8 +8,8 @@ import time
 import settings
 import mysql.connector
 import threading
-import alertConsumer
 import insert_query
+import confluent_kafka
 import json
 
 def parse_args():
@@ -55,8 +53,19 @@ def alert_filter(alert, msl):
             cursor.execute(query)
             cursor.close()
         except mysql.connector.Error as err:
-            print('INGEST Database insert candidate failed: %s' % str(err))
+            print('INGEST object Database insert candidate failed: %s' % str(err))
         msl.commit()
+
+        if 'matches' in alert:
+            for match in alert['matches']:
+                query = insert_query.create_insert_match(match)
+                try:
+                    cursor = msl.cursor(buffered=True)
+                    cursor.execute(query)
+                    cursor.close()
+                except mysql.connector.Error as err:
+                    print('INGEST match Database insert candidate failed: %s' % str(err))
+                msl.commit()
 
 class Consumer(threading.Thread):
     def __init__(self, threadID, args, conf):
@@ -70,12 +79,11 @@ class Consumer(threading.Thread):
         msl = make_database_connection()
     
         # Start consumer and print alert stream
-        
         try:
-            streamReader = alertConsumer.AlertConsumer(self.args.topic, **self.conf)
-            streamReader.__enter__()
-        except alertConsumer.EopError as e:
-            print('INGEST Cannot start reader: %d: %s\n' % (self.threadID, e.message))
+            consumer = confluent_kafka.Consumer(**self.conf)
+            consumer.subscribe([self.args.topic])
+        except Exception as e:
+            print('INGEST Cannot start reader: %d: %s\n' % (self.threadID, e))
             return
     
         if self.args.maxalert:
@@ -86,26 +94,24 @@ class Consumer(threading.Thread):
         nalert = 0
         startt = time.time()
         while nalert < maxalert:
-            try:
-                msg = streamReader.poll(decode=False, timeout=settings.KAFKA_TIMEOUT)
-            except alertConsumer.EopError as e:
+            msg = consumer.poll(timeout=settings.KAFKA_TIMEOUT)
+            if msg.error():
                 continue
-
-            if msg is None:
+            if msg.value() is None:
                 continue
             else:
                 # Apply filter to each alert
-                alert = json.loads(msg)
+                alert = json.loads(msg.value())
                 alert_filter(alert, msl)
                 nalert += 1
                 if nalert%1000 == 0:
-                    print('thread %d nalert %d time %.1f' % ((self.threadID, nalert, time.time()-startt)))
+                    print('thread %d nalert %d time %.1f' % 
+                        ((self.threadID, nalert, time.time()-startt)))
                     msl.close()
                     msl = make_database_connection()
     
         print('INGEST %d finished with %d alerts' % (self.threadID, nalert))
-
-        streamReader.__exit__(0,0,0)
+        consumer.close()
 
 def main():
     args = parse_args()

@@ -168,6 +168,38 @@ def create_insert_query(alert):
     query = query.replace('None', 'NULL')
     return query
 
+def create_insert_match(match):
+    attrs = [
+        'objectId', 'catalogue_object_id', 'catalogue_table_id', 
+        'separationArcsec', 'northSeparationArcsec', 'eastSeparationArcsec', 
+        'id', 'z', 'scale', 'distance', 'distance_modulus', 'photoZ', 'photoZErr', 
+        'association_type', 'physical_separation_kpc', 
+        'catalogue_object_type', 'catalogue_object_subtype', 'association_rank', 
+        'catalogue_table_name', 'rank', 'rankScore', 'search_name', 'major_axis_arcsec', 
+        'direct_distance', 'direct_distance_scale', 'direct_distance_modulus', 
+        'raDeg', 'decDeg', 'original_search_radius_arcsec', 'catalogue_view_id', 
+        '_u', '_uErr', '_g', '_gErr', '_r', '_rErr', '_i', '_iErr', '_z', '_zErr', '_y', '_yErr', 
+        'U', 'UErr', 'B', 'BErr', 'V', 'VErr', 'R', 'RErr', 'I', 'IErr', 
+        'J', 'JErr', 'H', 'HErr', 'K', 'KErr', 'G', 'GErr', 
+        'classificationReliability', 'transientAbsMag', 'merged_rank'
+    ]
+
+    sets = {}
+    for key, value in match.items():
+        if key in attrs:
+            sets[key] = value
+
+    list = []
+    query = 'REPLACE INTO sherlock_crossmatches SET '
+    for key,value in sets.items():
+        if isinstance(value, str):
+            list.append(key + '=' + '"' + str(value) + '"')
+        else:
+            list.append(key + '=' + str(value))
+    query += ', '.join(list)
+    query = query.replace('None', 'NULL')
+    return query
+
 import os
 if __name__ == '__main__':
     root = '/mnt/cephfs/roy/lightcurve/'

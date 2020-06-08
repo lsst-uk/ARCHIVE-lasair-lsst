@@ -48,8 +48,8 @@ def attribute_list(schema):
     # Just a list of attribute names
     list = []
     for f in schema['fields']:
-        list.append(f['name'])
-    return list
+        list.append("'" + f['name'] + "'")
+    return ', '.join(list)
 
 def autocomplete_tags(schema):
     # Something for the javascript in the autocomplete functionality on the query builder

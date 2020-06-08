@@ -1,9 +1,6 @@
 {
-  "namespace": "ztf.alert",
   "name": "objects",
-  "doc": "avro alert schema",
-  "version": "3.3",
-  "type": "record",
+  "version": "1.0",
   "fields": [
     {
       "name": "objectId",
