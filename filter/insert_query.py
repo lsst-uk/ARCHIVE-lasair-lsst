@@ -168,9 +168,9 @@ def create_insert_query(alert):
     query = query.replace('None', 'NULL')
     return query
 
-def create_insert_match(match):
+def create_insert_match(objectId, match):
     attrs = [
-        'objectId', 'catalogue_object_id', 'catalogue_table_id', 
+        'catalogue_object_id', 'catalogue_table_id', 
         'separationArcsec', 'northSeparationArcsec', 'eastSeparationArcsec', 
         'id', 'z', 'scale', 'distance', 'distance_modulus', 'photoZ', 'photoZErr', 
         'association_type', 'physical_separation_kpc', 
@@ -190,7 +190,7 @@ def create_insert_match(match):
             sets[key] = value
 
     list = []
-    query = 'REPLACE INTO sherlock_crossmatches SET '
+    query = 'REPLACE INTO sherlock_crossmatches SET objectId="%s",' % objectId
     for key,value in sets.items():
         if isinstance(value, str):
             list.append(key + '=' + '"' + str(value) + '"')

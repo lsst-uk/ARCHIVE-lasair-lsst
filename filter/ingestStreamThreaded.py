@@ -44,8 +44,7 @@ def make_database_connection():
 def alert_filter(alert, msl):
     """Filter to apply to each alert.
     """
-    candid = 0
-    data = alert
+    objectId = alert['objectId']
     if alert:
         query = insert_query.create_insert_query(alert)
         if query is None:
@@ -60,7 +59,7 @@ def alert_filter(alert, msl):
 
         if 'matches' in alert:
             for match in alert['matches']:
-                query = insert_query.create_insert_match(match)
+                query = insert_query.create_insert_match(objectId, match)
                 try:
                     cursor = msl.cursor(buffered=True)
                     cursor.execute(query)
