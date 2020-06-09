@@ -86,7 +86,7 @@
     },
     {
       "name": "catalogue_object_subtype",
-      "type": "string",
+      "type": "bigstring",
       "doc": "The reported sub-type of the catlagoued source (if given)"
     },
     {

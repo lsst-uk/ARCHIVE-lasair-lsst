@@ -74,7 +74,7 @@ for table in ['objects', 'sherlock_crossmatches']:
         os.system(cmd)
 
 ##### ingest CSV file to central database
-        cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s-%s"' % (settings.DB_HOST_REMOTE, vm, table)
+        cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s__%s"' % (settings.DB_HOST_REMOTE, vm, table)
         os.system(cmd)
 print('SEND %.1f seconds' % (time.time() - t))
 

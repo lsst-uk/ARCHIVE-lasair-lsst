@@ -15,7 +15,7 @@ CREATE TABLE sherlock_crossmatches(
 `association_type` varchar(16),
 `physical_separation_kpc` float,
 `catalogue_object_type` varchar(16),
-`catalogue_object_subtype` varchar(16),
+`catalogue_object_subtype` varchar(80),
 `association_rank` int,
 `catalogue_table_name` varchar(80),
 `rank` int,

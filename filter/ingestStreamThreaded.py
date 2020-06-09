@@ -65,6 +65,7 @@ def alert_filter(alert, msl):
                     cursor.close()
                 except mysql.connector.Error as err:
                     print('INGEST match Database insert candidate failed: %s' % str(err))
+                    print(query)
                 msl.commit()
 
 class Consumer(threading.Thread):
@@ -95,6 +96,8 @@ class Consumer(threading.Thread):
         startt = time.time()
         while nalert < maxalert:
             msg = consumer.poll(timeout=settings.KAFKA_TIMEOUT)
+            if msg is None:
+                break
             if msg.error():
                 continue
             if msg.value() is None:
