@@ -48,6 +48,8 @@ def alert_filter(alert, msl):
     data = alert
     if alert:
         query = insert_query.create_insert_query(alert)
+        if query is None:
+            return 0
         try:
             cursor = msl.cursor(buffered=True)
             cursor.execute(query)
@@ -67,6 +69,7 @@ def alert_filter(alert, msl):
                     print('INGEST match Database insert candidate failed: %s' % str(err))
                     print(query)
                 msl.commit()
+    return 1
 
 class Consumer(threading.Thread):
     def __init__(self, threadID, args, conf):
@@ -92,7 +95,7 @@ class Consumer(threading.Thread):
         else:
             maxalert = 50000
     
-        nalert = 0
+        nalert = nalert_ingested = 0
         startt = time.time()
         while nalert < maxalert:
             msg = consumer.poll(timeout=settings.KAFKA_TIMEOUT)
@@ -105,15 +108,16 @@ class Consumer(threading.Thread):
             else:
                 # Apply filter to each alert
                 alert = json.loads(msg.value())
-                alert_filter(alert, msl)
                 nalert += 1
+                nalert_ingested += alert_filter(alert, msl)
                 if nalert%1000 == 0:
-                    print('thread %d nalert %d time %.1f' % 
-                        ((self.threadID, nalert, time.time()-startt)))
+                    print('thread %d nalert %d (ingested %d) time %.1f' % 
+                        ((self.threadID, nalert, nalert_ingested, time.time()-startt)))
                     msl.close()
                     msl = make_database_connection()
     
-        print('INGEST %d finished with %d alerts' % (self.threadID, nalert))
+        print('INGEST %d finished with %d alerts (ingested %d)' % 
+                (self.threadID, nalert, nalert_ingested))
         consumer.close()
 
 def main():
