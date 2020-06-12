@@ -1,3 +1,7 @@
+""" Runs the user's queries. 
+Fetch them from database, construct SQL, execute, produce kafka
+"""
+
 import time
 import json
 import settings
@@ -28,7 +32,7 @@ def run_query(query, msl, topic):
     active = query['active']
     email = query['email']
     sqlquery_real = query_utilities.make_query(
-            query['selected'], query['tables'], query['conditions'], 0, 1000, False, 0.0)
+        query['selected'], query['tables'], query['conditions'])
 
     cursor = msl.cursor(buffered=True, dictionary=True)
     n = 0
@@ -110,7 +114,7 @@ def run_query(query, msl, topic):
     return n
 
 def run_queries():
-    ############### first get the user queries from the database that the webserver uses
+    # first get the user queries from the database that the webserver uses
     config = {
         'user'    : settings.DB_USER_REMOTE,
         'password': settings.DB_PASS_REMOTE,
@@ -137,7 +141,7 @@ def run_queries():
         }
         query_list.append(query_dict)
 
-    ############### now run those queries on the local objects we have just made
+    # now run those queries on the local objects we have just made
     config = {
         'user'    : settings.DB_USER_LOCAL,
         'password': settings.DB_PASS_LOCAL,

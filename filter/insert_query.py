@@ -1,6 +1,5 @@
-"""Consumes stream for ingesting to database
+""" Computes features of the light curve and builds and object record
 """
-
 from __future__ import print_function
 from mag import dc_mag_dict
 import json
@@ -9,6 +8,11 @@ import numpy as np
 import ephem
 
 def make_ema(candlist):
+    """ Make a exponential moving average (EMA)
+        https://lasair.roe.ac.uk/lasair/static/EMA.pdf
+    from the apparent magnitudes.
+    candlist is the list of candidates in time order.
+    """
     oldgjd = oldrjd = 0
     g02 = g08 = g28 = 0
     r02 = r08 = r28 = 0
@@ -23,8 +27,10 @@ def make_ema(candlist):
             c['magpsf'], c['sigmapsf'], 
             c['magnr'],  c['sigmagnr'], 
             c['magzpsci'], c['isdiffpos'])
+        # compute the apparent (DC) magnitude
         dc_mag = d['dc_mag']
 
+        # separate the g mag (fid=1) from r mag (fid=2)
         if c['fid'] == 1:
             f02 = math.exp(-(jd-oldgjd)/2.0)
             f08 = math.exp(-(jd-oldgjd)/8.0)
@@ -48,10 +54,12 @@ def make_ema(candlist):
     return ema 
 
 def create_insert_query(alert):
-    """ Creates an insert sql statement for insering the canditate info
-        Also works foe candidates in the prv
+    """ Creates an insert sql statement for building the object and 
+    a query for inserting it.
     """
     objectId =  alert['objectId']
+
+    # Make a list of candidates and noncandidates in time order
     candlist = alert['prv_candidates'] + [alert['candidate']]
     ema = make_ema(candlist)
 
@@ -68,8 +76,9 @@ def create_insert_query(alert):
     sgscore1  = None
     distpsnr1 = None
     for cand in candlist:
-        if cand['candid'] is None:
-            continue
+        # if this is a real detection, it will have a candid else nondetection
+        if cand['candid'] is None: continue
+
         ra.append(cand['ra'])
         dec.append(cand['dec'])
         jd.append(cand['jd'])
@@ -80,6 +89,7 @@ def create_insert_query(alert):
             magr.append(cand['magpsf'])
             latestrmag = cand['magpsf']
 
+        # if it also has the 'drb' data quality flag, copy the PS1 data
         if 'drb' in cand:
             sgmag1    = cand['sgmag1']
             srmag1    = cand['srmag1']
@@ -93,6 +103,7 @@ def create_insert_query(alert):
     if ncand <= 1:
         return None
 
+    # statistics of the g light curve
     if len(magg) > 0:
         maggmin = np.min(magg)
         maggmax = np.max(magg)
@@ -101,6 +112,7 @@ def create_insert_query(alert):
     else:
         maggmin = maggmax = maggmean = maggmedian = 'NULL'
 
+    # statistics of the r light curve
     if len(magr) > 0:
         magrmin = np.min(magr)
         magrmax = np.max(magr)
@@ -109,8 +121,11 @@ def create_insert_query(alert):
     else:
         magrmin = magrmax = magrmean = magrmedian = 'NULL'
 
+    # mean position
     ramean  = np.mean(ra)
     decmean = np.mean(dec)
+
+    # galactic coordinates
     ce = ephem.Equatorial(math.radians(ramean), math.radians(decmean))
     cg = ephem.Galactic(ce)
     glonmean = math.degrees(float(repr(cg.lon)))
@@ -121,8 +136,9 @@ def create_insert_query(alert):
         htm16 = htmCircle.htmID(16, ramean, decmean)
     except:
         htm16 = 0
-        #print('Cannot get HTMID for ra=%f, dec=%f' % (ramean, decmean))
+#        print('Cannot get HTMID for ra=%f, dec=%f' % (ramean, decmean))
 
+    # dictionary of attributes
     sets = {}
     sets['ncand']      = ncand
     sets['ramean']     = ramean
@@ -143,32 +159,50 @@ def create_insert_query(alert):
     sets['jdmax']      = np.max(jd)
     sets['glatmean']   = glatmean
     sets['glonmean']   = glonmean
+
+    # pannstarrs
     sets['sgmag1']     = sgmag1
     sets['srmag1']     = srmag1
     sets['sgscore1']   = sgscore1
     sets['distpsnr1']  = distpsnr1
     sets['ncandgp']    = ncandgp
+
+    # HTM id
     sets['htm16']      = htm16
 
+    # Moving averages
     sets['latest_dc_mag_g']   = ema['dc_mag_g']
     sets['latest_dc_mag_g02'] = ema['g02']
     sets['latest_dc_mag_g08'] = ema['g08']
     sets['latest_dc_mag_g28'] = ema['g28']
-
     sets['latest_dc_mag_r']   = ema['dc_mag_r']
     sets['latest_dc_mag_r02'] = ema['r02']
     sets['latest_dc_mag_r08'] = ema['r08']
     sets['latest_dc_mag_r28'] = ema['r28']
 
+    # Sherlock conclusions
+    sets['sherlock_classification']    = alert['sherlock_classification']
+    sets['sherlock_annotation']        = alert['sherlock_annotation']
+    sets['sherlock_summary']           = alert['sherlock_summary']
+    sets['sherlock_separation_arcsec'] = alert['sherlock_separation_arcsec']
+
+    # Make the query
     list = []
     query = 'REPLACE INTO objects SET objectId="%s", ' % objectId
     for key,value in sets.items():
-        list.append(key + '=' + str(value))
+        if value == 'NULL':
+            list.append(key + '= NULL')
+        elif isinstance(value, str):
+            list.append(key + '= "' + str(value) + '"')
+        else:
+            list.append(key + '=' + str(value))
     query += ', '.join(list)
-    query = query.replace('None', 'NULL')
     return query
 
 def create_insert_match(objectId, match):
+    """ This code makes the insert query for the Sherlock crossmatch record
+    """
+    # Here are all the attributes that the database knows about
     attrs = [
         'catalogue_object_id', 'catalogue_table_id', 
         'separationArcsec', 'northSeparationArcsec', 'eastSeparationArcsec', 
@@ -184,11 +218,13 @@ def create_insert_match(objectId, match):
         'classificationReliability', 'transientAbsMag', 'merged_rank'
     ]
 
+    # Put it in the list if we know about it
     sets = {}
     for key, value in match.items():
         if key in attrs:
             sets[key] = value
 
+    # Build the query
     list = []
     query = 'REPLACE INTO sherlock_crossmatches SET objectId="%s",' % objectId
     for key,value in sets.items():

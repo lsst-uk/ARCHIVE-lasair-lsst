@@ -82,9 +82,9 @@ def check_alerts_against_moc(alertlist, wl_id, moc, cones):
     alertdelist  = alertlist['de']
 
     # watchlist cones
-    watchralist = cones['ra']
-    watchdelist = cones['de']
-    watchradius = cones['radius']
+    watchralist   = cones['ra']
+    watchdelist   = cones['de']
+    watchradius   = cones['radius']
 
     # here is the crossmatch
     result = moc.contains(alertralist*u.deg, alertdelist*u.deg)
@@ -106,7 +106,7 @@ def check_alerts_against_moc(alertlist, wl_id, moc, cones):
                 if d < watchradius[iw]:
                     # got a real hit -- record the crossmatch
                     hits.append({
-                        'ialert'  :ialert,
+                        'cone_id' :cones['cone_ids'][iw],
                         'wl_id'   :wl_id, 
                         'objectId':objectId,
                         'name'    :cones['names'][iw],
@@ -143,7 +143,7 @@ def check_alerts_against_watchlists(alertlist, watchlistlist):
         hits += check_alerts_against_watchlist(alertlist, watchlist)
     return hits
 
-def fetch_alerts():
+def db_connect():
     config = {
         'user'    : settings.DB_USER_LOCAL,
         'password': settings.DB_PASS_LOCAL,
@@ -151,7 +151,14 @@ def fetch_alerts():
         'database': 'ztf'
     }
     msl_local = mysql.connector.connect(**config)
-    cursor = msl_local.cursor(buffered=True, dictionary=True)
+    return msl_local
+
+def fetch_alerts():
+    """ Get all the alerts from the local cache to check againstr watchlist
+    """
+    msl = db_connect()
+    cursor = msl.cursor(buffered=True, dictionary=True)
+
     query = 'SELECT objectId, ramean, decmean from objects'
     cursor.execute(query)
     objlist = []
@@ -164,6 +171,8 @@ def fetch_alerts():
     return {"obj":objlist, "ra":ralist, "de":delist}
 
 def get_watchlist_hits():
+    """ Get all the alerts, then run against the watchlists, return the hits
+    """
     # read in the cache files
     watchlistlist = read_watchlist_cache_files()
 
@@ -172,7 +181,32 @@ def get_watchlist_hits():
 
     # check the list against the watchlists
     hits = check_alerts_against_watchlists(alertlist, watchlistlist)
+    return hits
+
+def insert_watchlist_hits(hits):
+    """ Build and execute the insertion query to get the hits into the database
+    """
+    print('inserting')
+    msl = db_connect()
+    cursor = msl.cursor(buffered=True, dictionary=True)
+
+    query = "INSERT into watchlist_hits (wl_id, cone_id, objectId, arcsec, name) VALUES\n"
+    list = []
+    for hit in hits:
+        list.append('(%d,%d,"%s",%.3f,"%s")' %  \
+            (hit['wl_id'], hit['cone_id'], hit['objectId'], hit['arcsec'], hit['name']))
+    query += ',\n'.join(list)
+    try:
+       cursor.execute(query)
+       cursor.close()
+    except mysql.connector.Error as err:
+       print('WATCHLIST object Database insert candidate failed: %s' % str(err))
+    msl.commit()
 
 if __name__ == "__main__":
+    # can run the watchlist process without the rest of the filter code 
     hits = get_watchlist_hits()
-    for hit in hits: print(hit)
+    if hits:
+        for hit in hits: 
+            print(hit)
+    insert_watchlist_hits(hits)

@@ -16,23 +16,27 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host', type=str,
                         help='Hostname or IP of Kafka host to connect to.')
+
     parser.add_argument('--topic', type=str,
                         help='Name of Kafka topic to listen to.')
+
     parser.add_argument('--group', type=str,
                         help='Globally unique name of the consumer group. '
                         'Consumers in the same group will share messages '
                         '(i.e., only one consumer will receive a message, '
                         'as in a queue). Default is value of $HOSTNAME.')
+
     parser.add_argument('--maxalert', type=int,
                         help='Max alerts to be fetched per thread')
+
     parser.add_argument('--nthread', type=int,
                         help='Number of threads to use')
 
     args = parser.parse_args()
-
     return args
 
 def make_database_connection():
+    # Make a connection to the *local* database to put these
     msl = mysql.connector.connect(
         user     = settings.DB_USER_LOCAL, 
         password = settings.DB_PASS_LOCAL, 
@@ -42,10 +46,11 @@ def make_database_connection():
     return msl
 
 def alert_filter(alert, msl):
-    """Filter to apply to each alert.
-    """
+    # Filter to apply to each alert.
     objectId = alert['objectId']
     if alert:
+        # build the insert query for this object.
+        # if not wanted, returns None
         query = insert_query.create_insert_query(alert)
         if query is None:
             return 0
@@ -57,6 +62,7 @@ def alert_filter(alert, msl):
             print('INGEST object Database insert candidate failed: %s' % str(err))
         msl.commit()
 
+        # now ingest the sherlock_crossmatches
         if 'matches' in alert:
             for match in alert['matches']:
                 query = insert_query.create_insert_match(objectId, match)
@@ -71,6 +77,8 @@ def alert_filter(alert, msl):
     return 1
 
 class Consumer(threading.Thread):
+    """ Threaded consumer of kafka. Calls alert_filter() for each one
+    """
     def __init__(self, threadID, args, conf):
         threading.Thread.__init__(self)
         self.threadID = threadID
@@ -89,6 +97,7 @@ class Consumer(threading.Thread):
             print('INGEST Cannot start reader: %d: %s\n' % (self.threadID, e))
             return
     
+        # Number of alerts in the batch
         if self.args.maxalert:
             maxalert = self.args.maxalert
         else:
@@ -97,6 +106,7 @@ class Consumer(threading.Thread):
         nalert = nalert_ingested = 0
         startt = time.time()
         while nalert < maxalert:
+            # Here we get the next alert by kafka
             msg = consumer.poll(timeout=settings.KAFKA_TIMEOUT)
             if msg is None:
                 break
@@ -112,6 +122,8 @@ class Consumer(threading.Thread):
                 if nalert%1000 == 0:
                     print('thread %d nalert %d (ingested %d) time %.1f' % 
                         ((self.threadID, nalert, nalert_ingested, time.time()-startt)))
+                    # refresh the database every 1000 alerts
+                    # make sure everything is committed
                     msl.close()
                     msl = make_database_connection()
     
@@ -123,18 +135,18 @@ def main():
     args = parse_args()
 
     # Configure consumer connection to Kafka broker
-    conf = {'bootstrap.servers': '{}:9092'.format(args.host,args.host,args.host),
-            'default.topic.config': {'auto.offset.reset': 'smallest'}}
-
+    conf = {
+        'bootstrap.servers': '%s:9092' % args.host,
+        'default.topic.config': {
+             'auto.offset.reset': 'smallest'
+        }}
     if args.group: conf['group.id'] = args.group
     else:          conf['group.id'] = 'LASAIR'
-
     print('Configuration = %s' % str(conf))
 
-    if args.nthread:
-        nthread = args.nthread
-    else:
-        nthread = 1
+    # How many threads
+    if args.nthread: nthread = args.nthread
+    else:            nthread = 1
     print('Threads = %d' % nthread)
 
     # make the thread list

@@ -1,3 +1,5 @@
+""" Clear out the local database
+"""
 import settings
 import mysql.connector
 config = {
@@ -7,8 +9,14 @@ config = {
     'database': 'ztf'
 }
 msl = mysql.connector.connect(**config)
-
 cursor = msl.cursor(buffered=True, dictionary=True)
+
 query = 'TRUNCATE TABLE objects'
+cursor.execute(query)
+
+query = 'TRUNCATE TABLE sherlock_crossmatches'
+cursor.execute(query)
+
+query = 'TRUNCATE TABLE watchlist_hits'
 cursor.execute(query)
 
