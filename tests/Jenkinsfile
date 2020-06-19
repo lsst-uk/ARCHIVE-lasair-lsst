@@ -6,6 +6,14 @@ pipeline {
         dir('tests') {
           sh 'python3 test_sherlock_wrapper.py'
         }
+        dir('/opt/kafka') {
+          sh 'nohup bin/zookeeper-server-start.sh config/zookeeper.properties &'
+          sh 'nohup bin/kafka-server-start.sh config/server.properties &'
+          sh 'sudo service mysql start'
+        }
+        dir('tests') {
+          sh 'python3 integration_test_sherlock_wrapper.py'
+        }
       }
       post {
         always {
