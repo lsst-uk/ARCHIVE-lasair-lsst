@@ -10,20 +10,26 @@ RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-insta
   python3-pip 
 RUN pip3 install \
   confluent-kafka==1.4.2 \
-  qub-sherlock==2.1.2
+  qub-sherlock==2.1.4
 
 # Required for tests
 RUN pip3 install \
-  xmlrunner
+  xmlrunner \
+  cryptography
 RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-install-recommends \
   mysql-client \
   mysql-server \
   openjdk-11-jre-headless \
-  wget
+  wget \
+  sudo
+RUN echo "jenkins    ALL = NOPASSWD: /usr/sbin/service" > /etc/sudoers.d/jenkins && chmod 440 /etc/sudoers.d/jenkins
 RUN cd /opt && \
   wget -q https://www.mirrorservice.org/sites/ftp.apache.org/kafka/2.5.0/kafka_2.12-2.5.0.tgz && \
   tar -zxf kafka_2.12-2.5.0.tgz && \
-  ln -s kafka_2.12-2.5.0 kafka
+  ln -s kafka_2.12-2.5.0 kafka && \
+  rm kafka_2.12-2.5.0.tgz && \
+  chgrp -R jenkins kafka_2.12-2.5.0 && \
+  chmod -R g+w kafka_2.12-2.5.0 
 
 # Set up test database
 RUN update-rc.d mysql enable && \
