@@ -22,20 +22,17 @@ RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-insta
   openjdk-11-jre-headless \
   wget \
   sudo
-RUN echo "jenkins    ALL = NOPASSWD: /usr/sbin/service" > /etc/sudoers.d/jenkins && chmod 440 /etc/sudoers.d/jenkins
 RUN cd /opt && \
   wget -q https://www.mirrorservice.org/sites/ftp.apache.org/kafka/2.5.0/kafka_2.12-2.5.0.tgz && \
   tar -zxf kafka_2.12-2.5.0.tgz && \
   ln -s kafka_2.12-2.5.0 kafka && \
-  rm kafka_2.12-2.5.0.tgz && \
-  chgrp -R jenkins kafka_2.12-2.5.0 && \
-  chmod -R g+w kafka_2.12-2.5.0 
+  rm kafka_2.12-2.5.0.tgz 
 
 # Set up test database
+COPY sherlock_schema.sql /tmp/sherlock_schema.sql
 RUN update-rc.d mysql enable && \
-  service mysql start && \
+  service mysql start && \  
   cd /tmp && \
-  wget -q -O sherlock_schema.sql https://www.dropbox.com/s/qwh1gtrf0ewiw82/sherlock_schema.sql?dl=1 && \
   mysql -e "CREATE DATABASE crossmatch_catalogues" && \
   mysql crossmatch_catalogues < sherlock_schema.sql && \
   mysql -e "CREATE USER 'sherlock'@'%' IDENTIFIED BY 'sherlock'" && \
@@ -44,5 +41,8 @@ RUN update-rc.d mysql enable && \
 
 # Required for Jenkins
 RUN groupadd --gid 1000 jenkins &&\
-  useradd -m --uid 1000 --gid 1000 jenkins
+  useradd -m --uid 1000 --gid 1000 jenkins && \
+  chgrp -R jenkins /opt/kafka_2.12-2.5.0 && \
+  chmod -R g+w /opt/kafka_2.12-2.5.0 && \ 
+  echo "jenkins    ALL = NOPASSWD: /usr/sbin/service" > /etc/sudoers.d/jenkins && chmod 440 /etc/sudoers.d/jenkins
 
