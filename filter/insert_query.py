@@ -6,6 +6,7 @@ import json
 import math
 import numpy as np
 import ephem
+from gkhtm import _gkhtm as htmCircle
 
 def make_ema(candlist):
     """ Make a exponential moving average (EMA)
@@ -136,7 +137,7 @@ def create_insert_query(alert):
         htm16 = htmCircle.htmID(16, ramean, decmean)
     except:
         htm16 = 0
-#        print('Cannot get HTMID for ra=%f, dec=%f' % (ramean, decmean))
+        print('Cannot get HTMID for ra=%f, dec=%f' % (ramean, decmean))
 
     # dictionary of attributes
     sets = {}
