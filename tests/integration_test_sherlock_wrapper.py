@@ -12,6 +12,7 @@ from unittest import TestCase, expectedFailure
 import json
 import logging
 from time import sleep
+import subprocess
 
 import context
 from sherlock_wrapper import wrapper
@@ -53,6 +54,11 @@ class IntegrationTest(TestCase):
 
     @classmethod
     def setUpClass(cls):
+
+        subprocess.run(["sudo", "service", "mysql", "start"])        
+        subprocess.Popen(["bin/zookeeper-server-start.sh", "config/zookeeper.properties"], cwd="/opt/kafka")
+        subprocess.Popen(["bin/kafka-server-start.sh", "config/server.properties"], cwd="/opt/kafka")
+
         with open("example_ingested.json", 'r') as f:
             # load example data
             data = json.load(f)
