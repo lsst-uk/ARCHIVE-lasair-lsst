@@ -40,9 +40,9 @@ settings = {
 
 def del_topic(topic):
     admin_client = AdminClient(settings)
-    for (topic,future) in admin_client.delete_topics([topic], operation_timeout=2, request_timeout=2).items():
+    for (topic,future) in admin_client.delete_topics([topic], operation_timeout=4, request_timeout=4).items():
         try:
-            future.result(timeout=2)
+            future.result(timeout=10)
             sleep(1)
         except KafkaException as e:
             if e.args[0].code() == KafkaError.UNKNOWN_TOPIC_OR_PART:
@@ -57,9 +57,9 @@ class IntegrationTest(TestCase):
 
         subprocess.Popen(["bin/zookeeper-server-start.sh", "config/zookeeper.properties"], cwd="/opt/kafka")
         subprocess.run(["sudo", "service", "mysql", "start"])        
-        sleep(2)
+        sleep(4)
         subprocess.Popen(["bin/kafka-server-start.sh", "config/server.properties"], cwd="/opt/kafka")
-        sleep(10)
+        sleep(20)
 
         with open("example_ingested.json", 'r') as f:
             # load example data
