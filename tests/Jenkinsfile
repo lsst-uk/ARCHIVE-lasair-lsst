@@ -6,7 +6,7 @@ pipeline {
         dir('tests') {
           sh 'python3 test_sherlock_wrapper.py'
         }
-        dir('/opt/kafka') {
+        dir('/opt/kafka_2.12-2.5.0') {
           sh 'nohup bin/zookeeper-server-start.sh config/zookeeper.properties &'
           sh 'nohup bin/kafka-server-start.sh config/server.properties &'
           sh 'sudo service mysql start'
