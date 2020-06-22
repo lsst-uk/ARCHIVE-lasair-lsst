@@ -55,9 +55,11 @@ class IntegrationTest(TestCase):
     @classmethod
     def setUpClass(cls):
 
-        subprocess.run(["sudo", "service", "mysql", "start"])        
         subprocess.Popen(["bin/zookeeper-server-start.sh", "config/zookeeper.properties"], cwd="/opt/kafka")
+        subprocess.run(["sudo", "service", "mysql", "start"])        
+        sleep(2)
         subprocess.Popen(["bin/kafka-server-start.sh", "config/server.properties"], cwd="/opt/kafka")
+        sleep(10)
 
         with open("example_ingested.json", 'r') as f:
             # load example data
