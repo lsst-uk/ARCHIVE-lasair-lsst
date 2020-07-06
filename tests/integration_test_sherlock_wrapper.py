@@ -31,6 +31,7 @@ conf = {
         'max_batches': 1,
         'max_errors': 1,
         'stop_at_end': False,
+        'cache_db': '',
         'sherlock_settings': 'sherlock_test.yaml',
         }
 
