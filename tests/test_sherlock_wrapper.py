@@ -227,6 +227,10 @@ class TestClassifier(unittest.TestCase):
                 self.assertEqual(alerts[0]['matches'], crossmatches)
                 # classify should have been called once
                 mock_classifier.return_value.classify.assert_called_once()
+                # execute should have been called twice
+                self.assertEqual(mock_pymysql.return_value.cursor.return_value.__enter__.return_value.execute.call_count, 2)
+                # fetchall should have been called once
+                mock_pymysql.return_value.cursor.return_value.__enter__.return_value.fetchall.assert_called_once()
 
 class TestProducer(unittest.TestCase):
     conf = {

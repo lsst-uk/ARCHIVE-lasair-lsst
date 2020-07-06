@@ -117,7 +117,6 @@ def classify(conf, log, alerts):
                 cursorclass=pymysql.cursors.DictCursor)        
         try:
             with connection.cursor() as cursor:
-                # Read a single record
                 cursor.execute(query)
                 for result in cursor.fetchall():
                     cache[result['name']] = { 'class': result['class'] }
@@ -161,6 +160,24 @@ def classify(conf, log, alerts):
         classifications = {}
         crossmatches = []
 
+    # update cache database
+    if conf['cache_db'] and len(classifications)>0:
+        connection = pymysql.connect(
+                host=url.hostname,
+                user=url.username,
+                password=url.password,
+                db=url.path.lstrip('/'),
+                charset='utf8mb4',
+                cursorclass=pymysql.cursors.DictCursor)
+        try:
+            with connection.cursor() as cursor:
+                for name in classifications:
+                    query = "INSERT INTO cache VALUES('{}','{}')".format(name,classifications[name])
+                    cursor.execute(query)
+        finally:
+            connection.commit()
+            connection.close()
+
     # add classifications from cache
     for name in cache:
         classifications[name] = cache[name]['class']
@@ -196,10 +213,6 @@ def classify(conf, log, alerts):
         name = alert.get('objectId', alert.get('candid'))
         if name in cm_by_name:
             alert['matches'] = cm_by_name[name]
-    #    if 'matches' in alerts[name]:
-    #        alerts[name]['matches'].append(cm)
-    #    else:
-    #        alerts[name]['matches'] = [cm]
 
     return len(classifications)
 
