@@ -10,6 +10,8 @@ import yaml
 import argparse
 import logging
 import sys
+from urllib.parse import urlparse
+import pymysql.cursors
 from confluent_kafka import Consumer, Producer, KafkaError
 #from mock_sherlock import transient_classifier
 from sherlock import transient_classifier
@@ -95,17 +97,47 @@ def classify(conf, log, alerts):
         with open(conf['sherlock_settings'], "r") as f:
             sherlock_settings = yaml.safe_load(f)
     except IOError as e:
-        print (e)
+        log.error(e)
+
+    # look up objects in cache
+    cache = {}
+    if conf['cache_db']:
+        names = []
+        for alert in alerts:
+            name = alert.get('objectId', alert.get('candid'))
+            names.append(name)
+        query = "SELECT name,class FROM cache WHERE name IN ('{}');".format("','".join(names))
+        url = urlparse(conf['cache_db'])
+        connection = pymysql.connect(
+                host=url.hostname,
+                user=url.username,
+                password=url.password,
+                db=url.path.lstrip('/'),
+                charset='utf8mb4',
+                cursorclass=pymysql.cursors.DictCursor)        
+        try:
+            with connection.cursor() as cursor:
+                # Read a single record
+                cursor.execute(query)
+                for result in cursor.fetchall():
+                    cache[result['name']] = { 'class': result['class'] }
+        finally:
+            connection.close()
 
     # make lists of names, ra, dec
+    hit = ''
     names = []
     ra = []
     dec = []
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
-        names.append(name)
-        ra.append(alert['candidate']['ra'])
-        dec.append(alert['candidate']['dec'])
+        if name in cache:
+            hit = 'hit'
+        if not name in cache:
+            hit = 'miss'
+            names.append(name)
+            ra.append(alert['candidate']['ra'])
+            dec.append(alert['candidate']['dec'])
 
     # set up sherlock
     classifier = transient_classifier(
@@ -119,11 +151,21 @@ def classify(conf, log, alerts):
     )
 
     # run sherlock
-    log.info("running Sherlock classifier on {:d} alerts".format(len(alerts)))
-    classifications, crossmatches = classifier.classify()
-    log.info("got {:d} classifications".format(len(classifications)))
-    log.info("got {:d} crossmatches".format(len(crossmatches)))
-    
+    if len(names) > 0:
+        log.info("running Sherlock classifier on {:d} alerts".format(len(alerts)))
+        classifications, crossmatches = classifier.classify()
+        log.info("got {:d} classifications".format(len(classifications)))
+        log.info("got {:d} crossmatches".format(len(crossmatches)))
+    else:
+        log.info("not running Sherlock as no remaining alerts to process")
+        classifications = {}
+        crossmatches = []
+
+    # add classifications from cache
+    for name in cache:
+        classifications[name] = cache[name]['class']
+        log.info("got {:d} classifications from cache".format(len(cache)))
+
     # process classifications
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
@@ -220,6 +262,7 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--batch_size', type=int, default=1000, help='number of messages to process per batch')
     parser.add_argument('-l', '--max_batches', type=int, default=-1, help='max number of batches to process')
     parser.add_argument('-m', '--max_errors', type=int, default=-1, help='maximum number of non-fatal errors before aborting') # negative=no limit
+    parser.add_argument('-d', '--cache_db', type=str, default='', help='cache database (e.g. mysql://user:pw@host:3306/database)') # empty = don't use cache
     parser.add_argument('-s', '--sherlock_settings', type=str, default='sherlock.yaml', help='location of Sherlock settings file (default sherlock.yaml)')
     parser.add_argument('-q', '--quiet', action="store_true", default=None, help='minimal output')
     parser.add_argument('-v', '--verbose', action="store_true", default=None, help='verbose output')
