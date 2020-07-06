@@ -50,7 +50,8 @@ class TestConsumer(unittest.TestCase):
         'output_topic':'',
         'batch_size':5,
         'timeout':1,
-        'max_errors':-1
+        'max_errors':-1,
+        'cache_db':''
         }
 
     #with open("tests/example_ingested.json", 'r') as f:
@@ -128,7 +129,8 @@ class TestConsumer(unittest.TestCase):
                 'output_topic':'',
                 'batch_size':5,
                 'timeout':1,
-                'max_errors':0
+                'max_errors':0,
+                'cache_db':''
                 }
             alerts = []
             # consume should report consuming 0 alerts
@@ -140,28 +142,25 @@ class TestConsumer(unittest.TestCase):
 
 
 class TestClassifier(unittest.TestCase):
-    conf = {
-        'broker':'',
-        'group':'',
-        'input_topic':'',
-        'output_topic':'',
-        'batch_size':5,
-        'timeout':1,
-        'max_errors':-1,
-        'sherlock_settings': 'sherlock_test.yaml'
-        }
-
-    #with open("tests/example_ingested.json", 'r') as f:
-    #    example_input_data = json.load(f)[0]
-
     def test_classify_alert_batch(self):
+        conf = {
+            'broker':'',
+            'group':'',
+            'input_topic':'',
+            'output_topic':'',
+            'batch_size':5,
+            'timeout':1,
+            'max_errors':-1,
+            'cache_db':'',
+            'sherlock_settings': 'sherlock_test.yaml'
+            }
         with unittest.mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
-            alerts = [ example_alert ]
+            alerts = [ example_alert.copy() ]
             classifications = { "ZTF18aapubnx": "Q" }
             crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'thing':'foo' } ]
             mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
             # should report classifying 1 alert
-            self.assertEqual(wrapper.classify(self.conf, log, alerts), 1)
+            self.assertEqual(wrapper.classify(conf, log, alerts), 1)
             # length of alerts shouls still be 1
             self.assertEqual(len(alerts), 1)
             # content of alerts should be as expected
@@ -169,6 +168,65 @@ class TestClassifier(unittest.TestCase):
             self.assertEqual(alerts[0]['matches'], crossmatches)
             # classify should have been called once 
             mock_classifier.return_value.classify.assert_called_once()
+
+    def test_classify_cache_hit(self):
+        conf = {
+            'broker':'',
+            'group':'',
+            'input_topic':'',
+            'output_topic':'',
+            'batch_size':5,
+            'timeout':1,
+            'max_errors':-1,
+            'cache_db':'mysql://user_name:password@localhost:3306/sherlock_cache',
+            'sherlock_settings': 'sherlock_test.yaml'
+            }
+        with unittest.mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
+            with unittest.mock.patch('sherlock_wrapper.wrapper.pymysql.connect') as mock_pymysql:
+                alerts = [ example_alert.copy() ]
+                classifications = { "ZTF18aapubnx": "Q" }
+                crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'thing':'foo' } ]
+                mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
+                mock_pymysql.return_value.cursor.return_value.__enter__.return_value.fetchall.return_value = [{'name': 'ZTF18aapubnx', 'class': 'T'}]
+                # should report classifying 1 alert
+                self.assertEqual(wrapper.classify(conf, log, alerts), 1)
+                # length of alerts shouls still be 1
+                self.assertEqual(len(alerts), 1)
+                # content of alerts should be as expected - from cache
+                self.assertEqual(alerts[0]['sherlock_classification'], 'T')
+                # if we got a cache hit then we don't get crossmatches
+                self.assertNotIn('matches', alerts[0])
+                # classify should not have been called
+                mock_classifier.return_value.classify.assert_not_called()
+
+    def test_classify_cache_miss(self):
+        conf = {
+            'broker':'',
+            'group':'',
+            'input_topic':'',
+            'output_topic':'',
+            'batch_size':5,
+            'timeout':1,
+            'max_errors':-1,
+            'cache_db':'mysql://user_name:password@localhost:3306/sherlock_cache',
+            'sherlock_settings': 'sherlock_test.yaml'
+            }
+        with unittest.mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
+            with unittest.mock.patch('sherlock_wrapper.wrapper.pymysql.connect') as mock_pymysql:
+                alerts = [ example_alert.copy() ]
+                classifications = { "ZTF18aapubnx": "Q" }
+                crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'thing':'foo' } ]
+                mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
+                mock_pymysql.return_value.cursor.return_value.__enter__.return_value.fetchall.return_value = []
+                # should report classifying 1 alert
+                self.assertEqual(wrapper.classify(conf, log, alerts), 1)
+                # length of alerts shouls still be 1
+                self.assertEqual(len(alerts), 1)
+                # content of alerts should be as expected - from sherlock
+                self.assertEqual(alerts[0]['sherlock_classification'], 'Q')
+                self.assertEqual(alerts[0]['matches'], crossmatches)
+                # classify should have been called once
+                mock_classifier.return_value.classify.assert_called_once()
 
 class TestProducer(unittest.TestCase):
     conf = {
@@ -178,7 +236,8 @@ class TestProducer(unittest.TestCase):
         'output_topic':'',
         'batch_size':5,
         'timeout':1,
-        'max_errors':-1
+        'max_errors':-1,
+        'cache_db':''
         }
 
     # test producing a batch of alerts

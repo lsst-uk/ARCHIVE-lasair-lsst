@@ -81,6 +81,7 @@ class IntegrationTest(TestCase):
         del_topic(conf['output_topic'])
         pass
 
+    # TODO: incorporate cache into test
     def test_1_run_wrapper(self):
         logging.basicConfig(level=logging.WARNING)
         log = logging.getLogger("sherlock_wrapper_test")
