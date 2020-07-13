@@ -78,10 +78,12 @@ def consume(conf, log, alerts):
                     continue
         log.info("consumed {:d} alerts".format(n))
         if n > 0:
-            if classify(conf, log, alerts) != n:
-                raise Exception("Failed to classify all alerts in batch")
-            if produce(conf, log, alerts) != n:
-                raise Exception("Failed to produce all alerts in batch")
+            n_classified = classify(conf, log, alerts)
+            if n_classified != n:
+                raise Exception("Failed to classify all alerts in batch: expected {}, got {}".format(n, n_classified))
+            n_produced = produce(conf, log, alerts)
+            if n_produced != n:
+                raise Exception("Failed to produce all alerts in batch: expected {}, got {}".format(n, n_produced))
         c.commit(asynchronous=False)
     except KafkaError as e:
         # TODO handle this properly
