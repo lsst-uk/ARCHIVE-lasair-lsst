@@ -72,18 +72,22 @@ class TestConsumer(unittest.TestCase):
              
     # test consuming a batch of alerts
     def test_consume_alert_batch(self):
-        with unittest.mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
-            mock_kafka_consumer.return_value.poll.return_value.error.return_value = None
-            mock_kafka_consumer.return_value.poll.return_value.value.return_value = example_input_data
-            alerts = []
-            # consume should report consuming 5 alerts
-            self.assertEqual(wrapper.consume(self.conf, log, alerts), 5)
-            # alerts should have len 5
-            self.assertEqual(len(alerts), 5)
-            # content of alerts should be as expected
-            self.assertEqual(alerts[0]['candidate']['jd'], 2458943.9334606)
-            # poll should have been called 5 times
-            self.assertEqual(mock_kafka_consumer.return_value.poll.call_count, 5)
+        with unittest.mock.patch('sherlock_wrapper.wrapper.classify') as mock_classify:
+            with unittest.mock.patch('sherlock_wrapper.wrapper.produce') as mock_produce:
+                with unittest.mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
+                    mock_classify.return_value = 5
+                    mock_produce.return_value = 5
+                    mock_kafka_consumer.return_value.poll.return_value.error.return_value = None
+                    mock_kafka_consumer.return_value.poll.return_value.value.return_value = example_input_data
+                    alerts = []
+                    # consume should report consuming 5 alerts
+                    self.assertEqual(wrapper.consume(self.conf, log, alerts), 5)
+                    # alerts should have len 5
+                    self.assertEqual(len(alerts), 5)
+                    # content of alerts should be as expected
+                    self.assertEqual(alerts[0]['candidate']['jd'], 2458943.9334606)
+                    # poll should have been called 5 times
+                    self.assertEqual(mock_kafka_consumer.return_value.poll.call_count, 5)
 
     # test that a fatal error is fatal
     def test_fatal_error(self):
@@ -102,18 +106,22 @@ class TestConsumer(unittest.TestCase):
 
     # test that a non-fatal error is non-fatal
     def test_non_fatal_error(self):
-        with unittest.mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
-            # poll returns None when no messages left to consume
-            mock_kafka_consumer.return_value.poll = non_fatal_error_on_1st_call
-            alerts = []
-            # consume should report consuming 0 alerts
-            self.assertEqual(wrapper.consume(self.conf, log, alerts), 5)
-            # alerts should have len 5
-            self.assertEqual(len(alerts), 5)
-            # content of alerts should be as expected
-            self.assertEqual(alerts[0]['candidate']['jd'], 2458943.9334606)
-            # poll should have been called 6 times
-            self.assertEqual(nfe_call_count, 6)
+        with unittest.mock.patch('sherlock_wrapper.wrapper.classify') as mock_classify:
+            with unittest.mock.patch('sherlock_wrapper.wrapper.produce') as mock_produce:
+                with unittest.mock.patch('sherlock_wrapper.wrapper.Consumer') as mock_kafka_consumer:
+                    mock_classify.return_value = 5
+                    mock_produce.return_value = 5
+                    # poll returns None when no messages left to consume
+                    mock_kafka_consumer.return_value.poll = non_fatal_error_on_1st_call
+                    alerts = []
+                    # consume should report consuming 0 alerts
+                    self.assertEqual(wrapper.consume(self.conf, log, alerts), 5)
+                    # alerts should have len 5
+                    self.assertEqual(len(alerts), 5)
+                    # content of alerts should be as expected
+                    self.assertEqual(alerts[0]['candidate']['jd'], 2458943.9334606)
+                    # poll should have been called 6 times
+                    self.assertEqual(nfe_call_count, 6)
 
     # test max non-fatal errors 
     def test_max_errors(self):

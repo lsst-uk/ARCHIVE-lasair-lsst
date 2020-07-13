@@ -31,7 +31,8 @@ def consume(conf, log, alerts):
         'bootstrap.servers': conf['broker'],
         'group.id': conf['group'],
         'session.timeout.ms': 6000,
-        'default.topic.config': {'auto.offset.reset': 'smallest'}
+        'default.topic.config': {'auto.offset.reset': 'smallest'},
+        'enable.auto.commit': False
     }
     # TODO add a separate flag for this?
     #if conf['debug']:
@@ -75,12 +76,18 @@ def consume(conf, log, alerts):
                     break
                 else:
                     continue
+        log.info("consumed {:d} alerts".format(n))
+        if n > 0:
+            if classify(conf, log, alerts) != n:
+                raise Exception("Failed to classify all alerts in batch")
+            if produce(conf, log, alerts) != n:
+                raise Exception("Failed to produce all alerts in batch")
+        c.commit(asynchronous=False)
     except KafkaError as e:
         # TODO handle this properly
         log.warning(str(e))
     finally:
         c.close()
-    log.info("consumed {:d} alerts".format(n))
     return n
 
 
@@ -256,10 +263,12 @@ def run(conf, log):
         batches -= 1
         alerts = []
         n = consume(conf, log, alerts)
-        if n > 0:
-            classify(conf, log, alerts)
-            produce(conf, log, alerts)
-        elif conf['stop_at_end']:
+#        if n > 0:
+#            classify(conf, log, alerts)
+#            produce(conf, log, alerts)
+#        elif conf['stop_at_end']:
+#            break
+        if n==0 and conf['stop_at_end']:
             break
          
 
