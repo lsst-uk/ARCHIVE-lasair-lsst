@@ -172,7 +172,8 @@ def classify(conf, log, alerts):
         try:
             with connection.cursor() as cursor:
                 for name in classifications:
-                    query = "INSERT INTO cache VALUES('{}','{}')".format(name,classifications[name])
+                    query = "INSERT INTO cache VALUES('{}','{}')".format(name,classifications[name][0])
+                    log.info("update cache: {}".format(query))
                     cursor.execute(query)
         finally:
             connection.commit()
@@ -180,7 +181,8 @@ def classify(conf, log, alerts):
 
     # add classifications from cache
     for name in cache:
-        classifications[name] = cache[name]['class']
+        classifications[name] = [cache[name]['class']]
+    if len(cache)>0:
         log.info("got {:d} classifications from cache".format(len(cache)))
 
     # process classifications
