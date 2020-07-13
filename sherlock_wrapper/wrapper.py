@@ -191,6 +191,7 @@ def classify(conf, log, alerts):
     if len(cache)>0:
         log.info("got {:d} classifications from cache".format(len(cache)))
 
+    n = 0
     # process classifications
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
@@ -200,7 +201,7 @@ def classify(conf, log, alerts):
             alert['sherlock_annotation']        = 'Placeholder'
             alert['sherlock_summary']           = 'Placeholder'
             alert['sherlock_separation_arcsec'] = -1.0
-
+            n += 1
 
     # process crossmatches
     cm_by_name = {}
@@ -222,7 +223,7 @@ def classify(conf, log, alerts):
         if name in cm_by_name:
             alert['matches'] = cm_by_name[name]
 
-    return len(names)
+    return n
 
 def produce(conf, log, alerts):
     "produce a batch of alerts on the kafka output topic, return number of alerts produced"
