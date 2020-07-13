@@ -133,19 +133,16 @@ def classify(conf, log, alerts):
             connection.close()
 
     # make lists of names, ra, dec
-    hit = ''
     names = []
     ra = []
     dec = []
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
-        if name in cache:
-            hit = 'hit'
         if not name in cache:
-            hit = 'miss'
-            names.append(name)
-            ra.append(alert['candidate']['ra'])
-            dec.append(alert['candidate']['dec'])
+            if not name in names:
+                names.append(name)
+                ra.append(alert['candidate']['ra'])
+                dec.append(alert['candidate']['dec'])
 
     # set up sherlock
     classifier = transient_classifier(
@@ -225,7 +222,7 @@ def classify(conf, log, alerts):
         if name in cm_by_name:
             alert['matches'] = cm_by_name[name]
 
-    return len(classifications)
+    return len(names)
 
 def produce(conf, log, alerts):
     "produce a batch of alerts on the kafka output topic, return number of alerts produced"
