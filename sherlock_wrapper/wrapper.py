@@ -84,7 +84,7 @@ def consume(conf, log, alerts):
             n_produced = produce(conf, log, alerts)
             if n_produced != n:
                 raise Exception("Failed to produce all alerts in batch: expected {}, got {}".format(n, n_produced))
-        c.commit(asynchronous=False)
+            c.commit(asynchronous=False)
     except KafkaError as e:
         # TODO handle this properly
         log.warning(str(e))
