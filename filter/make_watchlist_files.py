@@ -50,12 +50,11 @@ def moc_watchlist(watchlist, max_depth):
         else:   moc = newmoc
     return moc
 
-def moc_watchlists(watchlist, max_depth):
+def moc_watchlists(watchlist, max_depth, chk):
     """
     mocs can be inefficient when they have a lot of points in them
     so here we make several smaller mocs, each with a max number of cones
     """
-    chk = settings.WATCHLIST_CHUNK   # max points per moc, perhaps 50,000
 
     # split the number of points in the watchlist into chunks
     nchunk = len(watchlist['ra'])//chk
@@ -133,7 +132,7 @@ def fetch_active_watchlists(msl, cache_dir):
     # watchlists which will have their caches rebuilt
     return watchlist_list
 
-def rebuild_cache(wl_id, name, cones, max_depth):
+def rebuild_cache(wl_id, name, cones, max_depth, cache_dir, chk):
     t = time.time()
     # clear the cache and remake the directory
     watchlist_dir = cache_dir + 'wl_%d/' % wl_id
@@ -142,7 +141,7 @@ def rebuild_cache(wl_id, name, cones, max_depth):
     os.mkdir(watchlist_dir)
 
     # compute the list of mocs
-    moclist = moc_watchlists(cones, max_depth)
+    moclist = moc_watchlists(cones, max_depth, chk)
     
     # write the watchlist.csv
     w = open(watchlist_dir + 'watchlist.csv', 'w')
@@ -172,6 +171,7 @@ if __name__ == "__main__":
 
     max_depth = settings.WATCHLIST_MAX_DEPTH
     cache_dir = settings.WATCHLIST_MOCS
+    chk       = settings.WATCHLIST_CHUNK
 
     # who needs to be recomputed
     watchlists = fetch_active_watchlists(msl, cache_dir)
@@ -179,4 +179,5 @@ if __name__ == "__main__":
     for watchlist in watchlists:
         # get the data from the database
         cones = fetch_watchlist(msl, watchlist['wl_id'], watchlist['radius'])
-        rebuild_cache(watchlist['wl_id'], watchlist['name'], cones, max_depth)
+        rebuild_cache(watchlist['wl_id'], watchlist['name'], \
+            cones, max_depth, cache_dir, chk)
