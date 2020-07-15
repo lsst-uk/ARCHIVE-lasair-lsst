@@ -15,6 +15,17 @@ import settings
 import date_nid
 import run_active_queries
 from check_alerts_watchlists import get_watchlist_hits, insert_watchlist_hits
+import mysql.connector
+
+def db_connect():
+    config = {
+        'user'    : settings.DB_USER_LOCAL,
+        'password': settings.DB_PASS_LOCAL,
+        'host'    : settings.DB_HOST_LOCAL,
+        'database': 'ztf'
+    }
+    msl_local = mysql.connector.connect(**config)
+    return msl_local
 
 # if argument is test, use test stream
 if len(sys.argv) > 1 and sys.argv[1] == 'test':
@@ -53,11 +64,12 @@ print('INGEST duration %.1f seconds' % (time.time() - t))
 
 ##### run the watchlists
 print('WATCHLIST start %s' % datetime.utcnow().strftime("%H:%M:%S"))
+msl = db_connect()
 t = time.time()
-hits = get_watchlist_hits()
+hits = get_watchlist_hits(msl, settings.WATCHLIST_MOCS, settings.WATCHLIST_CHUNK)
 print('got %d watchlist hits' % len(hits))
 if len(hits) > 0:
-    insert_watchlist_hits(hits)
+    insert_watchlist_hits(msl, hits)
 print('WATCHLIST %.1f seconds' % (time.time() - t))
 
 ##### run the user queries

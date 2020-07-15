@@ -16,12 +16,10 @@ files is the same as the list of cones associated with the watchlist.
 """
 import os
 import math
-import settings
 from mocpy import MOC
 import astropy.units as u
-import mysql.connector
 
-def read_watchlist_cache_files():
+def read_watchlist_cache_files(cache_dir):
     """
     This function reads all the files in the cache directories and keeps them in memory
     in a list called "watchlistlist". Each watchlist is a dictionary:
@@ -31,7 +29,7 @@ def read_watchlist_cache_files():
         names: the naems give tot he cones by the user
     """
     watchlistlist = []
-    for wl_dir in os.listdir(settings.WATCHLIST_MOCS):
+    for wl_dir in os.listdir(cache_dir):
         # every directory in the cache should be of the form wl_<nn> 
         # where nn is the watchlist id
         try:     wl_id = int(wl_dir[3:])
@@ -41,8 +39,8 @@ def read_watchlist_cache_files():
         watchlist = {'wl_id':wl_id}
 
         moclist = []
-        for file in os.listdir(settings.WATCHLIST_MOCS + wl_dir):
-            gfile = settings.WATCHLIST_MOCS + wl_dir + '/' + file
+        for file in os.listdir(cache_dir + wl_dir):
+            gfile = cache_dir + wl_dir + '/' + file
 
             # read in the mocs
             if file.startswith('moc'):
@@ -115,14 +113,13 @@ def check_alerts_against_moc(alertlist, wl_id, moc, cones):
 
     return hits
 
-def check_alerts_against_watchlist(alertlist, watchlist):
+def check_alerts_against_watchlist(alertlist, watchlist, chk):
     """ This function goes through all the watchlists looking for hits
     """
     moclist = watchlist['moclist']
     cones   = watchlist['cones']
     wl_id   = watchlist['wl_id']
     hits = []
-    chk = settings.WATCHLIST_CHUNK
     # larger watchlists are expressed by multiple mocs
     for ichunk in range(len(moclist)):
         coneschunk  = {
@@ -135,28 +132,17 @@ def check_alerts_against_watchlist(alertlist, watchlist):
         hits += check_alerts_against_moc(alertlist, wl_id, moclist[ichunk], coneschunk)
     return hits
 
-def check_alerts_against_watchlists(alertlist, watchlistlist):
+def check_alerts_against_watchlists(alertlist, watchlistlist, chunk_size):
     """ check the batch of alerts agains all the watchlists
     """
     hits = []
     for watchlist in watchlistlist:
-        hits += check_alerts_against_watchlist(alertlist, watchlist)
+        hits += check_alerts_against_watchlist(alertlist, watchlist, chunk_size)
     return hits
 
-def db_connect():
-    config = {
-        'user'    : settings.DB_USER_LOCAL,
-        'password': settings.DB_PASS_LOCAL,
-        'host'    : settings.DB_HOST_LOCAL,
-        'database': 'ztf'
-    }
-    msl_local = mysql.connector.connect(**config)
-    return msl_local
-
-def fetch_alerts():
+def fetch_alerts(msl):
     """ Get all the alerts from the local cache to check againstr watchlist
     """
-    msl = db_connect()
     cursor = msl.cursor(buffered=True, dictionary=True)
 
     query = 'SELECT objectId, ramean, decmean from objects'
@@ -170,24 +156,23 @@ def fetch_alerts():
         delist.append (row['decmean'])
     return {"obj":objlist, "ra":ralist, "de":delist}
 
-def get_watchlist_hits():
+def get_watchlist_hits(msl, cache_dir, chunk_size):
     """ Get all the alerts, then run against the watchlists, return the hits
     """
     # read in the cache files
-    watchlistlist = read_watchlist_cache_files()
+    watchlistlist = read_watchlist_cache_files(cache_dir)
 
     # get the alert positions from the database
-    alertlist = fetch_alerts()
+    alertlist = fetch_alerts(msl)
 
     # check the list against the watchlists
-    hits = check_alerts_against_watchlists(alertlist, watchlistlist)
+    hits = check_alerts_against_watchlists(alertlist, watchlistlist, chunk_size)
     return hits
 
-def insert_watchlist_hits(hits):
+def insert_watchlist_hits(msl, hits):
     """ Build and execute the insertion query to get the hits into the database
     """
     print('inserting')
-    msl = db_connect()
     cursor = msl.cursor(buffered=True, dictionary=True)
 
     query = "INSERT into watchlist_hits (wl_id, cone_id, objectId, arcsec, name) VALUES\n"
@@ -204,9 +189,18 @@ def insert_watchlist_hits(hits):
     msl.commit()
 
 if __name__ == "__main__":
+    import settings
+    import mysql.connector
+    config = {
+        'user'    : settings.DB_USER_LOCAL,
+        'password': settings.DB_PASS_LOCAL,
+        'host'    : settings.DB_HOST_LOCAL,
+        'database': 'ztf'
+    }
+    msl_local = mysql.connector.connect(**config)
+
     # can run the watchlist process without the rest of the filter code 
-    hits = get_watchlist_hits()
+    hits = get_watchlist_hits(msl_local, settings.WATCHLIST_MOCS, settings.WATCHLIST_CHUNK)
     if hits:
-        for hit in hits: 
-            print(hit)
-    insert_watchlist_hits(hits)
+        for hit in hits: print(hit)
+        insert_watchlist_hits(msl_local, hits)

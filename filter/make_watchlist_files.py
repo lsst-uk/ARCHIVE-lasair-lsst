@@ -17,7 +17,6 @@ files is the same as the list of cones associated with the watchlist.
 from mocpy import MOC
 import astropy.units as u
 import mysql.connector
-import settings
 import math
 import time
 import os
@@ -75,20 +74,12 @@ def moc_watchlists(watchlist, max_depth):
     # return a list of mocs
     return moclist
 
-def connect_db():
-    msl = mysql.connector.connect(
-        user    =settings.DB_USER_REMOTE,
-        password=settings.DB_PASS_REMOTE,
-        host    =settings.DB_HOST_REMOTE,
-        database='ztf')
-    return msl
 
-def fetch_watchlist(wl_id, default_radius):
+def fetch_watchlist(msl, wl_id, default_radius):
     """
     Fetch the watchlist from the database. If radius is not supplied per cone, 
     then use the default radius of the watchlist
     """
-    msl = connect_db()
     cursor = msl.cursor(buffered=True, dictionary=True)
 
     cursor.execute('SELECT cone_id, ra, decl, radius, name FROM watchlist_cones WHERE wl_id=%d ' % wl_id)
@@ -112,12 +103,11 @@ def fetch_watchlist(wl_id, default_radius):
 #    print('wl_id=%d has %d cones' % (wl_id, ncone))
     return {'cone_ids':cone_ids, 'ra':ralist, 'de':delist, 'radius':radius, 'names':names}
 
-def fetch_active_watchlists():
+def fetch_active_watchlists(msl, cache_dir):
     """
     Go through the database and fetch the active watchlists
     Select those fresher than their cache and rebuild their cache.
     """
-    msl = connect_db()
     cursor = msl.cursor(buffered=True, dictionary=True)
 
     watchlist_list = []
@@ -127,7 +117,7 @@ def fetch_active_watchlists():
         watchlist_timestamp = time.mktime(row['timestamp'].timetuple())
 
         # directory where the cache files are kept
-        watchlist_dir = settings.WATCHLIST_MOCS + 'wl_%d'%row['wl_id']
+        watchlist_dir = cache_dir + 'wl_%d'%row['wl_id']
 
         try:
             # unix time of last modification of this directory
@@ -143,19 +133,17 @@ def fetch_active_watchlists():
     # watchlists which will have their caches rebuilt
     return watchlist_list
 
-def main():
-    max_depth = settings.WATCHLIST_MAX_DEPTH
-
+def main(msl, max_depth, cache_dir):
     # who needs to be recomputed
-    watchlists = fetch_active_watchlists()
+    watchlists = fetch_active_watchlists(msl, cache_dir)
 
     for watchlist in watchlists:
         # get the data from the database
-        cones = fetch_watchlist(watchlist['wl_id'], watchlist['radius'])
+        cones = fetch_watchlist(msl, watchlist['wl_id'], watchlist['radius'])
 
         t = time.time()
         # clear the cache and remake the directory
-        watchlist_dir = settings.WATCHLIST_MOCS + 'wl_%d/'%watchlist['wl_id']
+        watchlist_dir = cache_dir + 'wl_%d/'%watchlist['wl_id']
         try:    os.system('rm -r ' + watchlist_dir)
         except: pass
         os.mkdir(watchlist_dir)
@@ -181,4 +169,10 @@ def main():
                 % (watchlist['name'], len(ralist), time.time() - t))
 
 if __name__ == "__main__":
-    main()
+    import settings
+    msl = mysql.connector.connect(
+        user    =settings.DB_USER_REMOTE,
+        password=settings.DB_PASS_REMOTE,
+        host    =settings.DB_HOST_REMOTE,
+        database='ztf')
+    main(msl, settings.WATCHLIST_MAX_DEPTH, settings.WATCHLIST_MOCS)
