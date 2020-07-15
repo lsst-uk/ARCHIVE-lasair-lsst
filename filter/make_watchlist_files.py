@@ -133,40 +133,32 @@ def fetch_active_watchlists(msl, cache_dir):
     # watchlists which will have their caches rebuilt
     return watchlist_list
 
-def main(msl, max_depth, cache_dir):
-    # who needs to be recomputed
-    watchlists = fetch_active_watchlists(msl, cache_dir)
+def rebuild_cache(wl_id, name, cones, max_depth):
+    t = time.time()
+    # clear the cache and remake the directory
+    watchlist_dir = cache_dir + 'wl_%d/'%wl_id
+    try:    os.system('rm -r ' + watchlist_dir)
+    except: pass os.mkdir(watchlist_dir)
 
-    for watchlist in watchlists:
-        # get the data from the database
-        cones = fetch_watchlist(msl, watchlist['wl_id'], watchlist['radius'])
+    # compute the list of mocs
+    moclist = moc_watchlists(cones, max_depth)
+    
+    # write the watchlist.csv
+    w = open(watchlist_dir + 'watchlist.csv', 'w')
+    ralist   = cones['ra']
+    delist   = cones['de']
+    radius   = cones['radius']
+    names    = cones['names']
+    cone_ids = cones['cone_ids']
+    for i in range(len(ralist)):
+        w.write('%d, %f, %f, %.3e, %s\n' % 
+            (cone_ids[i], ralist[i], delist[i], radius[i], names[i]))
 
-        t = time.time()
-        # clear the cache and remake the directory
-        watchlist_dir = cache_dir + 'wl_%d/'%watchlist['wl_id']
-        try:    os.system('rm -r ' + watchlist_dir)
-        except: pass
-        os.mkdir(watchlist_dir)
-
-        # compute the list of mocs
-        moclist = moc_watchlists(cones, max_depth)
-        
-        # write the watchlist.csv
-        w = open(watchlist_dir + 'watchlist.csv', 'w')
-        ralist   = cones['ra']
-        delist   = cones['de']
-        radius   = cones['radius']
-        names    = cones['names']
-        cone_ids = cones['cone_ids']
-        for i in range(len(ralist)):
-            w.write('%d, %f, %f, %.3e, %s\n' % 
-                (cone_ids[i], ralist[i], delist[i], radius[i], names[i]))
-
-        # now write the moc files
-        for i in range(len(moclist)):
-            moclist[i].write(watchlist_dir + 'moc%03d.fits'%i)
-        print('Watchlist "%s" with %d cones rebuilt in %.2f seconds' 
-                % (watchlist['name'], len(ralist), time.time() - t))
+    # now write the moc files
+    for i in range(len(moclist)):
+        moclist[i].write(watchlist_dir + 'moc%03d.fits'%i)
+    print('Watchlist "%s" with %d cones rebuilt in %.2f seconds' 
+            % (name, len(ralist), time.time() - t))
 
 if __name__ == "__main__":
     import settings
@@ -174,5 +166,16 @@ if __name__ == "__main__":
         user    =settings.DB_USER_REMOTE,
         password=settings.DB_PASS_REMOTE,
         host    =settings.DB_HOST_REMOTE,
-        database='ztf')
-    main(msl, settings.WATCHLIST_MAX_DEPTH, settings.WATCHLIST_MOCS)
+        database='ztf'
+    )
+
+    max_depth = settings.WATCHLIST_MAX_DEPTH
+    cache_dir = settings.WATCHLIST_MOCS
+
+    # who needs to be recomputed
+    watchlists = fetch_active_watchlists(msl, cache_dir)
+
+    for watchlist in watchlists:
+        # get the data from the database
+        cones = fetch_watchlist(msl, watchlist['wl_id'], watchlist['radius'])
+        rebuild_cache(watchlist['wl_id'], watchlist['name'], cones, max_depth)
