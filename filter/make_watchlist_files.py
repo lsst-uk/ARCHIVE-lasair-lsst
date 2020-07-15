@@ -136,9 +136,10 @@ def fetch_active_watchlists(msl, cache_dir):
 def rebuild_cache(wl_id, name, cones, max_depth):
     t = time.time()
     # clear the cache and remake the directory
-    watchlist_dir = cache_dir + 'wl_%d/'%wl_id
+    watchlist_dir = cache_dir + 'wl_%d/' % wl_id
     try:    os.system('rm -r ' + watchlist_dir)
-    except: pass os.mkdir(watchlist_dir)
+    except: pass 
+    os.mkdir(watchlist_dir)
 
     # compute the list of mocs
     moclist = moc_watchlists(cones, max_depth)
