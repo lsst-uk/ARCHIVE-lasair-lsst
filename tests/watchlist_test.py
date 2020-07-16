@@ -6,9 +6,7 @@ from unittest import TestCase, expectedFailure
 import json
 import logging
 from time import sleep
-import context
-
-
+import context  # cant find sherlock_wrapper
 
 class WatchlistTest(TestCase):
 
@@ -80,7 +78,7 @@ def test_cache():
             cone_ids.append(     int(tok[0]))
             cone_ralist.append(float(tok[1]))
             cone_delist.append(float(tok[2]))
-            cone_radius.append(float(tok[3]))
+            cone_radius.append(float(tok[3])/3600.0)
             cone_names.append(       tok[4])
 
     cones = {'cone_ids':cone_ids, 'ra':cone_ralist, 'de':cone_delist, 'radius':cone_radius, 'names':cone_names}
@@ -103,11 +101,17 @@ def test_alerts():
             alert_objlist.append(tok[2])
     alertlist = {"obj":alert_objlist, "ra":alert_ralist, "de":alert_delist}
 
+    print('reading cache files')
     watchlistlist = read_watchlist_cache_files(cache_dir)
+    print('checking alerts')
     hits = check_alerts_against_watchlists(alertlist, watchlistlist, chunk_size)
-    if hits:
-        for hit in hits: print(hit)
+
+    if hits: 
+        for hit in hits: 
+            print(hit)
 
 #####
+print('refresh cache')
 test_cache()
+print('test alerts')
 test_alerts()
