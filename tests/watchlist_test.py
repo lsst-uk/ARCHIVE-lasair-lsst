@@ -1,6 +1,6 @@
 """Test watchlist infrstucture
 """
-
+import os
 import unittest.main
 from unittest import TestCase, expectedFailure
 import json
@@ -8,59 +8,13 @@ import logging
 from time import sleep
 import context  # cant find sherlock_wrapper
 
-class WatchlistTest(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-
-        with open("example_ingested.json", 'r') as f:
-            # load example data
-            data = json.load(f)
-            # try to delete the topics
-            del_topic(conf['input_topic'])
-            del_topic(conf['output_topic'])
-            # write example messages
-            p = Producer(settings)
-            try:
-                for alert in data:
-                    p.produce(conf['input_topic'], value=json.dumps(alert))
-            finally:
-                p.flush(timeout=20)
-
-    @classmethod
-    def tearDownClass(cls):
-        del_topic(conf['input_topic'])
-        del_topic(conf['output_topic'])
-        pass
-
-    def test_1_run_wrapper(self):
-        logging.basicConfig(level=logging.WARNING)
-        log = logging.getLogger("sherlock_wrapper_test")
-        wrapper.run(conf,log)
-
-    def test_2_check_result(self):
-        logging.basicConfig(level=logging.WARNING)
-        log = logging.getLogger("sherlock_wrapper_test")
-
-        # should be 5 alerts
-        self.assertEqual(len(alerts), 5)
-        # all alerts shuould have a sherlock classification of ORPHAN
-        for alert in alerts:
-            self.assertEqual(alert['sherlock_classification'], "ORPHAN") 
-
-
-#if __name__ == '__main__':
-#    import xmlrunner
-#    runner = xmlrunner.XMLTestRunner(output='test-reports')
-#    unittest.main(testRunner=runner)
-#    unittest.main()
-
-
 from filter.make_watchlist_files import rebuild_cache
 from filter.check_alerts_watchlists import check_alerts_against_watchlists
 from filter.check_alerts_watchlists import read_watchlist_cache_files
+
 cache_dir = 'watchlist_cache/'
 chunk_size = 50000
+wl_id = 42
 
 def test_cache():
     cone_ids = []
@@ -82,7 +36,6 @@ def test_cache():
             cone_names.append(       tok[4])
 
     cones = {'cone_ids':cone_ids, 'ra':cone_ralist, 'de':cone_delist, 'radius':cone_radius, 'names':cone_names}
-    wl_id   = 42
     wl_name = 'watchlist_sample'
     max_depth = 13
     rebuild_cache(wl_id, wl_name, cones, max_depth, cache_dir, chunk_size)
@@ -105,13 +58,34 @@ def test_alerts():
     watchlistlist = read_watchlist_cache_files(cache_dir)
     print('checking alerts')
     hits = check_alerts_against_watchlists(alertlist, watchlistlist, chunk_size)
+    return hits
 
-    if hits: 
-        for hit in hits: 
-            print(hit)
+class WatchlistTest(TestCase):
 
-#####
-print('refresh cache')
-test_cache()
-print('test alerts')
-test_alerts()
+    @classmethod
+    def setUpClass(cls):
+        os.system('mkdir ' + cache_dir)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.system('rm -rf ' + cache_dir)
+
+    def test1_build_cache(self):
+        print('test build cache')
+        test_cache()
+        self.assertTrue(os.path.exists('%s/wl_%d/moc000.fits'   % (cache_dir, wl_id)))
+        self.assertTrue(os.path.exists('%s/wl_%d/watchlist.csv' % (cache_dir, wl_id)))
+
+    def test2_alerts(self):
+        print('test alerts')
+        hits = test_alerts()
+        self.assertEqual(len(hits), 49)
+
+if __name__ == '__main__':
+    import xmlrunner
+    runner = xmlrunner.XMLTestRunner(output='test-reports')
+    unittest.main(testRunner=runner)
+    unittest.main()
+
+
+
