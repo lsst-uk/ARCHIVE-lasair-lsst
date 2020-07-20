@@ -6,6 +6,7 @@ pipeline {
         dir('tests') {
           sh 'python3 test_sherlock_wrapper.py'
           sh 'python3 integration_test_sherlock_wrapper.py'
+          sh 'python3 watchlist_test.py'
         }
       }
       post {
