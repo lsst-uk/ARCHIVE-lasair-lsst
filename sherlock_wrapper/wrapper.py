@@ -19,28 +19,27 @@ from sherlock import transient_classifier
 # TODO replace with a proper queue(s) for multi-threading?
 #alerts = {}
 
-def consume(conf, log, alerts):
+def consume(conf, log, alerts, consumer=None):
     "fetch a batch of alerts from kafka, return number of alerts consumed"
 
     #global alerts
 
     log.debug('called consume with config: ' + str(conf))
     
-    # Kafka settings
-    settings = {
-        'bootstrap.servers': conf['broker'],
-        'group.id': conf['group'],
-        'session.timeout.ms': 6000,
-        'default.topic.config': {'auto.offset.reset': 'smallest'},
-        'enable.auto.commit': False
-    }
-    # TODO add a separate flag for this?
-    #if conf['debug']:
-    #    settings['debug'] = 'all'
+    # if we haven't been given a consumer then create one
+    if consumer == None:
+        # Kafka settings
+        settings = {
+            'bootstrap.servers': conf['broker'],
+            'group.id': conf['group'],
+            'session.timeout.ms': 6000,
+            'default.topic.config': {'auto.offset.reset': 'smallest'},
+            'enable.auto.commit': False
+        }
+        c = Consumer(settings, logger=log)
+    else:
+        c = consumer
 
-    #max_messages = conf.get('max_messages', float('inf'))
-
-    c = Consumer(settings, logger=log)
     c.subscribe([conf['input_topic']])
 
     n = 0
@@ -89,7 +88,9 @@ def consume(conf, log, alerts):
         # TODO handle this properly
         log.warning(str(e))
     finally:
-        c.close()
+        # if we created our own consumer then close it
+        if consumer == None:
+            c.close()
     return n
 
 
@@ -262,11 +263,20 @@ def produce(conf, log, alerts):
     return n
 
 def run(conf, log):
+    settings = {
+        'bootstrap.servers': conf['broker'],
+        'group.id': conf['group'],
+        'session.timeout.ms': 6000,
+        'default.topic.config': {'auto.offset.reset': 'smallest'},
+        'enable.auto.commit': False
+    }
+    consumer = Consumer(settings, logger=log)
+
     batches = conf['max_batches']
     while batches != 0:
         batches -= 1
         alerts = []
-        n = consume(conf, log, alerts)
+        n = consume(conf, log, alerts, consumer)
 #        if n > 0:
 #            classify(conf, log, alerts)
 #            produce(conf, log, alerts)
