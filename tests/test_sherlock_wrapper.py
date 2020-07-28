@@ -172,8 +172,7 @@ class TestClassifier(unittest.TestCase):
             # length of alerts shouls still be 1
             self.assertEqual(len(alerts), 1)
             # content of alerts should be as expected
-            self.assertEqual(alerts[0]['sherlock_classification'], 'Q')
-            self.assertEqual(alerts[0]['matches'], crossmatches)
+            self.assertEqual(alerts[0]['annotations']['sherlock']['classification'], 'Q')
             # classify should have been called once 
             mock_classifier.return_value.classify.assert_called_once()
    
@@ -201,9 +200,7 @@ class TestClassifier(unittest.TestCase):
                 # length of alerts shouls still be 1
                 self.assertEqual(len(alerts), 1)
                 # content of alerts should be as expected - from cache
-                self.assertEqual(alerts[0]['sherlock_classification'], 'T')
-                # if we got a cache hit then we don't get crossmatches
-                self.assertNotIn('matches', alerts[0])
+                self.assertEqual(alerts[0]['annotations']['sherlock']['classification'], 'T')
                 # classify should not have been called
                 mock_classifier.return_value.classify.assert_not_called()
 
@@ -231,8 +228,7 @@ class TestClassifier(unittest.TestCase):
                 # length of alerts shouls still be 1
                 self.assertEqual(len(alerts), 1)
                 # content of alerts should be as expected - from sherlock
-                self.assertEqual(alerts[0]['sherlock_classification'], 'Q')
-                self.assertEqual(alerts[0]['matches'], crossmatches)
+                self.assertEqual(alerts[0]['annotations']['sherlock']['classification'], 'Q')
                 # classify should have been called once
                 mock_classifier.return_value.classify.assert_called_once()
                 # execute should have been called twice
