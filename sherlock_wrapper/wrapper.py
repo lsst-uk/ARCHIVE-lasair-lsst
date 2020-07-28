@@ -196,32 +196,36 @@ def classify(conf, log, alerts):
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
         if name in classifications:
-            alert['sherlock_classification'] = classifications[name][0]
+            if 'annotations' not in alert:
+                alert['annotations'] = {}
+            alert['annotations']['sherlock'] = {}
+            alert['annotations']['sherlock']['classification'] = classifications[name][0]
+            alert['annotations']['sherlock']['annotator'] = "https://github.com/thespacedoctor/sherlock"
+            alert['annotations']['sherlock']['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/" + name
             # placeholders until sherlock returns these
-            alert['sherlock_annotation']        = 'Placeholder'
-            alert['sherlock_summary']           = 'Placeholder'
-            alert['sherlock_separation_arcsec'] = -1.0
+            alert['annotations']['sherlock']['description'] = 'Placeholder'
+            alert['annotations']['sherlock']['summary']    = 'Placeholder'
+            alert['annotations']['sherlock']['separation'] = -1.0
             n += 1
 
     # process crossmatches
-    cm_by_name = {}
-    for cm in crossmatches:
-
-        # coi may be integer or string. Here we force it to be string.
-        if 'catalogue_object_id' in cm:
-            coi = cm['catalogue_object_id']
-            if isinstance(coi, int):
-                cm['catalogue_object_id'] = '%d' % coi
-
-        name = cm['transient_object_id']
-        if name in cm_by_name:
-            cm_by_name[name].append(cm)
-        else:
-            cm_by_name[name] = [cm]
-    for alert in alerts:
-        name = alert.get('objectId', alert.get('candid'))
-        if name in cm_by_name:
-            alert['matches'] = cm_by_name[name]
+    # removing this as part of #18
+    #cm_by_name = {}
+    #for cm in crossmatches:
+        ## coi may be integer or string. Here we force it to be string.
+        #if 'catalogue_object_id' in cm:
+        #    coi = cm['catalogue_object_id']
+        #    if isinstance(coi, int):
+        #        cm['catalogue_object_id'] = '%d' % coi
+        #name = cm['transient_object_id']
+        #if name in cm_by_name:
+        #    cm_by_name[name].append(cm)
+        #else:
+        #    cm_by_name[name] = [cm]
+    #for alert in alerts:
+    #    name = alert.get('objectId', alert.get('candid'))
+    #    if name in cm_by_name:
+    #        alert['matches'] = cm_by_name[name]
 
     return n
 
