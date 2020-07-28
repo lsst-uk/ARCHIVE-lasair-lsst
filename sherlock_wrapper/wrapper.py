@@ -31,7 +31,8 @@ def consume(conf, log, alerts):
         'bootstrap.servers': conf['broker'],
         'group.id': conf['group'],
         'session.timeout.ms': 6000,
-        'default.topic.config': {'auto.offset.reset': 'smallest'}
+        'default.topic.config': {'auto.offset.reset': 'smallest'},
+        'enable.auto.commit': False
     }
     # TODO add a separate flag for this?
     #if conf['debug']:
@@ -75,12 +76,20 @@ def consume(conf, log, alerts):
                     break
                 else:
                     continue
+        log.info("consumed {:d} alerts".format(n))
+        if n > 0:
+            n_classified = classify(conf, log, alerts)
+            if n_classified != n:
+                raise Exception("Failed to classify all alerts in batch: expected {}, got {}".format(n, n_classified))
+            n_produced = produce(conf, log, alerts)
+            if n_produced != n:
+                raise Exception("Failed to produce all alerts in batch: expected {}, got {}".format(n, n_produced))
+            c.commit(asynchronous=False)
     except KafkaError as e:
         # TODO handle this properly
         log.warning(str(e))
     finally:
         c.close()
-    log.info("consumed {:d} alerts".format(n))
     return n
 
 
@@ -124,19 +133,16 @@ def classify(conf, log, alerts):
             connection.close()
 
     # make lists of names, ra, dec
-    hit = ''
     names = []
     ra = []
     dec = []
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
-        if name in cache:
-            hit = 'hit'
         if not name in cache:
-            hit = 'miss'
-            names.append(name)
-            ra.append(alert['candidate']['ra'])
-            dec.append(alert['candidate']['dec'])
+            if not name in names:
+                names.append(name)
+                ra.append(alert['candidate']['ra'])
+                dec.append(alert['candidate']['dec'])
 
     # set up sherlock
     classifier = transient_classifier(
@@ -185,6 +191,7 @@ def classify(conf, log, alerts):
     if len(cache)>0:
         log.info("got {:d} classifications from cache".format(len(cache)))
 
+    n = 0
     # process classifications
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
@@ -194,7 +201,7 @@ def classify(conf, log, alerts):
             alert['sherlock_annotation']        = 'Placeholder'
             alert['sherlock_summary']           = 'Placeholder'
             alert['sherlock_separation_arcsec'] = -1.0
-
+            n += 1
 
     # process crossmatches
     cm_by_name = {}
@@ -216,7 +223,7 @@ def classify(conf, log, alerts):
         if name in cm_by_name:
             alert['matches'] = cm_by_name[name]
 
-    return len(classifications)
+    return n
 
 def produce(conf, log, alerts):
     "produce a batch of alerts on the kafka output topic, return number of alerts produced"
@@ -256,10 +263,12 @@ def run(conf, log):
         batches -= 1
         alerts = []
         n = consume(conf, log, alerts)
-        if n > 0:
-            classify(conf, log, alerts)
-            produce(conf, log, alerts)
-        elif conf['stop_at_end']:
+#        if n > 0:
+#            classify(conf, log, alerts)
+#            produce(conf, log, alerts)
+#        elif conf['stop_at_end']:
+#            break
+        if n==0 and conf['stop_at_end']:
             break
          
 
