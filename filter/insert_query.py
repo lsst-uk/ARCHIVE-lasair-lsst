@@ -181,12 +181,6 @@ def create_insert_query(alert):
     sets['latest_dc_mag_r08'] = ema['r08']
     sets['latest_dc_mag_r28'] = ema['r28']
 
-    # Sherlock conclusions
-    sets['sherlock_classification']    = alert['sherlock_classification']
-    sets['sherlock_annotation']        = alert['sherlock_annotation']
-    sets['sherlock_summary']           = alert['sherlock_summary']
-    sets['sherlock_separation_arcsec'] = alert['sherlock_separation_arcsec']
-
     # Make the query
     list = []
     query = 'REPLACE INTO objects SET objectId="%s", ' % objectId
@@ -200,42 +194,34 @@ def create_insert_query(alert):
     query += ', '.join(list)
     return query
 
-def create_insert_match(objectId, match):
-    """ This code makes the insert query for the Sherlock crossmatch record
+def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace):
+    """ This code makes the insert query for the genaric annotation
     """
-    # Here are all the attributes that the database knows about
-    attrs = [
-        'catalogue_object_id', 'catalogue_table_id', 
-        'separationArcsec', 'northSeparationArcsec', 'eastSeparationArcsec', 
-        'id', 'z', 'scale', 'distance', 'distance_modulus', 'photoZ', 'photoZErr', 
-        'association_type', 'physical_separation_kpc', 
-        'catalogue_object_type', 'catalogue_object_subtype', 'association_rank', 
-        'catalogue_table_name', 'rank', 'rankScore', 'search_name', 'major_axis_arcsec', 
-        'direct_distance', 'direct_distance_scale', 'direct_distance_modulus', 
-        'raDeg', 'decDeg', 'original_search_radius_arcsec', 'catalogue_view_id', 
-        '_u', '_uErr', '_g', '_gErr', '_r', '_rErr', '_i', '_iErr', '_z', '_zErr', '_y', '_yErr', 
-        'U', 'UErr', 'B', 'BErr', 'V', 'VErr', 'R', 'RErr', 'I', 'IErr', 
-        'J', 'JErr', 'H', 'HErr', 'K', 'KErr', 'G', 'GErr', 
-        'classificationReliability', 'transientAbsMag', 'merged_rank'
-    ]
-
-    # Put it in the list if we know about it
     sets = {}
-    for key, value in match.items():
+    for key in attrs:
+        sets[key] = 0
+    for key, value in ann.items():
         if key in attrs:
             sets[key] = value
-
     # Build the query
     list = []
-    query = 'REPLACE INTO sherlock_crossmatches SET objectId="%s",' % objectId
+    if replace: query = 'REPLACE'
+    else:       query = 'INSERT'
+    query += ' INTO %s SET objectId="%s",' % (table, objectId)
     for key,value in sets.items():
-        if isinstance(value, str):
-            list.append(key + '=' + '"' + str(value) + '"')
-        else:
-            list.append(key + '=' + str(value))
+#        if isinstance(value, str):
+        list.append(key + '=' + '"' + str(value) + '"')
+#    else:
+#        list.append(key + '=' + str(value))
     query += ', '.join(list)
     query = query.replace('None', 'NULL')
-    return query
+    try:
+        cursor = msl.cursor(buffered=True)
+        cursor.execute(query)
+        cursor.close()
+        msl.commit()
+    except mysql.connector.Error as err:
+        print('INGEST %s Database insert candidate failed: %s' % (annClass, str(err)))
 
 import os
 if __name__ == '__main__':

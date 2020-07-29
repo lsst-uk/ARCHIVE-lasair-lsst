@@ -62,18 +62,15 @@ def alert_filter(alert, msl):
             print('INGEST object Database insert candidate failed: %s' % str(err))
         msl.commit()
 
-        # now ingest the sherlock_crossmatches
-        if 'matches' in alert:
-            for match in alert['matches']:
-                query = insert_query.create_insert_match(objectId, match)
-                try:
-                    cursor = msl.cursor(buffered=True)
-                    cursor.execute(query)
-                    cursor.close()
-                except mysql.connector.Error as err:
-                    print('INGEST match Database insert candidate failed: %s' % str(err))
-                    print(query)
-                msl.commit()
+        # now ingest the sherlock_classifications
+        if 'annotations' in alert:
+            annotations = alert['annotations']
+            annClass = 'sherlock'
+            if annClass in annotations:
+                for ann in annotations[annClass]
+                    insert_annotation(msl, objectId, annClass, ann, 
+                        ['classification', 'description', 'summary', 'separation', 'z', 'catalogue_object_type'], 
+                        'sherlock_classifications', replace=True):
     return 1
 
 class Consumer(threading.Thread):

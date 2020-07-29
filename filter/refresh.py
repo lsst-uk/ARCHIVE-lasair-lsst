@@ -14,7 +14,7 @@ cursor = msl.cursor(buffered=True, dictionary=True)
 query = 'TRUNCATE TABLE objects'
 cursor.execute(query)
 
-query = 'TRUNCATE TABLE sherlock_crossmatches'
+query = 'TRUNCATE TABLE sherlock_classifications'
 cursor.execute(query)
 
 query = 'TRUNCATE TABLE watchlist_hits'

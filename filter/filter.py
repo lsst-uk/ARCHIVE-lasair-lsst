@@ -3,7 +3,7 @@
     -- run the watchlist code and insert the hits
     -- run the active user queries and produce kafka
     -- build a CSV file of three tables with the batch: 
-        objects, sherlock_crossmatches, watchlist_hits
+        objects, sherlock_classifications, watchlist_hits
     -- scp those files to lasair-db
     -- ssh to ingest those files to master database
 """
@@ -84,7 +84,7 @@ print('SEND to ARCHIVE')
 cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_LOCAL
 os.system(cmd)
 
-tablelist = ['objects', 'sherlock_crossmatches', 'watchlist_hits']
+tablelist = ['objects', 'sherlock_classifications', 'watchlist_hits']
 for table in tablelist:
     cmd = 'mv /var/lib/mysql-files/%s.txt /home/ubuntu/scratch/%s.txt' % (table, table)
     os.system(cmd)

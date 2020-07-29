@@ -1,0 +1,52 @@
+{
+  "name": "sherlock_classifications",
+  "version": "1.0",
+  "fields": [
+    {
+      "name": "id",
+      "type": "int",
+      "extra": "NOT NULL AUTO_INCREMENT",
+      "doc": "Auto-incrementing Primary Key (UUID) of `sherlock_classifications` tables (mainly used for book-keeping proposes)"
+    },
+    {
+      "name": "objectId",
+      "type": "string",
+      "extra": "CHARACTER SET utf8 COLLATE utf8_unicode_ci",
+      "doc": "ZTF object identifier"
+    },
+        {
+      "name": "classification",
+      "type": "string",
+      "doc": "Top-ranked contextual classification for the transient (NULL, AGN, BS, CV, NT, ORPHAN, SN, UNCLEAR, VS)"
+    },
+    {
+      "name": "description",
+      "type": "text",
+      "doc": "Long-form, human-readable summary of the transient's characteristics as infered from Sherlock's classification"
+    },
+    {
+      "name": "summary",
+      "type": "bigstring",
+      "doc": "Short-form summary of the transient's context usual for webpage quick-look summaries"
+    },
+    {
+      "name": "separation",
+      "type": "float",
+      "doc": "Transient's angular separation (arcseconds) from the top-ranked catalogue source match"
+    },
+    {
+      "name": "z",
+      "type": "float",
+      "doc": "Redshift of the top-ranked catalogue source match"
+    },
+    {
+      "name": "catalogue_object_type",
+      "type": "string",
+      "doc": "Object type of the top-ranked catalogue source match"
+    }
+  ],
+  "indexes": [
+    "PRIMARY KEY (`id`)",
+    "KEY `key_objectId` (`objectId`)"
+  ]
+}

@@ -172,26 +172,6 @@
       "name": "htm16",
       "type": "bigint",
       "doc": "Hierarchical Triangular Mesh level 16"
-    },
-    {
-      "name": "sherlock_classification",
-      "type": "string",
-      "doc": "Top-ranked contextual classification for the transient (NULL, AGN, BS, CV, NT, ORPHAN, SN, UNCLEAR, VS)"
-    },
-    {
-      "name": "sherlock_annotation",
-      "type": "text",
-      "doc": "Long-form, human-readable summary of the transient's characteristics as infered from Sherlock's classification"
-    },
-    {
-      "name": "sherlock_summary",
-      "type": "bigstring",
-      "doc": "Short-form summary of the transient's context usual for webpage quick-look summaries"
-    },
-    {
-      "name": "sherlock_separation_arcsec",
-      "type": "float",
-      "doc": "Transient's angular separation (arcseconds) from the top-ranked catalogue source match"
     }
   ],
   "indexes": [

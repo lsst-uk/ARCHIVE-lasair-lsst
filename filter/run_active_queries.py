@@ -57,7 +57,7 @@ def run_query(query, msl, topic):
 
     #print(recent)
     if len(recent) > 0:
-        filename = '/data/ztf/streams/%s' % topic
+        filename = settings.KAFKA_LASAIR_LOGS + topic
         try:
             file = open(filename, 'r')
             digestdict = json.loads(file.read())
@@ -91,7 +91,7 @@ def run_query(query, msl, topic):
                 last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
 
         if active == 2:
-            conf = { 'bootstrap.servers': settings.LASAIR_KAFKA_PRODUCER }
+            conf = { 'bootstrap.servers': settings.KAFKA_PRODUCER }
             try:
                 p = Producer(conf)
                 for out in recent: 
