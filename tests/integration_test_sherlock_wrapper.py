@@ -125,7 +125,7 @@ class IntegrationTest(TestCase):
         self.assertEqual(len(alerts), 5)
         # all alerts shuould have a sherlock classification of ORPHAN
         for alert in alerts:
-            self.assertEqual(alert['sherlock_classification'], "ORPHAN") 
+            self.assertEqual(alert['annotations']['sherlock']['classification'], "ORPHAN") 
 
 
 if __name__ == '__main__':

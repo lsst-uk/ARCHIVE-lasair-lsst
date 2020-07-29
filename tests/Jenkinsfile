@@ -1,11 +1,12 @@
 pipeline {
-  agent { docker { image 'gpfrancis/sherlock-test:0.5' } }
+  agent { docker { image 'gpfrancis/sherlock-test:0.6' } }
   stages {
     stage('test') {
       steps {
         dir('tests') {
           sh 'python3 test_sherlock_wrapper.py'
           sh 'python3 integration_test_sherlock_wrapper.py'
+          sh 'python3 watchlist_test.py'
         }
       }
       post {
