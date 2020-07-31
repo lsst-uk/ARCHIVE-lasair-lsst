@@ -125,7 +125,7 @@ class IntegrationTest(TestCase):
         self.assertEqual(len(alerts), 5)
         # all alerts shuould have a sherlock classification of ORPHAN
         for alert in alerts:
-            self.assertEqual(len(alert['annotations']['sherlock'][0]), 1)
+            self.assertEqual(len(alert['annotations']['sherlock']), 1)
             self.assertEqual(alert['annotations']['sherlock'][0]['classification'], "ORPHAN") 
             self.assertEqual(alert['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
             self.assertEqual(alert['annotations']['sherlock'][0]['description'], "Placeholder")
