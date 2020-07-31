@@ -126,6 +126,13 @@ class IntegrationTest(TestCase):
         # all alerts shuould have a sherlock classification of ORPHAN
         for alert in alerts:
             self.assertEqual(alert['annotations']['sherlock']['classification'], "ORPHAN") 
+            self.assertEqual(alert['annotations']['sherlock']['annotator'], "https://github.com/thespacedoctor/sherlock")
+            self.assertEqual(alert['annotations']['sherlock']['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
+            self.assertEqual(alert['annotations']['sherlock']['description'], "Placeholder")
+            # These should not be populated for orphan objects
+            self.assertNotIn('catalogue_object_type', alert['annotations']['sherlock'])
+            self.assertNotIn('z', alert['annotations']['sherlock'])
+            self.assertNotIn('separation', alert['annotations']['sherlock'])
 
 
 if __name__ == '__main__':
