@@ -125,14 +125,15 @@ class IntegrationTest(TestCase):
         self.assertEqual(len(alerts), 5)
         # all alerts shuould have a sherlock classification of ORPHAN
         for alert in alerts:
-            self.assertEqual(alert['annotations']['sherlock']['classification'], "ORPHAN") 
-            self.assertEqual(alert['annotations']['sherlock']['annotator'], "https://github.com/thespacedoctor/sherlock")
-            self.assertEqual(alert['annotations']['sherlock']['description'], "Placeholder")
-            self.assertIn('additional_output',alert['annotations']['sherlock'])
+            self.assertEqual(len(alert['annotations']['sherlock'][0]), 1)
+            self.assertEqual(alert['annotations']['sherlock'][0]['classification'], "ORPHAN") 
+            self.assertEqual(alert['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+            self.assertEqual(alert['annotations']['sherlock'][0]['description'], "Placeholder")
+            self.assertIn('additional_output',alert['annotations']['sherlock'][0])
             # These should not be populated for orphan objects
-            self.assertNotIn('catalogue_object_type', alert['annotations']['sherlock'])
-            self.assertNotIn('z', alert['annotations']['sherlock'])
-            self.assertNotIn('separation', alert['annotations']['sherlock'])
+            self.assertNotIn('catalogue_object_type', alert['annotations']['sherlock'][0])
+            self.assertNotIn('z', alert['annotations']['sherlock'][0])
+            self.assertNotIn('separation', alert['annotations']['sherlock'][0])
 
 
 if __name__ == '__main__':

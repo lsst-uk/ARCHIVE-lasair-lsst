@@ -130,8 +130,8 @@ def classify(conf, log, alerts):
                 cursor.execute(query)
                 for result in cursor.fetchall():
                     annotations[result['name']] = {
-                            'class': result['class'],
-                            'type': result['type'],
+                            'classification': result['class'],
+                            'catalogue_object_type': result['type'],
                             'z': result['z'],
                             'separation': result['separation']
                             }
@@ -172,7 +172,7 @@ def classify(conf, log, alerts):
         # process classfications
         for name in names:
             if name in classifications:
-                annotations[name] = { 'class': classifications[name][0] }
+                annotations[name] = { 'classification': classifications[name][0] }
         # process crossmatches
         cm_by_name = {}
         for cm in crossmatches:
@@ -189,7 +189,7 @@ def classify(conf, log, alerts):
                         if 'z' in match:
                             annotations[name]['z'] = match['z']
                         if 'catalogue_object_type' in match:
-                            annotations[name]['type'] = match['catalogue_object_type']
+                            annotations[name]['catalogue_object_type'] = match['catalogue_object_type']
                         if 'separationArcsec' in match:
                             annotations[name]['separation'] = match['separationArcsec']
                         break
@@ -207,9 +207,9 @@ def classify(conf, log, alerts):
                 cursorclass=pymysql.cursors.DictCursor)
         values = []
         for name in names:
-            classification = annotations[name]['class']
-            if annotations[name].get('type'):
-                object_type = "'{}'".format(annotations[name]['type'])
+            classification = annotations[name]['classification']
+            if annotations[name].get('catalogue_object_type'):
+                object_type = "'{}'".format(annotations[name]['catalogue_object_type'])
             else:
                 object_type = 'NULL'
             if annotations[name].get('z'):
@@ -230,24 +230,19 @@ def classify(conf, log, alerts):
             connection.commit()
             connection.close()
 
+    # add the annotations to the alerts
     n = 0
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
+        annotations[name]['annotator'] = "https://github.com/thespacedoctor/sherlock"
+        annotations[name]['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/" + name
+        # placeholders until sherlock returns these
+        annotations[name]['description'] = 'Placeholder'
+        annotations[name]['summary']  = 'Placeholder'
         if 'annotations' not in alert:
             alert['annotations'] = {}
-        alert['annotations']['sherlock'] = {}
-        alert['annotations']['sherlock']['annotator'] = "https://github.com/thespacedoctor/sherlock"
-        alert['annotations']['sherlock']['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/" + name
-        alert['annotations']['sherlock']['classification'] = annotations[name]['class']
-        if 'type' in annotations[name]:
-            alert['annotations']['sherlock']['catalogue_object_type'] = annotations[name]['type']
-        if 'z' in annotations[name]:
-            alert['annotations']['sherlock']['z'] = annotations[name]['z']
-        if 'separation' in annotations[name]:
-            alert['annotations']['sherlock']['separation'] = annotations[name]['separation']
-        # placeholders until sherlock returns these
-        alert['annotations']['sherlock']['description'] = 'Placeholder'
-        alert['annotations']['sherlock']['summary']    = 'Placeholder'
+        alert['annotations']['sherlock'] = []
+        alert['annotations']['sherlock'].append(annotations[name])
         n += 1
 
     return n

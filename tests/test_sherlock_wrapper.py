@@ -172,13 +172,13 @@ class TestClassifier(unittest.TestCase):
             # length of alerts shouls still be 1
             self.assertEqual(len(alerts), 1)
             # content of alerts should be as expected
-            self.assertEqual(alerts[0]['annotations']['sherlock']['annotator'], "https://github.com/thespacedoctor/sherlock")
-            self.assertEqual(alerts[0]['annotations']['sherlock']['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
-            self.assertEqual(alerts[0]['annotations']['sherlock']['classification'], 'Q')
-            self.assertEqual(alerts[0]['annotations']['sherlock']['catalogue_object_type'], 'thing')
-            self.assertEqual(alerts[0]['annotations']['sherlock']['z'], 1.2)
-            self.assertEqual(alerts[0]['annotations']['sherlock']['separation'], 0.1)
-            self.assertEqual(alerts[0]['annotations']['sherlock']['description'], "Placeholder")
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['catalogue_object_type'], 'thing')
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['z'], 1.2)
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['separation'], 0.1)
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['description'], "Placeholder")
             # classify should have been called once 
             mock_classifier.return_value.classify.assert_called_once()
    
@@ -206,13 +206,13 @@ class TestClassifier(unittest.TestCase):
                 # length of alerts shouls still be 1
                 self.assertEqual(len(alerts), 1)
                 # content of alerts should be as expected - from cache
-                self.assertEqual(alerts[0]['annotations']['sherlock']['classification'], 'T')
-                self.assertEqual(alerts[0]['annotations']['sherlock']['annotator'], "https://github.com/thespacedoctor/sherlock")
-                self.assertEqual(alerts[0]['annotations']['sherlock']['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
-                self.assertEqual(alerts[0]['annotations']['sherlock']['catalogue_object_type'], 'other')
-                self.assertEqual(alerts[0]['annotations']['sherlock']['z'], 2.1)
-                self.assertEqual(alerts[0]['annotations']['sherlock']['separation'], 0.2)
-                self.assertEqual(alerts[0]['annotations']['sherlock']['description'], "Placeholder")
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'T')
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['catalogue_object_type'], 'other')
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['z'], 2.1)
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['separation'], 0.2)
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['description'], "Placeholder")
                 # classify should not have been called
                 mock_classifier.return_value.classify.assert_not_called()
 
@@ -240,13 +240,13 @@ class TestClassifier(unittest.TestCase):
                 # length of alerts shouls still be 1
                 self.assertEqual(len(alerts), 1)
                 # content of alerts should be as expected - from sherlock
-                self.assertEqual(alerts[0]['annotations']['sherlock']['classification'], 'Q')
-                self.assertEqual(alerts[0]['annotations']['sherlock']['annotator'], "https://github.com/thespacedoctor/sherlock")
-                self.assertEqual(alerts[0]['annotations']['sherlock']['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
-                self.assertEqual(alerts[0]['annotations']['sherlock']['catalogue_object_type'], 'thing')
-                self.assertEqual(alerts[0]['annotations']['sherlock']['z'], 1.0)
-                self.assertEqual(alerts[0]['annotations']['sherlock']['separation'], 0.12)
-                self.assertEqual(alerts[0]['annotations']['sherlock']['description'], "Placeholder")
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['catalogue_object_type'], 'thing')
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['z'], 1.0)
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['separation'], 0.12)
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['description'], "Placeholder")
                 # classify should have been called once
                 mock_classifier.return_value.classify.assert_called_once()
                 # execute should have been called twice
