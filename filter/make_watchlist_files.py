@@ -109,14 +109,15 @@ def fetch_active_watchlists(msl, cache_dir):
     """
     cursor = msl.cursor(buffered=True, dictionary=True)
 
-    watchlist_list = []
+    keep = []
+    get  = []
     cursor.execute('SELECT wl_id, name, radius, timestamp FROM watchlists WHERE active > 0 ')
     for row in cursor:
         # unix time of last update from the database
         watchlist_timestamp = time.mktime(row['timestamp'].timetuple())
 
         # directory where the cache files are kept
-        watchlist_dir = cache_dir + 'wl_%d'%row['wl_id']
+        watchlist_dir = cache_dir + '/wl_%d'%row['wl_id']
 
         try:
             # unix time of last modification of this directory
@@ -127,17 +128,20 @@ def fetch_active_watchlists(msl, cache_dir):
 
         # if the watchlist from the database is newer than the cache, rebuild it
         # print(row['wl_id'], 'watchlist newer by %d seconds'%newer)
+        d = {'wl_id':row['wl_id'], 'name':row['name'],'radius':row['radius']}
         if newer > 0:
-            watchlist_list.append({'wl_id':row['wl_id'], 'name':row['name'],'radius':row['radius']})
+            get.append(d)
+            print('Make', d['name'])
+        else:
+            keep.append(d)
+            print('Keep', d['name'])
     # watchlists which will have their caches rebuilt
-    return watchlist_list
+    return {'keep': keep, 'get':get}
 
 def rebuild_cache(wl_id, name, cones, max_depth, cache_dir, chk):
     t = time.time()
     # clear the cache and remake the directory
-    watchlist_dir = cache_dir + 'wl_%d/' % wl_id
-    try:    os.system('rm -r ' + watchlist_dir)
-    except: pass 
+    watchlist_dir = cache_dir + '/wl_%d/' % wl_id
     os.mkdir(watchlist_dir)
 
     # compute the list of mocs
@@ -170,14 +174,24 @@ if __name__ == "__main__":
     )
 
     max_depth = settings.WATCHLIST_MAX_DEPTH
-    cache_dir = settings.WATCHLIST_MOCS
     chk       = settings.WATCHLIST_CHUNK
+
+    cache_dir = settings.WATCHLIST_MOCS
+    new_cache_dir = cache_dir + '_new'
+    os.system('mkdir %s' % new_cache_dir)
 
     # who needs to be recomputed
     watchlists = fetch_active_watchlists(msl, cache_dir)
 
-    for watchlist in watchlists:
+    for watchlist in watchlists['keep']:
+        wl_id = watchlist['wl_id']
+        os.system('mv %s/wl_%d %s' % (cache_dir, wl_id, new_cache_dir))
+
+    for watchlist in watchlists['get']:
         # get the data from the database
         cones = fetch_watchlist(msl, watchlist['wl_id'], watchlist['radius'])
         rebuild_cache(watchlist['wl_id'], watchlist['name'], \
-            cones, max_depth, cache_dir, chk)
+            cones, max_depth, new_cache_dir, chk)
+
+    os.system('rm -r %s'  % (cache_dir))
+    os.system('mv %s %s' % (new_cache_dir, cache_dir))

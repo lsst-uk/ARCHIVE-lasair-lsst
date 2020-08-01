@@ -39,8 +39,8 @@ def read_watchlist_cache_files(cache_dir):
         watchlist = {'wl_id':wl_id}
 
         moclist = []
-        for file in os.listdir(cache_dir + wl_dir):
-            gfile = cache_dir + wl_dir + '/' + file
+        for file in os.listdir(cache_dir +'/'+  wl_dir):
+            gfile = cache_dir +'/'+ wl_dir + '/' + file
 
             # read in the mocs
             if file.startswith('moc'):
@@ -137,6 +137,7 @@ def check_alerts_against_watchlists(alertlist, watchlistlist, chunk_size):
     """
     hits = []
     for watchlist in watchlistlist:
+#        print(watchlist['wl_id'])
         hits += check_alerts_against_watchlist(alertlist, watchlist, chunk_size)
     return hits
 

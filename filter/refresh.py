@@ -20,3 +20,6 @@ cursor.execute(query)
 query = 'TRUNCATE TABLE watchlist_hits'
 cursor.execute(query)
 
+query = 'TRUNCATE TABLE area_hits'
+cursor.execute(query)
+

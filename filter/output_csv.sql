@@ -4,3 +4,5 @@ SELECT * FROM sherlock_classifications INTO OUTFILE '/var/lib/mysql-files/sherlo
 
 SELECT * FROM watchlist_hits INTO OUTFILE '/var/lib/mysql-files/watchlist_hits.txt' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
 
+SELECT * FROM area_hits INTO OUTFILE '/var/lib/mysql-files/area_hits.txt' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+

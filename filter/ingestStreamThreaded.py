@@ -67,10 +67,10 @@ def alert_filter(alert, msl):
             annotations = alert['annotations']
             annClass = 'sherlock'
             if annClass in annotations:
-                for ann in annotations[annClass]
-                    insert_annotation(msl, objectId, annClass, ann, 
+                for ann in annotations[annClass]:
+                    insert_query.create_insert_annotation(msl, objectId, annClass, ann, 
                         ['classification', 'description', 'summary', 'separation', 'z', 'catalogue_object_type'], 
-                        'sherlock_classifications', replace=True):
+                        'sherlock_classifications', replace=True)
     return 1
 
 class Consumer(threading.Thread):

@@ -201,7 +201,7 @@ def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace
     for key in attrs:
         sets[key] = 0
     for key, value in ann.items():
-        if key in attrs:
+        if key in attrs and value:
             sets[key] = value
     # Build the query
     list = []
@@ -215,6 +215,7 @@ def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace
 #        list.append(key + '=' + str(value))
     query += ', '.join(list)
     query = query.replace('None', 'NULL')
+#    print(query)
     try:
         cursor = msl.cursor(buffered=True)
         cursor.execute(query)

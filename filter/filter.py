@@ -3,7 +3,7 @@
     -- run the watchlist code and insert the hits
     -- run the active user queries and produce kafka
     -- build a CSV file of three tables with the batch: 
-        objects, sherlock_classifications, watchlist_hits
+        objects, sherlock_classifications, watchlist_hits, area_hits
     -- scp those files to lasair-db
     -- ssh to ingest those files to master database
 """
@@ -15,6 +15,7 @@ import settings
 import date_nid
 import run_active_queries
 from check_alerts_watchlists import get_watchlist_hits, insert_watchlist_hits
+from check_alerts_areas import get_area_hits, insert_area_hits
 import mysql.connector
 
 def db_connect():
@@ -62,15 +63,24 @@ print(cmd)
 rc = os.system(cmd)
 print('INGEST duration %.1f seconds' % (time.time() - t))
 
+msl = db_connect()
 ##### run the watchlists
 print('WATCHLIST start %s' % datetime.utcnow().strftime("%H:%M:%S"))
-msl = db_connect()
 t = time.time()
 hits = get_watchlist_hits(msl, settings.WATCHLIST_MOCS, settings.WATCHLIST_CHUNK)
 print('got %d watchlist hits' % len(hits))
 if len(hits) > 0:
     insert_watchlist_hits(msl, hits)
 print('WATCHLIST %.1f seconds' % (time.time() - t))
+
+##### run the areas
+print('AREA start %s' % datetime.utcnow().strftime("%H:%M:%S"))
+t = time.time()
+hits = get_area_hits(msl, settings.AREA_MOCS)
+print('got %d area hits' % len(hits))
+if len(hits) > 0:
+    insert_area_hits(msl, hits)
+print('AREA %.1f seconds' % (time.time() - t))
 
 ##### run the user queries
 print('QUERIES start %s' % datetime.utcnow().strftime("%H:%M:%S"))
@@ -81,10 +91,12 @@ print('QUERIES %.1f seconds' % (time.time() - t))
 ##### build CSV file with local database
 t = time.time()
 print('SEND to ARCHIVE')
+cmd = 'rm /var/lib/mysql-files/*'
+os.system(cmd)
 cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_LOCAL
 os.system(cmd)
 
-tablelist = ['objects', 'sherlock_classifications', 'watchlist_hits']
+tablelist = ['objects', 'sherlock_classifications', 'watchlist_hits', 'area_hits']
 for table in tablelist:
     cmd = 'mv /var/lib/mysql-files/%s.txt /home/ubuntu/scratch/%s.txt' % (table, table)
     os.system(cmd)

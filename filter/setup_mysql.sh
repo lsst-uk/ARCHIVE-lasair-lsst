@@ -20,4 +20,5 @@ cd /home/ubuntu/lasair-lsst/utility/schema
 mysql -u ztf -p ztf < objects.sql
 mysql -u ztf -p ztf < sherlock_classifications.sql
 mysql -u ztf -p ztf < watchlist_hits.sql
+mysql -u ztf -p ztf < area_hits.sql
 
