@@ -25,12 +25,25 @@ output_topic: {{ output_topic }}
 group: {{ group_id }}
 
 # Kafka consumer timeout in s
-##timeout: 10
+timeout: 15
+
+# stop when end of topic reached
+##stop_at_end: false
 
 # number of messages to process per batch
-##batch_size: 1000
+batch_size: 500
 
-##max_messages: 1
+# maximum number of batches to process
+##max_batches: -1
+
+# maximum number of non-fatal errors before aborting
+## max_errors: -1
+
+# location of cache database
+cache_db: mysql://user:password@127.0.0.1/cache
+
+# location of sherlock settings file
+##sherlock_settings: sherlock.yaml
 
 # log only critical and error messages
 ##quiet: false

@@ -4,10 +4,10 @@
   become: true
 
   vars:
-    brokers: "192.168.0.25:29092,192.168.0.5:29092"
-    group_id: "dev-sherlock-2"
-    input_topic: "ztf_test_ingested"
-    output_topic: "dev_sherlock_test_output"
+    brokers: "192.41.108.36:9092,192.41.108.24:9092,192.41.108.36:9092"
+    group_id: "sherlock_wrapper_0"
+    input_topic: "ztf_ingest"
+    output_topic: "ztf_sherlock"
 
   tasks:
     - name: "Create /opt/lasair directory"
