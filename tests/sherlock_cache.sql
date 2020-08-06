@@ -1,4 +1,7 @@
 CREATE TABLE IF NOT EXISTS cache(
   name VARCHAR(255) NOT NULL PRIMARY KEY,
-  class VARCHAR(255) NOT NULL
+  class VARCHAR(255) NOT NULL,
+  type VARCHAR(255),
+  z FLOAT,
+  separation FLOAT
 );
