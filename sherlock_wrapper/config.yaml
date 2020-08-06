@@ -1,6 +1,6 @@
 --- # Configuration for sherlock wrapper
 
-# Setting any option on the command line overrides the value in this file
+# Options set here override command line options
 
 #####################################################################
 # REQUIRED SETTINGS
@@ -28,6 +28,7 @@ output_topic: dev_sherlock_test_output
 
 # number of messages to process per batch
 ##batch_size: 1000
+batch_size: 200
 
 ##max_messages: 1
 

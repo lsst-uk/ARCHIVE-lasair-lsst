@@ -307,7 +307,7 @@ def run(conf, log):
 if __name__ == '__main__':
     # parse cmd line arguments
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-c', '--config', type=str, default='config.yaml', help='location of config file (default config.yaml)')
+    parser.add_argument('-c', '--config', default=None, type=str, help='location of config file')
     parser.add_argument('-b', '--broker', type=str, help='address:port of Kafka broker(s)')
     parser.add_argument('-g', '--group', type=str, default='sherlock-dev-1', help='group id to use for Kafka')
     parser.add_argument('-t', '--timeout', type=int, default=30, help='kafka consumer timeout in s') # 10s is probably a sensible minimum
@@ -324,15 +324,15 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action="store_true", default=None, help='debugging output')
     conf = vars(parser.parse_args())
 
-    # use config file for arguments not set on cmd line
-    try:
-        with open(conf['config'], "r") as f:
-            cfg = yaml.safe_load(f)
-            for key,value in cfg.items():
-                if (key not in conf) or (conf[key] is None):
+    # use config file if set
+    if conf['config']:
+        try:
+            with open(conf['config'], "r") as f:
+                cfg = yaml.safe_load(f)
+                for key,value in cfg.items():
                     conf[key] = value
-    except IOError as e:
-        print (e)
+        except IOError as e:
+            print (e)
 
     # set up a logger
     if conf['quiet']:
@@ -344,6 +344,9 @@ if __name__ == '__main__':
     else:
         logging.basicConfig(level=logging.WARNING)
     log = logging.getLogger("sherlock_wrapper") 
+
+    # print options on debug
+    log.debug("config options:\n"+json.dumps(conf,indent=2))
 
     # check that required options are set
     if not conf.get('broker'):
