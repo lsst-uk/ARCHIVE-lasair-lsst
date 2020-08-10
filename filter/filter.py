@@ -28,18 +28,9 @@ def db_connect():
     msl_local = mysql.connector.connect(**config)
     return msl_local
 
-# if argument is test, use test stream
-if len(sys.argv) > 1 and sys.argv[1] == 'test':
-    topic = 'ztf_test_sherlock'    #  test topic 
+topic = settings.KAFKA_TOPIC_IN
 
-else:
-# if argument is number assume it is a nid (night id number)
-# if no argument, assume today
-    if len(sys.argv) > 1: nid = int(sys.argv[1])
-    else:                 nid  = date_nid.nid_now()
-    date = date_nid.nid_to_date(nid)
-    topic  = 'ztf_' + date + '_programid1'
-
+print('------------------')
 ##### clear out the local database
 os.system('date')
 print('clear local caches')
@@ -59,7 +50,7 @@ cmd += '--host %s '     % settings.KAFKA_PRODUCER
 cmd += '--topic ' + topic
 
 print(cmd)
-# rc is the return code from ingestion, 1 if no more to get, 0 if got full batch
+# rc is the return code from ingestion, number of alerts received
 rc = os.system(cmd)
 print('INGEST duration %.1f seconds' % (time.time() - t))
 
@@ -117,4 +108,5 @@ for table in tablelist:
         os.system(cmd)
 print('SEND %.1f seconds' % (time.time() - t))
 
-sys.exit(rc)
+if rc > 0: sys.exit(1)
+else:      sys.exit(0)

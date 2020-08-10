@@ -60,8 +60,13 @@ def create_insert_query(alert):
     """
     objectId =  alert['objectId']
 
+    candlist = None
     # Make a list of candidates and noncandidates in time order
-    candlist = alert['prv_candidates'] + [alert['candidate']]
+    if 'prv_candidates' in alert and alert['prv_candidates'] != None \
+        and 'candidate' in alert and alert['candidate'] != None:
+            candlist = alert['prv_candidates'] + [alert['candidate']]
+
+    if not candlist: return None
     ema = make_ema(candlist)
 
     ncand = 0

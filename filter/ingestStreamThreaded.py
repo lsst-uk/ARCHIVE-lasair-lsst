@@ -76,9 +76,10 @@ def alert_filter(alert, msl):
 class Consumer(threading.Thread):
     """ Threaded consumer of kafka. Calls alert_filter() for each one
     """
-    def __init__(self, threadID, args, conf):
+    def __init__(self, threadID, nalert_list, args, conf):
         threading.Thread.__init__(self)
         self.threadID = threadID
+        self.nalert_list = nalert_list
         self.conf = conf
         self.args = args
 
@@ -124,9 +125,8 @@ class Consumer(threading.Thread):
                     msl.close()
                     msl = make_database_connection()
     
-        print('INGEST %d finished with %d alerts (ingested %d)' % 
-                (self.threadID, nalert, nalert_ingested))
         consumer.close()
+        self.nalert_list[self.threadID] = nalert_ingested
 
 def main():
     args = parse_args()
@@ -146,11 +146,14 @@ def main():
     else:            nthread = 1
     print('Threads = %d' % nthread)
 
+    # number of alerts from each
+    nalert_list = [0] * nthread
+
     # make the thread list
     thread_list = []
     for t in range(args.nthread):
-        thread_list.append(Consumer(t, args, conf))
-    
+        thread_list.append(Consumer(t, nalert_list, args, conf))
+
     # start them up
     t = time.time()
     for th in thread_list:
@@ -160,5 +163,12 @@ def main():
     for th in thread_list:
          th.join()
 
+    total = sum(nalert_list)
+    print('INGEST finished with %s alerts, total %d' % (str(nalert_list), total))
+
+    if total > 0: return 1
+    else:         return 0
+
 if __name__ == '__main__':
-    main()
+    rc = main()
+    sys.exit(rc)

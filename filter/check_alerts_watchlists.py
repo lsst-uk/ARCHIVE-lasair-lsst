@@ -39,7 +39,9 @@ def read_watchlist_cache_files(cache_dir):
         watchlist = {'wl_id':wl_id}
 
         moclist = []
-        for file in os.listdir(cache_dir +'/'+  wl_dir):
+        filelist = os.listdir(cache_dir +'/'+  wl_dir)
+        filelist.sort()
+        for file in filelist:
             gfile = cache_dir +'/'+ wl_dir + '/' + file
 
             # read in the mocs
