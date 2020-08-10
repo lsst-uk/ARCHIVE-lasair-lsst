@@ -95,12 +95,13 @@ def handle_alert(alert, store, producer, topicout):
 
 class Consumer(threading.Thread):
     # Threaded ingestion through this object
-    def __init__(self, threadID, args, store, conf):
+    def __init__(self, threadID, nalert_list, args, store, conf):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.conf = conf
         self.store = store
         self.args = args
+        self.nalert_list = nalert_list
 
     def run(self):
         try:
@@ -158,7 +159,7 @@ class Consumer(threading.Thread):
             producer.flush()
             print('kafka flushed')
         print('INGEST %d finished with %d alerts' % (self.threadID, nalert))
-
+        self.nalert_list[self.threadID] = nalert
           
         streamReader.__exit__(0,0,0)
 
@@ -193,10 +194,12 @@ def main():
         nthread = 1
     print('Threads = %d' % nthread)
 
+    nalert_list = [0] * nthread
+
     # make the thread list
     thread_list = []
     for t in range(args.nthread):
-        thread_list.append(Consumer(t, args, store, conf))
+        thread_list.append(Consumer(t, nalert_list, args, store, conf))
     
     # start them up
     t = time.time()
@@ -207,5 +210,12 @@ def main():
     for th in thread_list:
          th.join()
 
+    total = sum(nalert_list)
+    os.system('date')
+    print(total)
+    if total > 0: return 1
+    else:         return 0
+
 if __name__ == '__main__':
-    main()
+    rc = main()
+    sys.exit(rc)

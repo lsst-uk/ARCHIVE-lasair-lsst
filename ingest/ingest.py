@@ -36,10 +36,12 @@ cmd += '--nthread %d '  % settings.KAFKA_THREADS
 cmd += '--stampdir %s ' % settings.BLOB_FILEROOT
 cmd += '--group %s '    % settings.KAFKA_GROUPID
 cmd += '--topic %s '    % topic
-cmd += '--topicout %s_ingested ' % topic
+cmd += '--topicout %s ' % settings.KAFKA_TOPIC_OUT
+#cmd += '--topicout %s_ingested ' % topic
 
 print(cmd)
-os.system(cmd)
-print('INGEST duration %.1f seconds' % (time.time() - t))
+rc = os.system(cmd)
+print('INGEST duration %.1f seconds returns %d' % ((time.time() - t), rc))
 
-sys.exit(0)
+if rc > 0: sys.exit(1)
+else:      sys.exit(0)

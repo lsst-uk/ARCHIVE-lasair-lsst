@@ -1,4 +1,4 @@
-import sys
+import os,sys
 import settings
 import date_nid
 """ Fire up the the ingestion and keep the results in a log file
@@ -23,13 +23,14 @@ while 1:
     process = Popen(args, stdout=PIPE, stderr=PIPE)
     stdout, stderr = process.communicate()
     rc = process.returncode
+    os.system('date')
 
     stdout = stdout.decode('utf-8')
     fh.write(stdout)
     stderr = stderr.decode('utf-8')
     fh.write(stderr)
 
-    if rc == 1:  # no more to get
+    if rc == 0:  # no more to get
         fh.write("END waiting %d seconds ...\n\n" % settings.INGEST_WAIT_TIME)
         fh.close()
         time.sleep(settings.INGEST_WAIT_TIME)
