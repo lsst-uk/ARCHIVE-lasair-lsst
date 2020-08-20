@@ -13,6 +13,8 @@ import confluent_kafka
 import json
 
 def parse_args():
+    """parse_args.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--host', type=str,
                         help='Hostname or IP of Kafka host to connect to.')
@@ -36,6 +38,8 @@ def parse_args():
     return args
 
 def make_database_connection():
+    """make_database_connection.
+    """
     # Make a connection to the *local* database to put these
     msl = mysql.connector.connect(
         user     = settings.DB_USER_LOCAL, 
@@ -46,6 +50,12 @@ def make_database_connection():
     return msl
 
 def alert_filter(alert, msl):
+    """alert_filter.
+
+    Args:
+        alert:
+        msl:
+    """
     # Filter to apply to each alert.
     objectId = alert['objectId']
     if alert:
@@ -77,6 +87,14 @@ class Consumer(threading.Thread):
     """ Threaded consumer of kafka. Calls alert_filter() for each one
     """
     def __init__(self, threadID, nalert_list, args, conf):
+        """__init__.
+
+        Args:
+            threadID:
+            nalert_list:
+            args:
+            conf:
+        """
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.nalert_list = nalert_list
@@ -84,6 +102,8 @@ class Consumer(threading.Thread):
         self.args = args
 
     def run(self):
+        """run.
+        """
         # Configure database connection
         msl = make_database_connection()
     
@@ -129,6 +149,8 @@ class Consumer(threading.Thread):
         self.nalert_list[self.threadID] = nalert_ingested
 
 def main():
+    """main.
+    """
     args = parse_args()
 
     # Configure consumer connection to Kafka broker

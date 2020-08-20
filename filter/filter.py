@@ -19,6 +19,8 @@ from check_alerts_areas import get_area_hits, insert_area_hits
 import mysql.connector
 
 def db_connect():
+    """db_connect.
+    """
     config = {
         'user'    : settings.DB_USER_LOCAL,
         'password': settings.DB_PASS_LOCAL,

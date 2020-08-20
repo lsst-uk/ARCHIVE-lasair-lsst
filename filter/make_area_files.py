@@ -12,11 +12,21 @@ import time
 import base64
 
 def bytes2string(bytes):
+    """bytes2string.
+
+    Args:
+        bytes:
+    """
     base64_bytes   = base64.b64encode(bytes)
     str = base64_bytes.decode('utf-8')
     return str
 
 def string2bytes(str):
+    """string2bytes.
+
+    Args:
+        str:
+    """
     base64_bytes  = str.encode('utf-8')
     bytes = base64.decodebytes(base64_bytes)
     return bytes

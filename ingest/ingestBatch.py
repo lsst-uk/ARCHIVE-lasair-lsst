@@ -1,6 +1,3 @@
-"""Consumes stream for ingesting to database
-"""
-
 from __future__ import print_function
 import argparse
 import sys
@@ -14,6 +11,8 @@ import json
 from confluent_kafka import Producer, KafkaError
 
 def parse_args():
+    """parse_args.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--topic', type=str,
                         help='Name of Kafka topic to listen to.')
@@ -34,21 +33,27 @@ def parse_args():
     return args
 
 def msg_text(message):
-    """Remove postage stamp cutouts from an alert message.
+    """msg_text. Remove postage stamp cutouts from an alert message.
+
+    Args:
+        message:
     """
     message_text = {k: message[k] for k in message
                     if k not in ['cutoutDifference', 'cutoutTemplate', 'cutoutScience']}
     return message_text
 
 def write_stamp_file(stamp_dict, store):
-    """Given a stamp dict that follows the cutout schema,
+    """write_stamp_file.
+    Given a stamp dict that follows the cutout schema,
        write data to a file in a given directory.
-    """
-
-    """ examples of this file name 
+     examples of this file name
 candid1189406621015015005_pid1189406621015_targ_scimref.fits.gz
 candid1189406621015015005_ref.fits.gz
 candid1189406621015015005_pid1189406621015_targ_sci.fits.gz
+
+    Args:
+        stamp_dict:
+        store:
     """
     f = stamp_dict['fileName']
     candid = f.split('_')[0]
@@ -56,10 +61,16 @@ candid1189406621015015005_pid1189406621015_targ_sci.fits.gz
     return
 
 def handle_alert(alert, store, producer, topicout):
-    """Filter to apply to each alert.
+    """handle_alert.
+    Filter to apply to each alert.
        See schemas: https://github.com/ZwickyTransientFacility/ztf-avro-alert
-    """
 
+    Args:
+        alert:
+        store:
+        producer:
+        topicout:
+    """
     # here is the part of the alert that has no binary images
     nonimage = msg_text(alert)
 
@@ -94,8 +105,20 @@ def handle_alert(alert, store, producer, topicout):
                 print(e)
 
 class Consumer(threading.Thread):
+    """Consumer.
+    """
+
     # Threaded ingestion through this object
     def __init__(self, threadID, nalert_list, args, store, conf):
+        """__init__.
+
+        Args:
+            threadID:
+            nalert_list:
+            args:
+            store:
+            conf:
+        """
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.conf = conf
@@ -104,6 +127,8 @@ class Consumer(threading.Thread):
         self.nalert_list = nalert_list
 
     def run(self):
+        """run.
+        """
         try:
             streamReader = alertConsumer.AlertConsumer(self.args.topic, **self.conf)
             streamReader.__enter__()
@@ -164,6 +189,8 @@ class Consumer(threading.Thread):
         streamReader.__exit__(0,0,0)
 
 def main():
+    """main.
+    """
     args = parse_args()
 
     if args.group: groupid = args.group

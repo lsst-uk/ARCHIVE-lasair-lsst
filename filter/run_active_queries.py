@@ -13,6 +13,13 @@ import smtplib
 from email.message import EmailMessage
 
 def send_email(email, topic, message):
+    """send_email.
+
+    Args:
+        email:
+        topic:
+        message:
+    """
     msg = EmailMessage()
     msg.set_content(message)
 
@@ -24,11 +31,23 @@ def send_email(email, topic, message):
     s.quit()
 
 def datetime_converter(o):
+    """datetime_converter.
+
+    Args:
+        o:
+    """
 # used by json encoder when it gets a type it doesn't understand
     if isinstance(o, datetime.datetime):
         return o.__str__()
 
 def run_query(query, msl, topic):
+    """run_query.
+
+    Args:
+        query:
+        msl:
+        topic:
+    """
     active = query['active']
     email = query['email']
     sqlquery_real = query_utilities.make_query(
@@ -114,6 +133,8 @@ def run_query(query, msl, topic):
     return n
 
 def run_queries():
+    """run_queries.
+    """
     # first get the user queries from the database that the webserver uses
     config = {
         'user'    : settings.DB_USER_REMOTE,

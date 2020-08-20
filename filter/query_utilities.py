@@ -4,6 +4,13 @@ This is utilised for the user queries on the local database
 """
 
 def make_query(selected, tables, conditions):
+    """make_query.
+
+    Args:
+        selected:
+        tables:
+        conditions:
+    """
 # select some quantitites from some tables
     sqlquery_real  = 'SELECT /*+ MAX_EXECUTION_TIME(300000) */ ' 
     sqlquery_real += selected
@@ -53,6 +60,11 @@ def make_query(selected, tables, conditions):
     return sqlquery_real
 
 def topic_name(userid, name):
+    """topic_name.
+
+    Args:
+        userid:
+        name:
+    """
     name =  ''.join(e for e in name if e.isalnum() or e=='_' or e=='-' or e=='.')
     return '%d'%userid + name
-

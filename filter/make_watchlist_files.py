@@ -139,6 +139,16 @@ def fetch_active_watchlists(msl, cache_dir):
     return {'keep': keep, 'get':get}
 
 def rebuild_cache(wl_id, name, cones, max_depth, cache_dir, chk):
+    """rebuild_cache.
+
+    Args:
+        wl_id:
+        name:
+        cones:
+        max_depth:
+        cache_dir:
+        chk:
+    """
     t = time.time()
     # clear the cache and remake the directory
     watchlist_dir = cache_dir + '/wl_%d/' % wl_id

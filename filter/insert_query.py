@@ -9,10 +9,14 @@ import ephem
 from gkhtm import _gkhtm as htmCircle
 
 def make_ema(candlist):
-    """ Make a exponential moving average (EMA)
+    """make_ema.
+    Make a exponential moving average (EMA)
         https://lasair.roe.ac.uk/lasair/static/EMA.pdf
     from the apparent magnitudes.
     candlist is the list of candidates in time order.
+
+    Args:
+        candlist
     """
     oldgjd = oldrjd = 0
     g02 = g08 = g28 = 0
@@ -55,8 +59,12 @@ def make_ema(candlist):
     return ema 
 
 def create_insert_query(alert):
-    """ Creates an insert sql statement for building the object and 
+    """create_insert_query.
+    Creates an insert sql statement for building the object and 
     a query for inserting it.
+
+    Args:
+        alert:
     """
     objectId =  alert['objectId']
 
@@ -200,7 +208,17 @@ def create_insert_query(alert):
     return query
 
 def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace):
-    """ This code makes the insert query for the genaric annotation
+    """create_insert_annotation.
+    This code makes the insert query for the genaric annotation
+
+    Args:
+        msl:
+        objectId:
+        annClass:
+        ann:
+        attrs:
+        table:
+        replace:
     """
     sets = {}
     for key in attrs:

@@ -12,10 +12,14 @@ import astropy.units as u
 
 def read_area_cache_files(cache_dir):
     """
+    read_area_cache_files
     This function reads all the files in the cache directories and keeps them in memory
     in a list called "arealist". Each area is a dictionary:
         ar_id: the id from tha database
         moc  : the ingestred moc
+
+    Args:
+        cache_dir:
     """
     arealist = []
     for ar_file in os.listdir(cache_dir):
@@ -33,7 +37,12 @@ def read_area_cache_files(cache_dir):
     return arealist
 
 def check_alerts_against_area(alertlist, area):
-    """ For a given moc, check the alerts in the batch 
+    """ check_alerts_against_area.
+    For a given moc, check the alerts in the batch 
+
+    Args:
+        alertlist:
+        area:
     """
     # alert positions
     alertobjlist = alertlist['obj']
@@ -54,7 +63,12 @@ def check_alerts_against_area(alertlist, area):
     return hits
 
 def check_alerts_against_areas(alertlist, arealist):
-    """ check the batch of alerts agains all the areas
+    """ check_alerts_against_areas.
+    check the batch of alerts agains all the areas
+
+    Args:
+        alertlist:
+        arealist:
     """
     hits = []
     for area in arealist:
@@ -63,7 +77,11 @@ def check_alerts_against_areas(alertlist, arealist):
     return hits
 
 def fetch_alerts(msl):
-    """ Get all the alerts from the local cache to check againstr watchlist
+    """ fetch_alerts.
+    Get all the alerts from the local cache to check againstr watchlist
+
+    Args:
+        msl:
     """
     cursor = msl.cursor(buffered=True, dictionary=True)
 
@@ -79,7 +97,12 @@ def fetch_alerts(msl):
     return {"obj":objlist, "ra":ralist, "de":delist}
 
 def get_area_hits(msl, cache_dir):
-    """ Get all the alerts, then run against the arealist, return the hits
+    """ get_area_hits.
+    Get all the alerts, then run against the arealist, return the hits
+
+    Args:
+        msl:
+        cache_dir:
     """
     # read in the cache files
     arealist = read_area_cache_files(cache_dir)
@@ -92,7 +115,12 @@ def get_area_hits(msl, cache_dir):
     return hits
 
 def insert_area_hits(msl, hits):
-    """ Build and execute the insertion query to get the hits into the database
+    """ insert_area_hits.
+    Build and execute the insertion query to get the hits into the database
+
+    Args:
+        msl:
+        hits:
     """
     print('inserting')
     cursor = msl.cursor(buffered=True, dictionary=True)

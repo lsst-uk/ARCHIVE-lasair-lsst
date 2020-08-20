@@ -2,7 +2,11 @@ import datetime
 from time import gmtime
 
 def date_to_nid(d):
-    """ Converts date string yyyymmdd to ZTF night id (nid)
+    """date_to_nid.
+    Converts date string yyyymmdd to ZTF night id (nid)
+
+    Args:
+        d:
     """
     try:
         year  = int(d[0:4])
@@ -17,13 +21,18 @@ def date_to_nid(d):
     return nid
 
 def nid_now():
-    """ Converts date string yyyymmdd (in UTC) to ZTF night id (nid)
+    """nid_now.
+    Converts date string yyyymmdd (in UTC) to ZTF night id (nid)
     """
     g = gmtime()
     return date_to_nid("%4s%2s%2s" % (g.tm_year, g.tm_mon, g.tm_mday))
 
 def nid_to_date(nid):
-    """ Converts ZTF night id (nid) to date string yyyymmdd (in UTC)
+    """nid_to_date.
+    Converts ZTF night id (nid) to date string yyyymmdd (in UTC)
+
+    Args:
+        nid
     """
     d0 = datetime.date(2017, 1, 1)
     d1 = d0 + datetime.timedelta(days=nid)

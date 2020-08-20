@@ -20,13 +20,16 @@ from mocpy import MOC
 import astropy.units as u
 
 def read_watchlist_cache_files(cache_dir):
-    """
+    """read_watchlist_cache_files.
     This function reads all the files in the cache directories and keeps them in memory
     in a list called "watchlistlist". Each watchlist is a dictionary:
         cone_ids: the integer ids of the watchlist cones
         ra, de: the lists of ra and dec posiitons of the cones, in degrees
         radius: the list of radii of the cones about those points
-        names: the naems give tot he cones by the user
+        names: the naems give to the cones by the user
+
+    Args:
+        cache_dir:
     """
     watchlistlist = []
     for wl_dir in os.listdir(cache_dir):
@@ -74,7 +77,14 @@ def read_watchlist_cache_files(cache_dir):
     return watchlistlist
 
 def check_alerts_against_moc(alertlist, wl_id, moc, cones):
-    """ For a given moc, check the alerts in the batch 
+    """check_alerts_against_moc.
+    For a given moc, check the alerts in the batch 
+
+    Args:
+        alertlist:
+        wl_id:
+        moc:
+        cones:
     """
     # alert positions
     alertobjlist = alertlist['obj']
@@ -116,7 +126,13 @@ def check_alerts_against_moc(alertlist, wl_id, moc, cones):
     return hits
 
 def check_alerts_against_watchlist(alertlist, watchlist, chk):
-    """ This function goes through all the watchlists looking for hits
+    """ check_alerts_against_watchlist.
+    This function goes through all the watchlists looking for hits
+
+    Args:
+        alertlist:
+        watchlist:
+        chk:
     """
     moclist = watchlist['moclist']
     cones   = watchlist['cones']
@@ -135,7 +151,13 @@ def check_alerts_against_watchlist(alertlist, watchlist, chk):
     return hits
 
 def check_alerts_against_watchlists(alertlist, watchlistlist, chunk_size):
-    """ check the batch of alerts agains all the watchlists
+    """check_alerts_against_watchlists.
+    check the batch of alerts agains all the watchlists
+
+    Args:
+        alertlist:
+        wl_id:
+        chunk_size:
     """
     hits = []
     for watchlist in watchlistlist:
@@ -144,7 +166,11 @@ def check_alerts_against_watchlists(alertlist, watchlistlist, chunk_size):
     return hits
 
 def fetch_alerts(msl):
-    """ Get all the alerts from the local cache to check againstr watchlist
+    """fetch_alerts:
+    Get all the alerts from the local cache to check againstr watchlist
+
+    Args:
+        msl:
     """
     cursor = msl.cursor(buffered=True, dictionary=True)
 
@@ -160,7 +186,13 @@ def fetch_alerts(msl):
     return {"obj":objlist, "ra":ralist, "de":delist}
 
 def get_watchlist_hits(msl, cache_dir, chunk_size):
-    """ Get all the alerts, then run against the watchlists, return the hits
+    """get_watchlist_hits:
+    Get all the alerts, then run against the watchlists, return the hits
+
+    Args:
+        msl:
+        cache_dir:
+        chunk_size:
     """
     # read in the cache files
     watchlistlist = read_watchlist_cache_files(cache_dir)
@@ -173,7 +205,12 @@ def get_watchlist_hits(msl, cache_dir, chunk_size):
     return hits
 
 def insert_watchlist_hits(msl, hits):
-    """ Build and execute the insertion query to get the hits into the database
+    """insert_watchlist_hits:
+    Build and execute the insertion query to get the hits into the database
+
+    Args:
+        msl:
+        hits:
     """
     print('inserting')
     cursor = msl.cursor(buffered=True, dictionary=True)

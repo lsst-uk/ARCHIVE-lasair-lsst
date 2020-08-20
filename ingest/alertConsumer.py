@@ -24,6 +24,11 @@ class EopError(AlertError):
         The Kafka message result from consumer.poll().
     """
     def __init__(self, msg):
+        """__init__.
+
+        Args:
+            msg:
+        """
         message = 'partition:%d, status:end, ' \
                   'offset:%d, key:%s' \
                   % (msg.partition(),
@@ -31,6 +36,8 @@ class EopError(AlertError):
         self.message = message
 
     def __str__(self):
+        """__str__.
+        """
         return self.message
 
 class AlertConsumer(object):
@@ -45,16 +52,31 @@ class AlertConsumer(object):
     """
 
     def __init__(self, topic, **kwargs):
+        """__init__.
+
+        Args:
+            topic:
+            kwargs:
+        """
         self.topic = topic
         self.kafka_kwargs = kwargs
         self.raw_msg = None  # added by RDW to keep raw msg
 
     def __enter__(self):
+        """__enter__.
+        """
         self.consumer = confluent_kafka.Consumer(**self.kafka_kwargs)
         self.consumer.subscribe([self.topic])
         return self
 
     def __exit__(self, type, value, traceback):
+        """__exit__.
+
+        Args:
+            type:
+            value:
+            traceback:
+        """
         # FIXME should be properly handling exceptions here, but we aren't
         self.consumer.close()
 

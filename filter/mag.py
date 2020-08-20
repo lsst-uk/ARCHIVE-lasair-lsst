@@ -1,19 +1,18 @@
 import math
 
 def dc_mag_dict(fid, magpsf,sigmapsf, magnr,sigmagnr, magzpsci, isdiffpos):
-    """ Compute apparent magnitude from difference magnitude supplied by ZTF
-    Parameters
-    ----------
-    fid
-        filter, 1 for green and 2 for red
-    magpsf,sigmapsf
-        magnitude from PSF-fit photometry, and 1-sigma error
-    magnr,sigmagnr
-        magnitude of nearest source in reference image PSF-catalog within 30 arcsec
+    """dc_mag_dict.
+    Compute apparent magnitude from difference magnitude supplied by ZTF
+
+    Args:
+        fid: filter, 1 for green and 2 for red
+        magpsf:
+        x,sigmapsf: magnitude from PSF-fit photometry, and 1-sigma error
+    magnr:
+    sigmagnr: magnitude of nearest source in reference image PSF-catalog within 30 arcsec
         and 1-sigma error
-    magzpsci
-        Magnitude zero point for photometry estimates
-    isdiffpos
+    magzpsci: Magnitude zero point for photometry estimates
+    isdiffpos:
         t or 1 => candidate is from positive (sci minus ref) subtraction; 
         f or 0 => candidate is from negative (ref minus sci) subtraction
     """
