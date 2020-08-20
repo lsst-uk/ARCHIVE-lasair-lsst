@@ -3,13 +3,15 @@ Plus pages. Plus time constraints.
 This is utilised for the user queries on the local database
 """
 
-def make_query(selected, tables, conditions):
+def make_query(selected, tables, conditions, page, perpage):
     """make_query.
 
     Args:
         selected:
         tables:
         conditions:
+        page:
+        perpage:
     """
 # select some quantitites from some tables
     sqlquery_real  = 'SELECT /*+ MAX_EXECUTION_TIME(300000) */ ' 
@@ -18,22 +20,34 @@ def make_query(selected, tables, conditions):
 # if they added a days_ago clause, compute it here and prepent to conditions
     toktables = []
     wl_id = -1
+    ar_id = -1
     for table in tables.split(','):
         table = table.strip()
         if table.startswith('watchlist'):
             tok = table.split(':')
             toktables.append('watchlist_hits')
             wl_id = int(tok[1])
+        elif table.startswith('area'):
+             tok = table.split(':')
+             toktables.append('area_hits')
+             ar_id = int(tok[1])
         else:
             toktables.append(table)
 
-    wl_conditions = []
     if wl_id >= 0:
-        wl_conditions = ['watchlist_hits.wl_id=%d' % wl_id]
+        wlar_conditions = ['watchlist_hits.wl_id=%d' % wl_id]
+    elif ar_id >= 0:
+         wlar_conditions = ['area_hits.ar_id=%d' % ar_id]
+    else:
+         wlar_conditions = []
 
-    new_conditions = wl_conditions
     if len(conditions.strip()) > 0:
-        new_conditions = ' AND '.join(wl_conditions + [conditions])
+        new_conditions = ' AND '.join(wlar_conditions + [conditions])
+    else:
+        new_conditions = ' AND '.join(wlar_conditions)
+
+    if len(conditions.strip()) > 0:
+        new_conditions = ' AND '.join(wlar_conditions + [conditions])
 
 # list of joining conditions is prepended
     join_list = []
@@ -56,7 +70,7 @@ def make_query(selected, tables, conditions):
         if len(join_new_conditions.strip()) > 0:
             sqlquery_real += ' WHERE ' + join_new_conditions
 
-    sqlquery_real += ' LIMIT 1000'
+    sqlquery_real += ' LIMIT %d OFFSET %d' % (perpage, page*perpage)
     return sqlquery_real
 
 def topic_name(userid, name):

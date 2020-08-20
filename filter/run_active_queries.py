@@ -50,8 +50,10 @@ def run_query(query, msl, topic):
     """
     active = query['active']
     email = query['email']
+    page = 0
+    perpage = 1000
     sqlquery_real = query_utilities.make_query(
-        query['selected'], query['tables'], query['conditions'])
+        query['selected'], query['tables'], query['conditions'], page, perpage)
 
     cursor = msl.cursor(buffered=True, dictionary=True)
     n = 0
@@ -91,7 +93,6 @@ def run_query(query, msl, topic):
         now_number = datetime.datetime.utcnow()
         delta = (now_number - last_entry_number)
         delta = delta.days + delta.seconds/86400.0
-        print('   --- previous entry %.4f days ago' % delta)
             
         allrecords = (recent + digest)[:1000]
 
@@ -119,7 +120,6 @@ def run_query(query, msl, topic):
                 p.flush(10.0)   # 10 second timeout
                 # last_entry not really used with kafka, just a record of last blast
                 last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
-                print('    -- sent to kafka')
             except Exception as e:
                 print("Kafka production failed for %s" % topic)
                 print(e)
@@ -173,11 +173,10 @@ def run_queries():
 
     for query in query_list:
         topic = query_utilities.topic_name(query['user'], query['name'])
-        print('query %s' % topic)
         t = time.time()
         n = run_query(query, msl_local, topic)
         t = time.time() - t
-        print('   --- got %d in %.1f seconds' % (n, t))
+        print('   %s got %d in %.1f seconds' % (topic, n, t))
 
 if __name__ == "__main__":
     print('--------- RUN ACTIVE QUERIES -----------')
