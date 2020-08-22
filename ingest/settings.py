@@ -7,3 +7,4 @@ KAFKA_TOPIC_OUT  = 'ztf_ingest'
 INGEST_WAIT_TIME = 180
 KAFKA_OUTPUT     = '192.41.108.22:9092'
 BLOB_FILEROOT    = '/mnt/cephfs/roy'
+SYSTEM_STATUS    = '/mnt/cephfs/roy/system_status.json'

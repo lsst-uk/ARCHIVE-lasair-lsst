@@ -2,6 +2,7 @@ import os,sys
 import time
 from socket import gethostname
 from datetime import datetime
+from check_status import check_status
 import settings
 import date_nid
 """ Ingest a kafka stream from ZTF
@@ -40,8 +41,9 @@ cmd += '--topicout %s ' % settings.KAFKA_TOPIC_OUT
 #cmd += '--topicout %s_ingested ' % topic
 
 print(cmd)
-rc = os.system(cmd)
-print('INGEST duration %.1f seconds returns %d' % ((time.time() - t), rc))
+nalert = os.system(cmd)
+print('INGEST duration %.1f seconds returns %d' % ((time.time() - t), nalert))
+check_status(nid, nalert)
 
-if rc > 0: sys.exit(1)
-else:      sys.exit(0)
+if nalert > 0: sys.exit(1)
+else:          sys.exit(0)

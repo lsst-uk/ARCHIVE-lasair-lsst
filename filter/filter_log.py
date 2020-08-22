@@ -32,11 +32,11 @@ while 1:
 
 
     # if we timed out of kafka, wait a while and ask again
-    if rc == 0:  # no more to get
-        fh.write("END waiting %d seconds ...\n\n" % settings.INGEST_WAIT_TIME)
-        fh.close()
-        time.sleep(settings.INGEST_WAIT_TIME)
+#    if rc == 0:  # no more to get
+    fh.write("END waiting %d seconds ...\n\n" % settings.INGEST_WAIT_TIME)
+    fh.close()
+    time.sleep(settings.INGEST_WAIT_TIME)
     # else just go ahead immediately
-    else:
-        fh.write("END getting more ...\n\n")
-        fh.close()
+#    else:
+#        fh.write("END getting more ...\n\n")
+#        fh.close()

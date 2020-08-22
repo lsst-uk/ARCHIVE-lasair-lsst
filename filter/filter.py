@@ -16,6 +16,7 @@ import date_nid
 import run_active_queries
 from check_alerts_watchlists import get_watchlist_hits, insert_watchlist_hits
 from check_alerts_areas import get_area_hits, insert_area_hits
+from check_status import check_status
 import mysql.connector
 
 def db_connect():
@@ -110,5 +111,8 @@ for table in tablelist:
         os.system(cmd)
 print('SEND %.1f seconds' % (time.time() - t))
 
+check_status()
+
 if rc > 0: sys.exit(1)
 else:      sys.exit(0)
+
