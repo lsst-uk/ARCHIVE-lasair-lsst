@@ -1,5 +1,6 @@
 import os,sys
 import settings
+sys.path.append('../utilty/')
 import date_nid
 """ Fire up the the ingestion and keep the results in a log file
     the start it again afte a minute or so

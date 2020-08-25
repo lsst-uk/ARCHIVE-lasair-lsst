@@ -8,7 +8,10 @@ import threading
 import alertConsumer
 import objectStore
 import json
+sys.path.append('../utility/')
+from manage_status import manage_status
 from confluent_kafka import Producer, KafkaError
+import date_nid
 
 def parse_args():
     """parse_args.
@@ -94,7 +97,7 @@ def handle_alert(alert, store, producer, topicout):
         # do not put known solar system objects into kafka
         ss_mag = nonimage['candidate']['ssmagnr']
         if ss_mag > 0:
-            return
+            return 0
 
         # produce to kafka
         if producer is not None:
@@ -103,13 +106,14 @@ def handle_alert(alert, store, producer, topicout):
             except Exception as e:
                 print("Kafka production failed for %s" % topicout)
                 print(e)
+        return 1
 
 class Consumer(threading.Thread):
     """Consumer.
     """
 
     # Threaded ingestion through this object
-    def __init__(self, threadID, nalert_list, args, store, conf):
+    def __init__(self, threadID, nalert_in_list, nalert_out_list, args, store, conf):
         """__init__.
 
         Args:
@@ -124,7 +128,8 @@ class Consumer(threading.Thread):
         self.conf = conf
         self.store = store
         self.args = args
-        self.nalert_list = nalert_list
+        self.nalert_in_list = nalert_in_list
+        self.nalert_out_list = nalert_out_list
 
     def run(self):
         """run.
@@ -158,9 +163,10 @@ class Consumer(threading.Thread):
         else:
             maxalert = 50000
     
-        nalert = 0
+        nalert_in = 0
+        nalert_out = 0
         startt = time.time()
-        while nalert < maxalert:
+        while nalert_in < maxalert:
             try:
                 msg = streamReader.poll(decode=True, timeout=settings.KAFKA_TIMEOUT)
             except alertConsumer.EopError as e:
@@ -171,10 +177,11 @@ class Consumer(threading.Thread):
             else:
                 for alert in msg:
                     # Apply filter to each alert
-                    candid = handle_alert(alert, self.store, producer, topicout)
-                    nalert += 1
-                    if nalert%1000 == 0:
-                        print('thread %d nalert %d time %.1f' % ((self.threadID, nalert, time.time()-startt)))
+                    out = handle_alert(alert, self.store, producer, topicout)
+                    nalert_in += 1
+                    nalert_out += out
+                    if nalert_in%1000 == 0:
+                        print('thread %d nalert %d time %.1f' % ((self.threadID, nalert_in, time.time()-startt)))
                         # if this is not flushed, it will run out of memory
                         if producer is not None:
                             producer.flush()
@@ -183,8 +190,9 @@ class Consumer(threading.Thread):
         if producer is not None:
             producer.flush()
             print('kafka flushed')
-        print('INGEST %d finished with %d alerts' % (self.threadID, nalert))
-        self.nalert_list[self.threadID] = nalert
+        print('INGEST %d finished with %d alerts' % (self.threadID, nalert_in))
+        self.nalert_in_list[self.threadID] = nalert_in
+        self.nalert_out_list[self.threadID] = nalert_out
           
         streamReader.__exit__(0,0,0)
 
@@ -221,12 +229,13 @@ def main():
         nthread = 1
     print('Threads = %d' % nthread)
 
-    nalert_list = [0] * nthread
+    nalert_in_list = [0] * nthread
+    nalert_out_list = [0] * nthread
 
     # make the thread list
     thread_list = []
     for t in range(args.nthread):
-        thread_list.append(Consumer(t, nalert_list, args, store, conf))
+        thread_list.append(Consumer(t, nalert_in_list, nalert_out_list, args, store, conf))
     
     # start them up
     t = time.time()
@@ -237,11 +246,15 @@ def main():
     for th in thread_list:
          th.join()
 
-    total = sum(nalert_list)
+    nalert_in = sum(nalert_in_list)
+    nalert_out = sum(nalert_out_list)
     os.system('date')
-    print(total)
-    if total > 0: return 1
-    else:         return 0
+    ms = manage_status('nid', settings.SYSTEM_STATUS)
+    nid  = date_nid.nid_now()
+    ms.add({'today_ingest':nalert_in, 'today_ingest_out':nalert_out}, nid)
+
+    if nalert_in > 0: return 1
+    else:             return 0
 
 if __name__ == '__main__':
     rc = main()
