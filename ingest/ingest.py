@@ -3,7 +3,7 @@ import time
 from socket import gethostname
 from datetime import datetime
 import settings
-sys.path.append('../utilty/')
+sys.path.append('../utility/')
 import date_nid
 """ Ingest a kafka stream from ZTF
    Usage: python ingest.py       ... means today's stream

@@ -12,11 +12,12 @@ import time
 from socket import gethostname
 from datetime import datetime
 import settings
-import date_nid
+sys.path.append('../utility/')
+from manage_status import manage_status
 import run_active_queries
 from check_alerts_watchlists import get_watchlist_hits, insert_watchlist_hits
 from check_alerts_areas import get_area_hits, insert_area_hits
-from check_status import check_status
+from counts import since_midnight, grafana_today
 import mysql.connector
 
 def db_connect():
@@ -111,7 +112,8 @@ for table in tablelist:
         os.system(cmd)
 print('SEND %.1f seconds' % (time.time() - t))
 
-check_status()
+ms = manage_status('nid', settings.SYSTEM_STATUS)
+ms.set({'today_ztf':grafana_today(), 'today_database':since_midnight()})
 
 if rc > 0: sys.exit(1)
 else:      sys.exit(0)

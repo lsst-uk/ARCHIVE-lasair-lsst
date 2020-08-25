@@ -11,6 +11,9 @@ import threading
 import insert_query
 import confluent_kafka
 import json
+sys.path.append('../utility/')
+import date_nid
+from manage_status import manage_status
 
 def parse_args():
     """parse_args.
@@ -81,23 +84,26 @@ def alert_filter(alert, msl):
                     insert_query.create_insert_annotation(msl, objectId, annClass, ann, 
                         ['classification', 'description', 'summary', 'separation', 'z', 'catalogue_object_type'], 
                         'sherlock_classifications', replace=True)
-    return 1
+        return 1
+    return 0
 
 class Consumer(threading.Thread):
     """ Threaded consumer of kafka. Calls alert_filter() for each one
     """
-    def __init__(self, threadID, nalert_list, args, conf):
+    def __init__(self, threadID, nalert_in_list, nalert_out_list, args, conf):
         """__init__.
 
         Args:
             threadID:
-            nalert_list:
+            nalert_in_list:
+            nalert_out_list:
             args:
             conf:
         """
         threading.Thread.__init__(self)
         self.threadID = threadID
-        self.nalert_list = nalert_list
+        self.nalert_in_list = nalert_in_list
+        self.nalert_out_list = nalert_out_list
         self.conf = conf
         self.args = args
 
@@ -121,9 +127,9 @@ class Consumer(threading.Thread):
         else:
             maxalert = 50000
     
-        nalert = nalert_ingested = 0
+        nalert_in = nalert_out = 0
         startt = time.time()
-        while nalert < maxalert:
+        while nalert_in < maxalert:
             # Here we get the next alert by kafka
             msg = consumer.poll(timeout=settings.KAFKA_TIMEOUT)
             if msg is None:
@@ -135,18 +141,19 @@ class Consumer(threading.Thread):
             else:
                 # Apply filter to each alert
                 alert = json.loads(msg.value())
-                nalert += 1
-                nalert_ingested += alert_filter(alert, msl)
-                if nalert%1000 == 0:
-                    print('thread %d nalert %d (ingested %d) time %.1f' % 
-                        ((self.threadID, nalert, nalert_ingested, time.time()-startt)))
+                nalert_in += 1
+                nalert_out += alert_filter(alert, msl)
+                if nalert_in%1000 == 0:
+                    print('thread %d nalert_in %d nalert_out %d time %.1f' % 
+                        ((self.threadID, nalert_in, nalert_out, time.time()-startt)))
                     # refresh the database every 1000 alerts
                     # make sure everything is committed
                     msl.close()
                     msl = make_database_connection()
     
         consumer.close()
-        self.nalert_list[self.threadID] = nalert_ingested
+        self.nalert_in_list[self.threadID] = nalert_in
+        self.nalert_out_list[self.threadID] = nalert_out
 
 def main():
     """main.
@@ -169,12 +176,13 @@ def main():
     print('Threads = %d' % nthread)
 
     # number of alerts from each
-    nalert_list = [0] * nthread
+    nalert_in_list = [0] * nthread
+    nalert_out_list = [0] * nthread
 
     # make the thread list
     thread_list = []
     for t in range(args.nthread):
-        thread_list.append(Consumer(t, nalert_list, args, conf))
+        thread_list.append(Consumer(t, nalert_in_list, nalert_out_list, args, conf))
 
     # start them up
     t = time.time()
@@ -185,11 +193,16 @@ def main():
     for th in thread_list:
          th.join()
 
-    total = sum(nalert_list)
-    print('INGEST finished with %s alerts, total %d' % (str(nalert_list), total))
+    nalert_in = sum(nalert_in_list)
+    nalert_out = sum(nalert_out_list)
+    print('INGEST finished %d in, %d out' % (nalert_in, nalert_out))
 
-    if total > 0: return 1
-    else:         return 0
+    ms = manage_status('nid', settings.SYSTEM_STATUS)
+    nid  = date_nid.nid_now()
+    ms.add({'today_filter':nalert_in, 'today_filter_out':nalert_out}, nid)
+
+    if nalert_in > 0: return 1
+    else:             return 0
 
 if __name__ == '__main__':
     rc = main()
