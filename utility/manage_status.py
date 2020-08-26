@@ -112,6 +112,7 @@ class manage_status():
 
         # if the signal has changed, increment from zero
         else:
+            status = {}
             status[self.signal_key] = signal_value
             for key,value in dictionary.items():
                 status[key]  = value
