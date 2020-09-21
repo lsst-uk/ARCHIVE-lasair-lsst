@@ -4,10 +4,15 @@
   become: true
 
   vars:
-    brokers: "192.41.108.36:9092,192.41.108.24:9092,192.41.108.36:9092"
+    brokers: "host:9092,host:9092"
     group_id: "sherlock_wrapper_0"
     input_topic: "ztf_ingest"
     output_topic: "ztf_sherlock"
+    cache_db: "mysql://user:pass@127.0.0.1/cache"
+    sherlock_db: "crossmatch_catalogues"
+    sherlock_db_host: "host"
+    sherlock_user: "username"
+    sherlock_password: "password"
 
   tasks:
     - name: "Create /opt/lasair directory"
