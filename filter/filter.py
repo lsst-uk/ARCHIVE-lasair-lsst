@@ -113,7 +113,8 @@ for table in tablelist:
 print('SEND %.1f seconds' % (time.time() - t))
 
 ms = manage_status('nid', settings.SYSTEM_STATUS)
-ms.set({'today_ztf':grafana_today(), 'today_database':since_midnight()})
+d = since_midnight()
+ms.set({'today_ztf':grafana_today(), 'today_database':d['count'], 'min_delay':d['delay']})
 
 if rc > 0: sys.exit(1)
 else:      sys.exit(0)

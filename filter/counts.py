@@ -25,7 +25,6 @@ def since_midnight():
     
     cursor = msl.cursor(buffered=True, dictionary=True)
     query = 'SELECT count(*) AS count FROM objects WHERE jdmax > %.1f' % midnight
-    
     try:
         cursor.execute(query)
         for row in cursor:
@@ -33,7 +32,19 @@ def since_midnight():
             break
     except:
         count = -1
-    return count
+
+    query = 'SELECT jdnow()-max(jdmax) AS delay FROM objects'
+    try:
+        cursor.execute(query)
+        for row in cursor:
+            delay = 24*row['delay']
+            h = int(delay)
+            m = int((delay-h)*60)
+            delay = '%d:%02d' % (h,m)
+            break
+    except:
+        delay = -1.0
+    return {'count':count, 'delay':delay}
 
 def grafana_today():
     """since_midnight.
