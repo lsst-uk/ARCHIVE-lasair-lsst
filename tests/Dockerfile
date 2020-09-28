@@ -46,4 +46,7 @@ RUN groupadd --gid 1000 jenkins &&\
   chmod -R g+w /opt/kafka_2.12-2.5.0 && \ 
   echo "jenkins    ALL = NOPASSWD: /usr/sbin/service" > /etc/sudoers.d/jenkins && chmod 440 /etc/sudoers.d/jenkins
 
-RUN pip3 install mocpy
+RUN pip3 install \
+  mocpy \
+  mysql-connector-python
+
