@@ -1,5 +1,5 @@
 pipeline {
-  agent { docker { image 'gpfrancis/sherlock-test:0.7' } }
+  agent { docker { image 'gpfrancis/sherlock-test:0.7.1' } }
   stages {
     stage('test') {
       steps {
