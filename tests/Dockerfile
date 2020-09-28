@@ -10,7 +10,7 @@ RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-insta
   python3-pip 
 RUN pip3 install \
   confluent-kafka==1.4.2 \
-  qub-sherlock==2.1.5
+  qub-sherlock==2.1.6
 
 # Required for tests
 RUN pip3 install \
