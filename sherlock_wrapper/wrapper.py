@@ -160,7 +160,8 @@ def classify(conf, log, alerts):
         dec=dec,
         name=names,
         verbose=1,
-        updateNed=False
+        updateNed=False,
+        lite=True
     )
 
     # run sherlock
