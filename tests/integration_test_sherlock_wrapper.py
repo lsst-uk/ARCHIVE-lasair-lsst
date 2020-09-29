@@ -133,8 +133,6 @@ class IntegrationTest(TestCase):
             # These should not be populated for orphan objects
             self.assertNotIn('catalogue_object_type', alert['annotations']['sherlock'][0])
             self.assertNotIn('z', alert['annotations']['sherlock'][0])
-            self.assertNotIn('separation', alert['annotations']['sherlock'][0])
-
 
 if __name__ == '__main__':
     import xmlrunner
