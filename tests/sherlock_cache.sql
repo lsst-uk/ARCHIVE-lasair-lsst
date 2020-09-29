@@ -1,7 +1,24 @@
 CREATE TABLE IF NOT EXISTS cache(
-  name VARCHAR(255) NOT NULL PRIMARY KEY,
-  class VARCHAR(255) NOT NULL,
-  type VARCHAR(255),
+  name VARCHAR(127) NOT NULL PRIMARY KEY,
+  class VARCHAR(127) NOT NULL,
+  transient_object_id VARCHAR(127),
+  association_type VARCHAR(127),
+  catalogue_table_name VARCHAR(127),
+  catalogue_object_id VARCHAR(127),
+  catalogue_object_type VARCHAR(127),
+  raDeg FLOAT,
+  decDeg FLOAT,
+  separationArcsec FLOAT,
+  northSeparationArcsec FLOAT,
+  eastSeparationArcsec FLOAT,
+  physical_separation_kpc FLOAT,
+  direct_distance FLOAT,
+  distance FLOAT,
   z FLOAT,
-  separation FLOAT
+  photoZ FLOAT,
+  photoZErr FLOAT,
+  Mag FLOAT,
+  MagFilter VARCHAR(127),
+  MagErr LOAT,
+  classificationReliability INTEGER
 );

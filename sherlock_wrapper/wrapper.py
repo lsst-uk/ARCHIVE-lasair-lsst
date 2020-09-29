@@ -116,7 +116,7 @@ def classify(conf, log, alerts):
         for alert in alerts:
             name = alert.get('objectId', alert.get('candid'))
             names.append(name)
-        query = "SELECT name,class,type,z,separation FROM cache WHERE name IN ('{}');".format("','".join(names))
+        query = "SELECT * FROM cache WHERE name IN ('{}');".format("','".join(names))
         url = urlparse(conf['cache_db'])
         connection = pymysql.connect(
                 host=url.hostname,
@@ -130,11 +130,12 @@ def classify(conf, log, alerts):
                 cursor.execute(query)
                 for result in cursor.fetchall():
                     annotations[result['name']] = {
-                            'classification': result['class'],
-                            'catalogue_object_type': result['type'],
-                            'z': result['z'],
-                            'separation': result['separation']
+                            'classification': result['class']
                             }
+                    for key,value in result.items():
+                        if key != name:
+                            annotations[result['name']][key] = value
+
         finally:
             connection.close()
     if len(annotations)>0:
@@ -187,12 +188,9 @@ def classify(conf, log, alerts):
                 cm = cm_by_name[name]
                 for match in cm:
                     if match['rank'] == 1:
-                        if 'z' in match:
-                            annotations[name]['z'] = match['z']
-                        if 'catalogue_object_type' in match:
-                            annotations[name]['catalogue_object_type'] = match['catalogue_object_type']
-                        if 'separationArcsec' in match:
-                            annotations[name]['separation'] = match['separationArcsec']
+                        for key, value in match.items():
+                            if key != 'rank':
+                                annotations[name][key] = value
                         break
     else:
         log.info("not running Sherlock as no remaining alerts to process")

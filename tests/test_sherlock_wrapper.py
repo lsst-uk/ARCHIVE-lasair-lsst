@@ -150,6 +150,29 @@ class TestConsumer(unittest.TestCase):
 
 
 class TestClassifier(unittest.TestCase):
+    crossmatches = [ {
+                    'rank':1,
+                    'transient_object_id':"ZTF18aapubnx",
+                    'association_type':'SN',
+                    'catalogue_table_name':'NED D/SDSS',
+                    'catalogue_object_id':'NGC0716',
+                    'catalogue_object_type':'galaxy',
+                    'raDeg':28.248701,
+                    'decDeg':12.708479,
+                    'separationArcsec':31.06,
+                    'northSeparationArcsec':-16.204,
+                    'eastSeparationArcsec':-26.493,
+                    'physical_separation_kpc':8.52,
+                    'direct_distance':56.6,
+                    'distance':65.88,
+                    'z':0.02,
+                    'photoZ':0.02,
+                    'photoZErr':0.01,
+                    'Mag':17.41,
+                    'MagFilter':'r',
+                    'MagErr':0.0,
+                    'classificationReliability':2} ]
+
     def test_classify_alert_batch(self):
         conf = {
             'broker':'',
@@ -165,7 +188,8 @@ class TestClassifier(unittest.TestCase):
         with unittest.mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
             alerts = [ example_alert.copy() ]
             classifications = { "ZTF18aapubnx": "Q" }
-            crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'rank':1, 'z':1.2, 'catalogue_object_type':'thing', 'separationArcsec':0.1} ]
+            #crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'rank':1, 'z':1.2, 'catalogue_object_type':'thing', 'separationArcsec':0.1} ]
+            crossmatches = TestClassifier.crossmatches
             mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
             # should report classifying 1 alert
             self.assertEqual(wrapper.classify(conf, log, alerts), 1)
@@ -175,10 +199,9 @@ class TestClassifier(unittest.TestCase):
             self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
             self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
             self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
-            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['catalogue_object_type'], 'thing')
-            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['z'], 1.2)
-            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['separation'], 0.1)
-            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['description'], "Placeholder")
+            for key, value in crossmatches[0].items():
+                if key != 'rank':
+                    self.assertEqual(alerts[0]['annotations']['sherlock'][0][key], value)
             # classify should have been called once 
             mock_classifier.return_value.classify.assert_called_once()
    
@@ -200,7 +223,11 @@ class TestClassifier(unittest.TestCase):
                 classifications = { "ZTF18aapubnx": "Q" }
                 crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'thing':'foo' } ]
                 mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
-                mock_pymysql.return_value.cursor.return_value.__enter__.return_value.fetchall.return_value = [{'name': 'ZTF18aapubnx', 'class': 'T', 'type': 'other', 'z': 2.1, 'separation': 0.2}]
+                cache = [{'name': 'ZTF18aapubnx', 'class': 'T'}]
+                mock_pymysql.return_value.cursor.return_value.__enter__.return_value.fetchall.return_value = cache
+                for key, value in TestClassifier.crossmatches[0].items():
+                    if key != 'rank':
+                        cache[0][key] = value
                 # should report classifying 1 alert
                 self.assertEqual(wrapper.classify(conf, log, alerts), 1)
                 # length of alerts shouls still be 1
@@ -209,10 +236,9 @@ class TestClassifier(unittest.TestCase):
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'T')
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['catalogue_object_type'], 'other')
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['z'], 2.1)
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['separation'], 0.2)
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['description'], "Placeholder")
+                for key, value in TestClassifier.crossmatches[0].items():
+                    if key != 'rank':
+                        self.assertEqual(alerts[0]['annotations']['sherlock'][0][key], value)
                 # classify should not have been called
                 mock_classifier.return_value.classify.assert_not_called()
 
@@ -232,7 +258,7 @@ class TestClassifier(unittest.TestCase):
             with unittest.mock.patch('sherlock_wrapper.wrapper.pymysql.connect') as mock_pymysql:
                 alerts = [ example_alert.copy() ]
                 classifications = { "ZTF18aapubnx": "Q" }
-                crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'rank':1, 'z':1.0, 'catalogue_object_type':'thing', 'separationArcsec':0.12} ]
+                crossmatches = TestClassifier.crossmatches
                 mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
                 mock_pymysql.return_value.cursor.return_value.__enter__.return_value.fetchall.return_value = []
                 # should report classifying 1 alert
@@ -243,10 +269,9 @@ class TestClassifier(unittest.TestCase):
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['catalogue_object_type'], 'thing')
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['z'], 1.0)
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['separation'], 0.12)
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['description'], "Placeholder")
+                for key, value in TestClassifier.crossmatches[0].items():
+                    if key != 'rank':
+                        self.assertEqual(alerts[0]['annotations']['sherlock'][0][key], value)
                 # classify should have been called once
                 mock_classifier.return_value.classify.assert_called_once()
                 # execute should have been called twice
