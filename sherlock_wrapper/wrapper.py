@@ -132,9 +132,10 @@ def classify(conf, log, alerts):
                     annotations[result['name']] = {
                             'classification': result['class']
                             }
-                    for key,value in result.items():
-                        if key != name:
-                            annotations[result['name']][key] = value
+                    match = json.loads(result.get('crossmatch', {}))
+                    log.debug("Got crossmatch from cache:\n" + json.dumps(match, indent=2))
+                    for key,value in match.items():
+                        annotations[result['name']][key] = value
 
         finally:
             connection.close()
@@ -166,6 +167,7 @@ def classify(conf, log, alerts):
     )
 
     # run sherlock
+    cm_by_name = {}
     if len(names) > 0:
         log.info("running Sherlock classifier on {:d} alerts".format(len(alerts)))
         classifications, crossmatches = classifier.classify()
@@ -176,7 +178,6 @@ def classify(conf, log, alerts):
             if name in classifications:
                 annotations[name] = { 'classification': classifications[name][0] }
         # process crossmatches
-        cm_by_name = {}
         for cm in crossmatches:
             name = cm['transient_object_id']
             if name in cm_by_name:
@@ -186,12 +187,12 @@ def classify(conf, log, alerts):
         for name in names:
             if name in cm_by_name:
                 cm = cm_by_name[name]
-                for match in cm:
-                    if match['rank'] == 1:
-                        for key, value in match.items():
-                            if key != 'rank':
-                                annotations[name][key] = value
-                        break
+                if len(cm) > 0:
+                    match = cm[0]
+                    log.debug("got crossmatch:\n {}".format(json.dumps(match, indent=2)))
+                    for key, value in match.items():
+                        if key != 'rank':
+                            annotations[name][key] = value
     else:
         log.info("not running Sherlock as no remaining alerts to process")
 
@@ -204,23 +205,25 @@ def classify(conf, log, alerts):
                 db=url.path.lstrip('/'),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor)
-        values = []
+#        values = []
         for name in names:
             classification = annotations[name]['classification']
-            if annotations[name].get('catalogue_object_type'):
-                object_type = "'{}'".format(annotations[name]['catalogue_object_type'])
-            else:
-                object_type = 'NULL'
-            if annotations[name].get('z'):
-                z = "'{:f}'".format(annotations[name]['z'])
-            else:
-                z = 'NULL'
-            if annotations[name].get('separation'):
-                separation = "'{:f}'".format(annotations[name]['separation'])
-            else:
-                separation = 'NULL'
-            values.append("\n ('{}','{}',{},{},{})".format(name, classification, object_type, z, separation))
-        query = "INSERT INTO cache VALUES {}".format(",".join(values))
+#            if annotations[name].get('catalogue_object_type'):
+#                object_type = "'{}'".format(annotations[name]['catalogue_object_type'])
+#            else:
+#                object_type = 'NULL'
+#            if annotations[name].get('z'):
+#                z = "'{:f}'".format(annotations[name]['z'])
+#            else:
+#                z = 'NULL'
+#            if annotations[name].get('separation'):
+#                separation = "'{:f}'".format(annotations[name]['separation'])
+#            else:
+#                separation = 'NULL'
+#            values.append("\n ('{}','{}',{},{},{})".format(name, classification, object_type, z, separation))
+        cm = cm_by_name.get(name, [])
+        crossmatch = "'{}'".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
+        query = "INSERT INTO cache VALUES ('{}','{}',{})".format(name, classification, crossmatch)
         log.info("update cache: {}".format(query))
         try:
             with connection.cursor() as cursor:
@@ -234,10 +237,10 @@ def classify(conf, log, alerts):
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
         annotations[name]['annotator'] = "https://github.com/thespacedoctor/sherlock"
-        annotations[name]['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/" + name
+        annotations[name]['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/object/" + name
         # placeholders until sherlock returns these
-        annotations[name]['description'] = 'Placeholder'
-        annotations[name]['summary']  = 'Placeholder'
+        #annotations[name]['description'] = 'Placeholder'
+        #annotations[name]['summary']  = 'Placeholder'
         if 'annotations' not in alert:
             alert['annotations'] = {}
         alert['annotations']['sherlock'] = []

@@ -197,7 +197,7 @@ class TestClassifier(unittest.TestCase):
             self.assertEqual(len(alerts), 1)
             # content of alerts should be as expected
             self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
-            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/object/ZTF18aapubnx")
             self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
             for key, value in crossmatches[0].items():
                 if key != 'rank':
@@ -223,11 +223,8 @@ class TestClassifier(unittest.TestCase):
                 classifications = { "ZTF18aapubnx": "Q" }
                 crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'thing':'foo' } ]
                 mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
-                cache = [{'name': 'ZTF18aapubnx', 'class': 'T'}]
+                cache = [{'name': 'ZTF18aapubnx', 'class': 'T', 'crossmatch': json.dumps(TestClassifier.crossmatches[0])}]
                 mock_pymysql.return_value.cursor.return_value.__enter__.return_value.fetchall.return_value = cache
-                for key, value in TestClassifier.crossmatches[0].items():
-                    if key != 'rank':
-                        cache[0][key] = value
                 # should report classifying 1 alert
                 self.assertEqual(wrapper.classify(conf, log, alerts), 1)
                 # length of alerts shouls still be 1
@@ -235,7 +232,7 @@ class TestClassifier(unittest.TestCase):
                 # content of alerts should be as expected - from cache
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'T')
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/object/ZTF18aapubnx")
                 for key, value in TestClassifier.crossmatches[0].items():
                     if key != 'rank':
                         self.assertEqual(alerts[0]['annotations']['sherlock'][0][key], value)
@@ -268,7 +265,7 @@ class TestClassifier(unittest.TestCase):
                 # content of alerts should be as expected - from sherlock
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/ZTF18aapubnx")
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/object/ZTF18aapubnx")
                 for key, value in TestClassifier.crossmatches[0].items():
                     if key != 'rank':
                         self.assertEqual(alerts[0]['annotations']['sherlock'][0][key], value)
