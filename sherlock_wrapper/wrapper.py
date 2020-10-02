@@ -239,8 +239,8 @@ def classify(conf, log, alerts):
         annotations[name]['annotator'] = "https://github.com/thespacedoctor/sherlock"
         annotations[name]['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/object/" + name
         # placeholders until sherlock returns these
-        #annotations[name]['description'] = 'Placeholder'
-        #annotations[name]['summary']  = 'Placeholder'
+        annotations[name]['description'] = 'Placeholder'
+        annotations[name]['summary']  = 'Placeholder'
         if 'annotations' not in alert:
             alert['annotations'] = {}
         alert['annotations']['sherlock'] = []
