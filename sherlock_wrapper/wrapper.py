@@ -205,7 +205,7 @@ def classify(conf, log, alerts):
                 db=url.path.lstrip('/'),
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor)
-#        values = []
+        values = []
         for name in names:
             classification = annotations[name]['classification']
 #            if annotations[name].get('catalogue_object_type'):
@@ -220,10 +220,11 @@ def classify(conf, log, alerts):
 #                separation = "'{:f}'".format(annotations[name]['separation'])
 #            else:
 #                separation = 'NULL'
-#            values.append("\n ('{}','{}',{},{},{})".format(name, classification, object_type, z, separation))
         cm = cm_by_name.get(name, [])
         crossmatch = "'{}'".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
-        query = "INSERT INTO cache VALUES ('{}','{}',{})".format(name, classification, crossmatch)
+        values.append("\n ('{}','{}',{})".format(name, classification, crossmatch))
+        #query = "INSERT INTO cache VALUES ('{}','{}',{})".format(name, classification, crossmatch)
+        query = "INSERT INTO cache VALUES {}".format(",".join(values))
         log.info("update cache: {}".format(query))
         try:
             with connection.cursor() as cursor:
