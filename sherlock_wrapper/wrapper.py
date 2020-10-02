@@ -220,9 +220,9 @@ def classify(conf, log, alerts):
 #                separation = "'{:f}'".format(annotations[name]['separation'])
 #            else:
 #                separation = 'NULL'
-        cm = cm_by_name.get(name, [])
-        crossmatch = "'{}'".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
-        values.append("\n ('{}','{}',{})".format(name, classification, crossmatch))
+            cm = cm_by_name.get(name, [])
+            crossmatch = "'{}'".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
+            values.append("\n ('{}','{}',{})".format(name, classification, crossmatch))
         #query = "INSERT INTO cache VALUES ('{}','{}',{})".format(name, classification, crossmatch)
         query = "INSERT INTO cache VALUES {}".format(",".join(values))
         log.info("update cache: {}".format(query))
