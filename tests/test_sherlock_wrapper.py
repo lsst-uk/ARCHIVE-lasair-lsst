@@ -239,6 +239,34 @@ class TestClassifier(unittest.TestCase):
                 # classify should not have been called
                 mock_classifier.return_value.classify.assert_not_called()
 
+    # if we get a cache hit but the crossmatch is empty/malformed then we should ignore it
+    def test_classify_cache_empty_hit(self):
+        conf = {
+            'broker':'',
+            'group':'',
+            'input_topic':'',
+            'output_topic':'',
+            'batch_size':5,
+            'timeout':1,
+            'max_errors':-1,
+            'cache_db':'mysql://user_name:password@localhost:3306/sherlock_cache',
+            'sherlock_settings': 'sherlock_test.yaml'
+            }
+        with unittest.mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
+            with unittest.mock.patch('sherlock_wrapper.wrapper.pymysql.connect') as mock_pymysql:
+                alerts = [ example_alert.copy() ]
+                classifications = { "ZTF18aapubnx": "Q" }
+                crossmatches = [ { 'transient_object_id':"ZTF18aapubnx", 'thing':'foo' } ]
+                mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
+                cache = [{'name': 'ZTF18aapubnx', 'class': 'T', 'crossmatch': None}]
+                mock_pymysql.return_value.cursor.return_value.__enter__.return_value.fetchall.return_value = cache
+                # should report classifying 1 alert
+                self.assertEqual(wrapper.classify(conf, log, alerts), 1)
+                # content of alerts should be from sherlock - cache should be ignored
+                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
+                # classify should not have been called
+                mock_classifier.return_value.classify.assert_called_once()
+
     def test_classify_cache_miss(self):
         conf = {
             'broker':'',

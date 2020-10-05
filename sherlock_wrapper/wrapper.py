@@ -129,14 +129,15 @@ def classify(conf, log, alerts):
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 for result in cursor.fetchall():
+                    match = json.loads(result.get('crossmatch'))
                     annotations[result['name']] = {
                             'classification': result['class']
                             }
-                    match = json.loads(result.get('crossmatch', {}))
-                    log.debug("Got crossmatch from cache:\n" + json.dumps(match, indent=2))
                     for key,value in match.items():
                         annotations[result['name']][key] = value
-
+                    log.debug("Got crossmatch from cache:\n" + json.dumps(match, indent=2))
+        except TypeError:
+            log.debug("Got TypeError reading cache. Entry probably present, but incomplete or malformed. Ignoring.")
         finally:
             connection.close()
     if len(annotations)>0:
