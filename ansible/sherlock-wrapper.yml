@@ -4,6 +4,7 @@
   become: true
 
   vars:
+    image: "gpfrancis/sherlock-wrapper:0.4.5"
     brokers: "host:9092,host:9092"
     group_id: "sherlock_wrapper_0"
     input_topic: "ztf_ingest"
