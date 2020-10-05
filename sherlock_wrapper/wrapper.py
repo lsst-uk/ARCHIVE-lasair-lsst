@@ -225,7 +225,7 @@ def classify(conf, log, alerts):
             crossmatch = "'{}'".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
             values.append("\n ('{}','{}',{})".format(name, classification, crossmatch))
         #query = "INSERT INTO cache VALUES ('{}','{}',{})".format(name, classification, crossmatch)
-        query = "INSERT INTO cache VALUES {}".format(",".join(values))
+        query = "INSERT INTO cache VALUES {}  ON DUPLICATE KEY UPDATE class=VALUES(class), crossmatch=values(crossmatch)".format(",".join(values))
         log.info("update cache: {}".format(query))
         try:
             with connection.cursor() as cursor:
