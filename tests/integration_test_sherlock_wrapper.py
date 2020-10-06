@@ -128,7 +128,6 @@ class IntegrationTest(TestCase):
             self.assertEqual(len(alert['annotations']['sherlock']), 1)
             self.assertEqual(alert['annotations']['sherlock'][0]['classification'], "ORPHAN") 
             self.assertEqual(alert['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
-            self.assertEqual(alert['annotations']['sherlock'][0]['description'], "Placeholder")
             self.assertIn('additional_output',alert['annotations']['sherlock'][0])
             # These should not be populated for orphan objects
             self.assertNotIn('catalogue_object_type', alert['annotations']['sherlock'][0])
