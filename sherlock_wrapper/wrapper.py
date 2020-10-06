@@ -178,6 +178,8 @@ def classify(conf, log, alerts):
         for name in names:
             if name in classifications:
                 annotations[name] = { 'classification': classifications[name][0] }
+                if len(classifications[name]) > 1:
+                    annotations[name]['description'] = classifications[name][1]
         # process crossmatches
         for cm in crossmatches:
             name = cm['transient_object_id']
@@ -241,7 +243,6 @@ def classify(conf, log, alerts):
         annotations[name]['annotator'] = "https://github.com/thespacedoctor/sherlock"
         annotations[name]['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/object/" + name
         # placeholders until sherlock returns these
-        annotations[name]['description'] = 'Placeholder'
         annotations[name]['summary']  = 'Placeholder'
         if 'annotations' not in alert:
             alert['annotations'] = {}
@@ -274,6 +275,7 @@ def produce(conf, log, alerts):
         while alerts:
             alert = alerts.pop(0)
             p.produce(conf['output_topic'], value=json.dumps(alert))
+            log.debug("produced output:\n{}".format(json.dumps(alert, indent=2)))
             n += 1
     #    for name,alert in alerts.items():
     #        p.produce(conf['output_topic'], value=json.dumps(alert))
