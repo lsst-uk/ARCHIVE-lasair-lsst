@@ -15,6 +15,34 @@ sys.path.append('../utility/')
 import date_nid
 from manage_status import manage_status
 
+sherlock_attributes = [
+    "classification",
+    "objectId",
+    "association_type",
+    "catalogue_table_name",
+    "catalogue_object_id",
+    "catalogue_object_type",
+    "raDeg",
+    "decDeg",
+    "separationArcsec",
+    "northSeparationArcsec",
+    "eastSeparationArcsec",
+    "physical_separation_kpc",
+    "direct_distance",
+    "distance",
+    "z",
+    "photoZ",
+    "photoZErr",
+    "Mag",
+    "MagFilter",
+    "MagErr",
+    "classificationReliability",
+    "annotator",
+    "additional_output",
+    "description",
+    "summary",
+]
+
 def parse_args():
     """parse_args.
     """
@@ -81,9 +109,11 @@ def alert_filter(alert, msl):
             annClass = 'sherlock'
             if annClass in annotations:
                 for ann in annotations[annClass]:
+                    if "transient_object_id" in ann:  # hack here. Sherlock and Lasair have different names
+                        ann['objectId'] = ann.pop('transient_object_id')
+
                     insert_query.create_insert_annotation(msl, objectId, annClass, ann, 
-                        ['classification', 'description', 'summary', 'separation', 'z', 'catalogue_object_type'], 
-                        'sherlock_classifications', replace=True)
+                        sherlock_attributes, 'sherlock_classifications', replace=True)
         return 1
     return 0
 

@@ -215,7 +215,7 @@ def insert_watchlist_hits(msl, hits):
     print('inserting')
     cursor = msl.cursor(buffered=True, dictionary=True)
 
-    query = "INSERT into watchlist_hits (wl_id, cone_id, objectId, arcsec, name) VALUES\n"
+    query = "REPLACE into watchlist_hits (wl_id, cone_id, objectId, arcsec, name) VALUES\n"
     list = []
     for hit in hits:
         list.append('(%d,%d,"%s",%.3f,"%s")' %  \

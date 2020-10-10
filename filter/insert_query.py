@@ -21,40 +21,41 @@ def make_ema(candlist):
     oldgjd = oldrjd = 0
     g02 = g08 = g28 = 0
     r02 = r08 = r28 = 0
-    dc_mag_g = dc_mag_r = 0
+    mag_g = mag_r = 0
     n = 0
     for c in candlist:
         jd = c['jd']
         if not c['magpsf']:
             continue
-        d = dc_mag_dict(
-            c['fid'], 
-            c['magpsf'], c['sigmapsf'], 
-            c['magnr'],  c['sigmagnr'], 
-            c['magzpsci'], c['isdiffpos'])
+#        d = dc_mag_dict(
+#            c['fid'], 
+#            c['magpsf'], c['sigmapsf'], 
+#            c['magnr'],  c['sigmagnr'], 
+#            c['magzpsci'], c['isdiffpos'])
         # compute the apparent (DC) magnitude
-        dc_mag = d['dc_mag']
+#        dc_mag = d['dc_mag']
+        mag = c['magpsf']
 
         # separate the g mag (fid=1) from r mag (fid=2)
         if c['fid'] == 1:
             f02 = math.exp(-(jd-oldgjd)/2.0)
             f08 = math.exp(-(jd-oldgjd)/8.0)
             f28 = math.exp(-(jd-oldgjd)/28.0)
-            g02 = g02*f02 + dc_mag*(1-f02)
-            g08 = g08*f08 + dc_mag*(1-f08)
-            g28 = g28*f28 + dc_mag*(1-f28)
+            g02 = g02*f02 + mag*(1-f02)
+            g08 = g08*f08 + mag*(1-f08)
+            g28 = g28*f28 + mag*(1-f28)
             oldgjd = jd
         else:
             f02 = math.exp(-(jd-oldrjd)/2.0)
             f08 = math.exp(-(jd-oldrjd)/8.0)
             f28 = math.exp(-(jd-oldrjd)/28.0)
-            r02 = r02*f02 + dc_mag*(1-f02)
-            r08 = r08*f08 + dc_mag*(1-f08)
-            r28 = r28*f28 + dc_mag*(1-f28)
+            r02 = r02*f02 + mag*(1-f02)
+            r08 = r08*f08 + mag*(1-f08)
+            r28 = r28*f28 + mag*(1-f28)
             oldrjd = jd
     ema = { 
-        'dc_mag_g':dc_mag_g, 'g02':g02, 'g08':g08, 'g28':g28, 
-        'dc_mag_r':dc_mag_r, 'r02':r02, 'r08':r08, 'r28':g28
+        'g02':g02, 'g08':g08, 'g28':g28, 
+        'r02':r02, 'r08':r08, 'r28':r28
         }
     return ema 
 
@@ -78,11 +79,13 @@ def create_insert_query(alert):
     ema = make_ema(candlist)
 
     ncand = 0
+    jdmin = 3000000000.0
     ra = []
     dec = []
     magg = []
     magr = []
-    jd   = []
+    jdg   = []
+    jdr   = []
     latestgmag = latestrmag = 'NULL'
     ncandgp = 0
     sgmag1    = None
@@ -95,12 +98,15 @@ def create_insert_query(alert):
 
         ra.append(cand['ra'])
         dec.append(cand['dec'])
-        jd.append(cand['jd'])
+        if cand['jd'] < jdmin:
+            jdmin = cand['jd']
         if cand['fid'] == 1:
             magg.append(cand['magpsf'])
+            jdg.append(cand['jd'])
             latestgmag = cand['magpsf']
         else:
             magr.append(cand['magpsf'])
+            jdr.append(cand['jd'])
             latestrmag = cand['magpsf']
 
         # if it also has the 'drb' data quality flag, copy the PS1 data
@@ -109,8 +115,8 @@ def create_insert_query(alert):
             srmag1    = cand['srmag1']
             sgscore1  = cand['sgscore1']
             distpsnr1 = cand['distpsnr1']
-            if cand['drb'] > 0.75 and cand['isdiffpos'] == 't':
-                ncandgp += 1
+        if cand['rb'] > 0.75 and cand['isdiffpos'] == 't':
+            ncandgp += 1
         ncand += 1
 
     # only want light curves with at least 2 candidates
@@ -118,20 +124,28 @@ def create_insert_query(alert):
         return None
 
     # statistics of the g light curve
+    dmdt_g = dmdt_g_2 = 'NULL'
     if len(magg) > 0:
         maggmin = np.min(magg)
         maggmax = np.max(magg)
         maggmean = np.mean(magg)
-        maggmedian = np.median(magg)
+        try:     dmdt_g   = (magg[-2] - magg[-1])/(jdg[-1] - jdg[-2])
+        except:  pass
+        try:     dmdt_g_2 = (magg[-3] - magg[-2])/(jdg[-2] - jdg[-3])
+        except:  pass
     else:
         maggmin = maggmax = maggmean = maggmedian = 'NULL'
 
     # statistics of the r light curve
+    dmdt_r = dmdt_r_2 = 'NULL'
     if len(magr) > 0:
         magrmin = np.min(magr)
         magrmax = np.max(magr)
         magrmean = np.mean(magr)
-        magrmedian = np.median(magr)
+        try:     dmdt_r   = (magr[-2] - magr[-1])/(jdr[-1] - jdr[-2])
+        except:  pass
+        try:     dmdt_r_2 = (magr[-3] - magr[-2])/(jdr[-2] - jdr[-3])
+        except:  pass
     else:
         magrmin = magrmax = magrmean = magrmedian = 'NULL'
 
@@ -161,16 +175,22 @@ def create_insert_query(alert):
     sets['decstd']     = 3600*np.std(dec)
     sets['maggmin']    = maggmin
     sets['maggmax']    = maggmax
-    sets['maggmedian'] = maggmedian
     sets['maggmean']   = maggmean
     sets['magrmin']    = magrmin
     sets['magrmax']    = magrmax
-    sets['magrmedian'] = magrmedian
     sets['magrmean']   = magrmean
-    sets['latestgmag'] = latestgmag
-    sets['latestrmag'] = latestrmag
-    sets['jdmin']      = np.min(jd)
-    sets['jdmax']      = np.max(jd)
+    sets['gmag']       = latestgmag
+    sets['rmag']       = latestrmag
+    sets['dmdt_g']     = dmdt_g
+    sets['dmdt_r']     = dmdt_r
+    sets['dmdt_g_2']   = dmdt_g_2
+    sets['dmdt_r_2']   = dmdt_r_2
+    sets['jdmin']      = jdmin
+    if len(jdg) > 0: sets['jdgmax'] = np.max(jdg)
+    else:            sets['jdgmax'] = 'NULL'
+    if len(jdr) > 0: sets['jdrmax'] = np.max(jdr)
+    else:            sets['jdrmax'] = 'NULL'
+    sets['jdmax']      = max(sets['jdgmax'], sets['jdgmax'])
     sets['glatmean']   = glatmean
     sets['glonmean']   = glonmean
 
@@ -185,14 +205,12 @@ def create_insert_query(alert):
     sets['htm16']      = htm16
 
     # Moving averages
-    sets['latest_dc_mag_g']   = ema['dc_mag_g']
-    sets['latest_dc_mag_g02'] = ema['g02']
-    sets['latest_dc_mag_g08'] = ema['g08']
-    sets['latest_dc_mag_g28'] = ema['g28']
-    sets['latest_dc_mag_r']   = ema['dc_mag_r']
-    sets['latest_dc_mag_r02'] = ema['r02']
-    sets['latest_dc_mag_r08'] = ema['r08']
-    sets['latest_dc_mag_r28'] = ema['r28']
+    sets['mag_g02'] = ema['g02']
+    sets['mag_g08'] = ema['g08']
+    sets['mag_g28'] = ema['g28']
+    sets['mag_r02'] = ema['r02']
+    sets['mag_r08'] = ema['r08']
+    sets['mag_r28'] = ema['r28']
 
     # Make the query
     list = []
@@ -230,7 +248,7 @@ def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace
     list = []
     if replace: query = 'REPLACE'
     else:       query = 'INSERT'
-    query += ' INTO %s SET objectId="%s",' % (table, objectId)
+    query += ' INTO %s SET ' % (table)
     for key,value in sets.items():
 #        if isinstance(value, str):
         list.append(key + '=' + '"' + str(value) + '"')
@@ -238,7 +256,6 @@ def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace
 #        list.append(key + '=' + str(value))
     query += ', '.join(list)
     query = query.replace('None', 'NULL')
-#    print(query)
     try:
         cursor = msl.cursor(buffered=True)
         cursor.execute(query)

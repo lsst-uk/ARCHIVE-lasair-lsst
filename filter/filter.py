@@ -114,7 +114,11 @@ print('SEND %.1f seconds' % (time.time() - t))
 
 ms = manage_status('nid', settings.SYSTEM_STATUS)
 d = since_midnight()
-ms.set({'today_ztf':grafana_today(), 'today_database':d['count'], 'min_delay':d['delay']})
+ms.set({
+    'today_ztf':grafana_today(), 
+    'today_database':d['count'], 
+    'min_delay':d['delay'], 
+    'total_count': d['total_count']})
 
 if rc > 0: sys.exit(1)
 else:      sys.exit(0)

@@ -44,7 +44,16 @@ def since_midnight():
             break
     except:
         delay = -1.0
-    return {'count':count, 'delay':delay}
+
+    query = 'SELECT count(*) AS total_count FROM objects'
+    try:
+        cursor.execute(query)
+        for row in cursor:
+            total_count = row['total_count']
+            break
+    except:
+        total_count = -1
+    return {'count':count, 'delay':delay, 'total_count':total_count}
 
 def grafana_today():
     """since_midnight.

@@ -1,4 +1,5 @@
 import json
+import html
 # This code reads in a forma definition of a schema, loosely based on 
 # AVRO schema files (.avsc) and converts it to any of several formats
 # required by Lasair
@@ -59,27 +60,36 @@ def autocomplete_tags(schema):
         js += '"' + tablename + '.' + f['name'] + ',\n'
     return js
 
-def html(schema):
+def makehtml(schema):
     # HTML table of attribute and description
     # NEEDS unit, UCD, etc
-    s = '<h3>Schema for "%s" table</h3>\n' % schema['name']
-    s += '<table border=1>\n'
+    s = ''
     for f in schema['fields']:
-        s += '<tr><td>' + f['name'] + '</td><td>' + f['doc'] + '</td></tr>\n'
-    s += '</table>'
+        escaped = html.escape(f['doc'])
+        s += '<tr><td>' + f['name'] + '</td><td>' + escaped + '</td></tr>\n'
     return s
 
 import sys
 if __name__ == '__main__':
-    # read in the definition file
-    filename = 'object.json'
-    if len(sys.argv) > 1: 
-        filename = sys.argv[1]
-    schema = json.loads(open(filename).read())
+    if len(sys.argv) > 2:
+        switch = sys.argv[1]
+        table = sys.argv[2]
+    else:
+        print("Usage: convert.py switch table")
+        print("Where switch can be json, sql, attrs, tags, html")
+        print("and table is one of objects, sherlock_classifications, etc")
+        sys.exit()
 
-    # try out the methods
-#    print(json.dumps(schema, indent=2))
-    print(create_table(schema))
-#    print(attribute_list(schema))
-#    print(autocomplete_tags(schema))
-#    print(html(schema))
+    schema = json.loads(open(table + '.json').read())
+    out = open(table + '.' + switch, 'w')
+
+    if switch == 'json':
+        out.write(json.dumps(schema, indent=2))
+    elif switch == 'sql':
+        out.write(create_table(schema))
+    elif switch == 'attrs':
+        out.write(attribute_list(schema))
+    elif switch == 'tags':
+        out.write(autocomplete_tags(schema))
+    elif switch == 'html':
+        out.write(makehtml(schema))

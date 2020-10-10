@@ -125,7 +125,7 @@ def insert_area_hits(msl, hits):
     print('inserting')
     cursor = msl.cursor(buffered=True, dictionary=True)
 
-    query = "INSERT into area_hits (ar_id, objectId) VALUES\n"
+    query = "REPLACE into area_hits (ar_id, objectId) VALUES\n"
     list = []
     for hit in hits:
         list.append('(%d,"%s")' %  (hit['ar_id'], hit['objectId']))
