@@ -10,9 +10,10 @@ sql  = "LOAD DATA LOCAL INFILE '/home/ubuntu/scratch/%s' " % file
 sql += "REPLACE INTO TABLE %s FIELDS TERMINATED BY ',' " % dbtable
 sql += "ENCLOSED BY '\"' LINES TERMINATED BY '\n'"
 
-f = open('tmp.sql', 'w')
+tmpfile = '/home/ubuntu/scratch/%s.sql' % node
+f = open(tmpfile, 'w')
 f.write(sql)
 f.close()
 
-cmd =  "mysql --user=ztf --database=ztf --password=%s < tmp.sql" % settings.DB_PASSWORD
+cmd =  "mysql --user=ztf --database=ztf --password=%s < %s" % (settings.DB_PASSWORD, tmpfile)
 os.system(cmd)
