@@ -5,6 +5,7 @@ adds the Sherlock classification and crossmatches back into the alert and
 republishes on the output topic.
 """
 
+import warnings
 import json
 import yaml
 import argparse
@@ -226,12 +227,16 @@ def classify(conf, log, alerts):
             cm = cm_by_name.get(name, [])
             crossmatch = "'{}'".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
             values.append("\n ('{}','{}',{})".format(name, classification, crossmatch))
-        #query = "INSERT INTO cache VALUES ('{}','{}',{})".format(name, classification, crossmatch)
-        query = "INSERT INTO cache VALUES {} AS new ON DUPLICATE KEY UPDATE class=new.class, crossmatch=new.crossmatch".format(",".join(values))
+        # Syntax for this appears to differ between MySQL and MariaDB :(
+        ##query = "INSERT INTO cache VALUES {} AS new ON DUPLICATE KEY UPDATE class=new.class, crossmatch=new.crossmatch".format(",".join(values))
+        query = "INSERT INTO cache VALUES {} ON DUPLICATE KEY UPDATE class=VALUES(class), crossmatch=VALUES(crossmatch)".format(",".join(values))
         log.info("update cache: {}".format(query))
         try:
             with connection.cursor() as cursor:
-                cursor.execute(query)
+                # make deprecation warning non-fatal
+                with warnings.catch_warnings():
+                    warnings.simplefilter('default')
+                    cursor.execute(query)
         finally:
             connection.commit()
             connection.close()
