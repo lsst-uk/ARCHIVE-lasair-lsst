@@ -10,6 +10,7 @@ import yaml
 #import subprocess
 #import tempfile
 #from os import unlink
+import pymysql.cursors
 from sherlock import transient_classifier
 
 app = Flask(__name__)
@@ -17,9 +18,11 @@ api = Api(app)
 
 
 conf = {
+        'settings_file': 'settings.yaml',
         'sherlock_settings': 'sherlock.yaml'
         }
 
+# run the sherlock classifier
 def classify(name,ra,dec,lite=False):
     with open(conf['sherlock_settings'], "r") as f:
         sherlock_settings = yaml.safe_load(f)
@@ -36,23 +39,44 @@ def classify(name,ra,dec,lite=False):
         classifications, crossmatches = classifier.classify()
         return classifications, crossmatches
 
+# look up the dec and ra for a name
+def lookup(name):
+    with open(conf['settings_file'], "r") as f:
+        settings = yaml.safe_load(f)
+        connection = pymysql.connect(
+            host=settings['database']['host'],
+            user=settings['database']['username'],
+            password=settings['database']['password'],
+            db=settings['database']['db'],
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor)        
+        query = "SELECT ramean,decmean FROM objects WHERE objectID='{}'".format(name)
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            result = cursor.fetchone()
+            ra = result['ramean']
+            dec = result['decmean']
+        connection.close()
+        return ra, dec
+
 class Object(Resource):
     """Get the Sherlock crossmatch results for a named object.
 
     Parameters:
-        full (boolean): produce full output, i.e. all cross matches. Set to false to return only the top cross match. Default is true."""
+        lite (boolean): produce top ranked matches only. Default False."""
 
     def get(self, name):
         parser = reqparse.RequestParser()
-        parser.add_argument("full", type=inputs.boolean, default=True)
+        parser.add_argument("lite", type=inputs.boolean, default=False)
         message = request.data
         args = parser.parse_args()
-        classifications, crossmatches = classify(name)
-
-        if args['full']:
-            return "{}, {}, {}".format(name, classifications, crossmatches), 200
-        else:
-            return "Hello, {} (Lite)".format(name), 200
+        ra, dec = lookup(name)
+        classifications, crossmatches = classify(name, ra, dec, args['lite'])
+        result = {
+            'classifications': classifications,
+            'crossmatches': crossmatches
+            }
+        return result, 200
 
     def post(self, name):
         return self.get(name)
