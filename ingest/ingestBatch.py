@@ -60,7 +60,8 @@ candid1189406621015015005_pid1189406621015_targ_sci.fits.gz
     """
     f = stamp_dict['fileName']
     candid = f.split('_')[0]
-    store.putObject(f, stamp_dict['stampData'])
+    fileroot = f.split('.')[0]
+    store.putObject(fileroot, stamp_dict['stampData'])
     return
 
 def handle_alert(alert, store, producer, topicout):
