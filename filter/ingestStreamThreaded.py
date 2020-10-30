@@ -89,33 +89,31 @@ def alert_filter(alert, msl):
     """
     # Filter to apply to each alert.
     objectId = alert['objectId']
-    if alert:
-        # build the insert query for this object.
-        # if not wanted, returns None
-        query = insert_query.create_insert_query(alert)
-        if query is None:
-            return 0
-        try:
-            cursor = msl.cursor(buffered=True)
-            cursor.execute(query)
-            cursor.close()
-        except mysql.connector.Error as err:
-            print('INGEST object Database insert candidate failed: %s' % str(err))
-        msl.commit()
+    # build the insert query for this object.
+    # if not wanted, returns None
+    query = insert_query.create_insert_query(alert)
+    if query is None:
+        return 0
+    try:
+        cursor = msl.cursor(buffered=True)
+        cursor.execute(query)
+        cursor.close()
+    except mysql.connector.Error as err:
+        print('INGEST object Database insert candidate failed: %s' % str(err))
+    msl.commit()
 
-        # now ingest the sherlock_classifications
-        if 'annotations' in alert:
-            annotations = alert['annotations']
-            annClass = 'sherlock'
-            if annClass in annotations:
-                for ann in annotations[annClass]:
-                    if "transient_object_id" in ann:  # hack here. Sherlock and Lasair have different names
-                        ann['objectId'] = ann.pop('transient_object_id')
+    # now ingest the sherlock_classifications
+    if 'annotations' in alert:
+        annotations = alert['annotations']
+        annClass = 'sherlock'
+        if annClass in annotations:
+            for ann in annotations[annClass]:
+                if "transient_object_id" in ann:  # hack here. Sherlock and Lasair have different names
+                    ann['objectId'] = ann.pop('transient_object_id')
 
-                    insert_query.create_insert_annotation(msl, objectId, annClass, ann, 
-                        sherlock_attributes, 'sherlock_classifications', replace=True)
-        return 1
-    return 0
+                insert_query.create_insert_annotation(msl, objectId, annClass, ann, 
+                    sherlock_attributes, 'sherlock_classifications', replace=True)
+    return 1
 
 class Consumer(threading.Thread):
     """ Threaded consumer of kafka. Calls alert_filter() for each one

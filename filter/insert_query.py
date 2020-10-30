@@ -71,9 +71,17 @@ def create_insert_query(alert):
 
     candlist = None
     # Make a list of candidates and noncandidates in time order
-    if 'prv_candidates' in alert and alert['prv_candidates'] != None \
-        and 'candidate' in alert and alert['candidate'] != None:
+    if 'candidate' in alert and alert['candidate'] != None:
+        if 'prv_candidates' in alert and alert['prv_candidates'] != None:
             candlist = alert['prv_candidates'] + [alert['candidate']]
+        else:
+            candlist = [alert['candidate']]
+
+#    s = '-'
+#    for c in candlist:
+#        if c['candid'] is None: s += 'N'
+#        else: s += 'D'
+#    print(s)
 
     if not candlist: return None
     ema = make_ema(candlist)
@@ -244,6 +252,8 @@ def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace
     for key, value in ann.items():
         if key in attrs and value:
             sets[key] = value
+    if 'description' in attrs and not 'description' in ann:
+        sets['description'] = 'no description'
     # Build the query
     list = []
     if replace: query = 'REPLACE'
@@ -251,11 +261,16 @@ def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace
     query += ' INTO %s SET ' % (table)
     for key,value in sets.items():
 #        if isinstance(value, str):
-        list.append(key + '=' + '"' + str(value) + '"')
+        list.append(key + '=' + "'" + str(value).replace("'", '') + "'")
 #    else:
 #        list.append(key + '=' + str(value))
     query += ', '.join(list)
     query = query.replace('None', 'NULL')
+#    print('=====')
+#    print(ann)
+#    print('--')
+#    print(query)
+#    print('=====')
     try:
         cursor = msl.cursor(buffered=True)
         cursor.execute(query)
