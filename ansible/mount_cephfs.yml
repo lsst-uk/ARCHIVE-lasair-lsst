@@ -1,0 +1,46 @@
+- hosts: filter_nodes
+  remote_user: ubuntu
+  gather_facts: no
+  become: yes
+
+  tasks:
+  - name: Create /etc/ceph directory
+    file:
+      path: /etc/ceph
+      state: directory
+      mode: '0755'
+
+  - name: Create the /ceph mount directory
+    file:
+      path: /ceph
+      state: directory
+      mode: '0755'
+
+  - name: add the fstab entry for mounting on boot
+    lineinfile:
+        path: /etc/fstab
+        line: '192.41.108.11:6789:/ /mnt/cephfs ceph _netdev,noatime,name=admin,secretfile=/etc/ceph/ceph.client.admin.keyring 0 2'
+
+  - name: copy the hosts file
+    copy: src=/etc/hosts dest=/etc/hosts owner=root group=root mode=0644
+
+  - name: copy the ceph.conf file
+    copy: src=/etc/ceph/ceph.conf dest=/etc/ceph/ceph.conf owner=root group=root mode=0644
+
+  - name: copy the ceph.client.admin file
+    copy: src=/etc/ceph/ceph.client.admin.keyring dest=/etc/ceph/ceph.client.admin.keyring owner=root group=root mode=0600
+    become: yes
+
+  - name: copy the rbdmap file
+    copy: src=/etc/ceph/rbdmap dest=/etc/ceph/rbdmap owner=root group=root mode=0644
+
+  - name: install ceph
+    apt:
+       name: ceph-common ceph-fuse autofs
+    apt:
+       name: ceph-fuse
+    apt:
+       name: autofs
+
+  - name: mount the ceph share
+    command: mount -a

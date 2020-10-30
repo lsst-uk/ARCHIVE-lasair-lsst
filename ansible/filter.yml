@@ -85,6 +85,16 @@
         src: /home/ubuntu/.git-credentials
         dest: /home/ubuntu/.git-credentials
 
+    - name: Copy settings file
+      copy:
+        src: /home/ubuntu/lasair-lsst/filter/settings.py
+        dest: /home/ubuntu/lasair-lsst/filter/settings.py
+
+    - name: Creates directory for logs
+      file:
+        path: /home/ubuntu/logs
+        state: directory
+
     - name: Make sure the repo is up to date
       git: 
           repo: https://github.com/lsst-uk/lasair-lsst.git
