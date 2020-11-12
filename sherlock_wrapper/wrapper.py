@@ -130,16 +130,18 @@ def classify(conf, log, alerts):
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 for result in cursor.fetchall():
-                    cm = result.get('crossmatch')
-                    if not cm:
-                        continue
-                    match = json.loads(cm)
-                    annotations[result['name']] = {
+                    try:
+                        match = json.loads(result.get('crossmatch'))
+                        annotations[result['name']] = {
                             'classification': result['class']
                             }
-                    for key,value in match.items():
-                        annotations[result['name']][key] = value
-                    log.debug("Got crossmatch from cache:\n" + json.dumps(match, indent=2))
+                        for key,value in match.items():
+                            annotations[result['name']][key] = value
+                        log.debug("Got crossmatch from cache:\n" + json.dumps(match, indent=2))
+                    except ValueError:
+                        log.info("Ignoring cache entry with malformed or missing crossmatch: {}".format(result['name']))
+                        continue
+
         except TypeError:
             log.debug("Got TypeError reading cache. Entry probably present, but incomplete or malformed. Ignoring.")
         finally:
@@ -217,7 +219,7 @@ def classify(conf, log, alerts):
         for name in names:
             classification = annotations[name]['classification']
             cm = cm_by_name.get(name, [])
-            crossmatch = "'{}'".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
+            crossmatch = "{}".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
             values.append("\n ('{}','{}',%s)".format(name, classification))
             crossmatches.append(crossmatch)
         # Syntax for ON DUPLICATE KEY appears to differ between MySQL and MariaDB :(
