@@ -130,7 +130,10 @@ def classify(conf, log, alerts):
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 for result in cursor.fetchall():
-                    match = json.loads(result.get('crossmatch'))
+                    cm = result.get('crossmatch')
+                    if not cm:
+                        continue
+                    match = json.loads(cm)
                     annotations[result['name']] = {
                             'classification': result['class']
                             }
