@@ -30,7 +30,7 @@ def parse_args():
                         help='Max alerts to be fetched per thread')
     parser.add_argument('--nthread', type=int,
                         help='Number of threads to use')
-    parser.add_argument('--stampdir', type=str,
+    parser.add_argument('--avrodir', type=str,
                         help='Directory for blobs')
     args = parser.parse_args()
     return args
@@ -45,25 +45,6 @@ def msg_text(message):
                     if k not in ['cutoutDifference', 'cutoutTemplate', 'cutoutScience']}
     return message_text
 
-def write_stamp_file(stamp_dict, store):
-    """write_stamp_file.
-    Given a stamp dict that follows the cutout schema,
-       write data to a file in a given directory.
-     examples of this file name
-candid1189406621015015005_pid1189406621015_targ_scimref.fits.gz
-candid1189406621015015005_ref.fits.gz
-candid1189406621015015005_pid1189406621015_targ_sci.fits.gz
-
-    Args:
-        stamp_dict:
-        store:
-    """
-    f = stamp_dict['fileName']
-    candid = f.split('_')[0]
-    fileroot = f.split('.')[0]
-    store.putObject(fileroot, stamp_dict['stampData'])
-    return
-
 def handle_alert(alert, store, producer, topicout):
     """handle_alert.
     Filter to apply to each alert.
@@ -77,28 +58,16 @@ def handle_alert(alert, store, producer, topicout):
     """
     # here is the part of the alert that has no binary images
     nonimage = msg_text(alert)
+    objectId = nonimage['objectId']
 
     if nonimage:  # Write your condition statement here
-
-        # write the stamps to the object store
-        if 'fits' in store:
-            write_stamp_file( alert.get('cutoutDifference'), store['fits'])
-            write_stamp_file( alert.get('cutoutTemplate'),   store['fits'])
-            write_stamp_file( alert.get('cutoutScience'),    store['fits'])
-
         # JSON version of the image-free alert
         s = json.dumps(nonimage, indent=2).encode()
-
-        # replace existing lightcurve with this one
-        if 'lightcurve' in store:
-            slc = store['lightcurve']
-            objectId = nonimage['objectId']
-            slc.putObject(objectId, s)
 
         # do not put known solar system objects into kafka
         ss_mag = nonimage['candidate']['ssmagnr']
         if ss_mag > 0:
-            return 0
+            return None
 
         # produce to kafka
         if producer is not None:
@@ -107,7 +76,7 @@ def handle_alert(alert, store, producer, topicout):
             except Exception as e:
                 print("Kafka production failed for %s" % topicout)
                 print(e)
-        return 1
+        return objectId
 
 class Consumer(threading.Thread):
     """Consumer.
@@ -178,9 +147,13 @@ class Consumer(threading.Thread):
             else:
                 for alert in msg:
                     # Apply filter to each alert
-                    out = handle_alert(alert, self.store, producer, topicout)
+                    objectId = handle_alert(alert, self.store, producer, topicout)
+
+                    if objectId:
+                        self.store.putObject(objectId, streamReader.raw_msg)
+                        nalert_out += 1
+
                     nalert_in += 1
-                    nalert_out += out
                     if nalert_in%1000 == 0:
                         print('thread %d nalert %d time %.1f' % ((self.threadID, nalert_in, time.time()-startt)))
                         # if this is not flushed, it will run out of memory
@@ -214,13 +187,7 @@ def main():
         'default.topic.config': {'auto.offset.reset': 'smallest'}
     }
 
-    store = {
-        'fits'      : objectStore.objectStore(
-            suffix='fits.gz', fileroot=args.stampdir + '/fits'),
-
-        'lightcurve': objectStore.objectStore(
-            suffix='json', fileroot=args.stampdir + '/lightcurve'),
-    }
+    store = objectStore.objectStore(suffix='avro', fileroot=args.avrodir)
 
     print('Configuration = %s' % str(conf))
 
