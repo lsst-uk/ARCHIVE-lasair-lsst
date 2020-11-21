@@ -29,11 +29,7 @@ class EopError(AlertError):
         Args:
             msg:
         """
-        message = 'partition:%d, status:end, ' \
-                  'offset:%d, key:%s' \
-                  % (msg.partition(),
-                     msg.offset(), str(msg.key()))
-        self.message = message
+        self.message = 'EopError'
 
     def __str__(self):
         """__str__.
