@@ -92,16 +92,25 @@ class Query(Resource):
 
     def get(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("name", type=inputs.regex("^[\w\-]+$"), default="query")
-        parser.add_argument("ra", type=inputs.regex("^[0-9\.]*$"), required=True)
-        parser.add_argument("dec", type=inputs.regex("^[0-9\.]*$"), required=True)
+        parser.add_argument("name", type=inputs.regex("^[\w\-,]+$"), default="")
+        parser.add_argument("ra", type=inputs.regex("^[0-9\.,]*$"), required=True)
+        parser.add_argument("dec", type=inputs.regex("^[0-9\.\-,]*$"), required=True)
         parser.add_argument("lite", type=inputs.boolean, default=False)
         message = request.data
         args = parser.parse_args()
+        name = args['name'].split(',')
+        ra = args['ra'].split(',')
+        dec = args['dec'].split(',')
+        if len(ra) != len(dec):
+            return "ra and dec lists must be equal length", 400
+        if len(name) != len(ra):
+            name = []
+            for i in range(len(ra)):
+                name.append("query"+str(i))
         classifications, crossmatches = classify(
-                args['name'],
-                args['ra'],
-                args['dec'],
+                name,
+                ra,
+                dec,
                 lite=args['lite'])
         result = {
                 'classifications': classifications,
