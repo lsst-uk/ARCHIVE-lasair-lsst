@@ -40,7 +40,9 @@ def classify(name,ra,dec,lite=False):
         return classifications, crossmatches
 
 # look up the dec and ra for a name
-def lookup(name):
+def lookup(names):
+    ra = []
+    dec = []
     with open(conf['settings_file'], "r") as f:
         settings = yaml.safe_load(f)
         connection = pymysql.connect(
@@ -50,12 +52,13 @@ def lookup(name):
             db=settings['database']['db'],
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor)        
-        query = "SELECT ramean,decmean FROM objects WHERE objectID='{}'".format(name)
-        with connection.cursor() as cursor:
-            cursor.execute(query)
-            result = cursor.fetchone()
-            ra = result['ramean']
-            dec = result['decmean']
+        for name in names:
+            query = "SELECT ramean,decmean FROM objects WHERE objectID='{}'".format(name)
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchone()
+                ra.append(result['ramean'])
+                dec.append(result['decmean'])
         connection.close()
         return ra, dec
 
@@ -70,8 +73,9 @@ class Object(Resource):
         parser.add_argument("lite", type=inputs.boolean, default=False)
         message = request.data
         args = parser.parse_args()
-        ra, dec = lookup(name)
-        classifications, crossmatches = classify(name, ra, dec, args['lite'])
+        names = name.split(',')
+        ra, dec = lookup(names)
+        classifications, crossmatches = classify(names, ra, dec, args['lite'])
         result = {
             'classifications': classifications,
             'crossmatches': crossmatches
