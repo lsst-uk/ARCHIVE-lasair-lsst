@@ -1,5 +1,4 @@
-$ sudo bash
-$ mysql << EOF
+mysql << EOF
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root123password';
 FLUSH PRIVILEGES;
 CREATE DATABASE ztf;

@@ -130,13 +130,18 @@ def classify(conf, log, alerts):
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 for result in cursor.fetchall():
-                    match = json.loads(result.get('crossmatch'))
-                    annotations[result['name']] = {
+                    try:
+                        match = json.loads(result.get('crossmatch'))
+                        annotations[result['name']] = {
                             'classification': result['class']
                             }
-                    for key,value in match.items():
-                        annotations[result['name']][key] = value
-                    log.debug("Got crossmatch from cache:\n" + json.dumps(match, indent=2))
+                        for key,value in match.items():
+                            annotations[result['name']][key] = value
+                        log.debug("Got crossmatch from cache:\n" + json.dumps(match, indent=2))
+                    except ValueError:
+                        log.info("Ignoring cache entry with malformed or missing crossmatch: {}".format(result['name']))
+                        continue
+
         except TypeError:
             log.debug("Got TypeError reading cache. Entry probably present, but incomplete or malformed. Ignoring.")
         finally:
@@ -163,7 +168,7 @@ def classify(conf, log, alerts):
         ra=ra,
         dec=dec,
         name=names,
-        verbose=1,
+        verbose=0,
         updateNed=False,
         lite=True
     )
@@ -210,24 +215,14 @@ def classify(conf, log, alerts):
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor)
         values = []
+        crossmatches = []
         for name in names:
             classification = annotations[name]['classification']
-#            if annotations[name].get('catalogue_object_type'):
-#                object_type = "'{}'".format(annotations[name]['catalogue_object_type'])
-#            else:
-#                object_type = 'NULL'
-#            if annotations[name].get('z'):
-#                z = "'{:f}'".format(annotations[name]['z'])
-#            else:
-#                z = 'NULL'
-#            if annotations[name].get('separation'):
-#                separation = "'{:f}'".format(annotations[name]['separation'])
-#            else:
-#                separation = 'NULL'
             cm = cm_by_name.get(name, [])
-            crossmatch = "'{}'".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
-            values.append("\n ('{}','{}',{})".format(name, classification, crossmatch))
-        # Syntax for this appears to differ between MySQL and MariaDB :(
+            crossmatch = "{}".format(json.dumps(cm[0])) if len(cm) > 0 else "NULL"
+            values.append("\n ('{}','{}',%s)".format(name, classification))
+            crossmatches.append(crossmatch)
+        # Syntax for ON DUPLICATE KEY appears to differ between MySQL and MariaDB :(
         ##query = "INSERT INTO cache VALUES {} AS new ON DUPLICATE KEY UPDATE class=new.class, crossmatch=new.crossmatch".format(",".join(values))
         query = "INSERT INTO cache VALUES {} ON DUPLICATE KEY UPDATE class=VALUES(class), crossmatch=VALUES(crossmatch)".format(",".join(values))
         log.info("update cache: {}".format(query))
@@ -236,7 +231,7 @@ def classify(conf, log, alerts):
                 # make deprecation warning non-fatal
                 with warnings.catch_warnings():
                     warnings.simplefilter('default')
-                    cursor.execute(query)
+                    cursor.execute(query, crossmatches)
         finally:
             connection.commit()
             connection.close()

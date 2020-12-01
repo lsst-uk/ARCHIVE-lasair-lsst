@@ -1,0 +1,5 @@
+database:
+        db: 'ztf'
+        host: ''
+        username: ''
+        password: ''
