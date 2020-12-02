@@ -22,6 +22,9 @@ conf = {
         'sherlock_settings': 'sherlock.yaml'
         }
 
+class NotFoundException(Exception):
+    pass
+
 # run the sherlock classifier
 def classify(name,ra,dec,lite=False):
     with open(conf['sherlock_settings'], "r") as f:
@@ -57,8 +60,11 @@ def lookup(names):
             with connection.cursor() as cursor:
                 cursor.execute(query)
                 result = cursor.fetchone()
-                ra.append(result['ramean'])
-                dec.append(result['decmean'])
+                if result:
+                    ra.append(result['ramean'])
+                    dec.append(result['decmean'])
+                else:
+                    raise NotFoundException("Object {} not found".format(name))
         connection.close()
         return ra, dec
 
@@ -74,7 +80,11 @@ class Object(Resource):
         message = request.data
         args = parser.parse_args()
         names = name.split(',')
-        ra, dec = lookup(names)
+        try:
+            ra, dec = lookup(names)
+        except NotFoundException as e:
+            return {"message":str(e)}, 404
+
         classifications, crossmatches = classify(names, ra, dec, args['lite'])
         result = {
             'classifications': classifications,
