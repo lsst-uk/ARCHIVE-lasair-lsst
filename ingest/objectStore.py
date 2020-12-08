@@ -39,6 +39,15 @@ class objectStore():
                 pass
         return self.fileroot +'/%s/%s.%s' % (dir, objectId, self.suffix)
 
+    def getFileObject(self, objectId):
+        """getObject.
+
+        Args:
+            objectId:
+        """
+        f = open(self.getFileName(objectId), 'rb')
+        return f
+
     def getObject(self, objectId):
         """getObject.
 
