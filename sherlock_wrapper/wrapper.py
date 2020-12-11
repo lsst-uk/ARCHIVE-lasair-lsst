@@ -38,10 +38,10 @@ def consume(conf, log, alerts, consumer=None):
             'enable.auto.commit': False
         }
         c = Consumer(settings, logger=log)
+        c.subscribe([conf['input_topic']])
     else:
         c = consumer
 
-    c.subscribe([conf['input_topic']])
 
     n = 0
     n_error = 0
@@ -294,6 +294,7 @@ def run(conf, log):
         'enable.auto.commit': False
     }
     consumer = Consumer(settings, logger=log)
+    consumer.subscribe([conf['input_topic']])
 
     batches = conf['max_batches']
     while batches != 0:
@@ -306,6 +307,7 @@ def run(conf, log):
 #        elif conf['stop_at_end']:
 #            break
         if n==0 and conf['stop_at_end']:
+            consumer.close()
             break
          
 
