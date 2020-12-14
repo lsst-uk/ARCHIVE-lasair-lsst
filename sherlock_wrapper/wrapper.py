@@ -33,7 +33,8 @@ def consume(conf, log, alerts, consumer=None):
         settings = {
             'bootstrap.servers': conf['broker'],
             'group.id': conf['group'],
-            'session.timeout.ms': 6000,
+            'session.timeout.ms': 30000,
+            'max.poll.interval.ms': 120000,
             'default.topic.config': {'auto.offset.reset': 'smallest'},
             'enable.auto.commit': False
         }
@@ -289,7 +290,8 @@ def run(conf, log):
     settings = {
         'bootstrap.servers': conf['broker'],
         'group.id': conf['group'],
-        'session.timeout.ms': 6000,
+        'session.timeout.ms': 30000,
+        'max.poll.interval.ms': 120000,
         'default.topic.config': {'auto.offset.reset': 'smallest'},
         'enable.auto.commit': False
     }
