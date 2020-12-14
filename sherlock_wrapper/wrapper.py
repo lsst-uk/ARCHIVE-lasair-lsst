@@ -177,7 +177,7 @@ def classify(conf, log, alerts):
     # run sherlock
     cm_by_name = {}
     if len(names) > 0:
-        log.info("running Sherlock classifier on {:d} alerts".format(len(alerts)))
+        log.info("running Sherlock classifier on {:d} objects".format(len(names)))
         classifications, crossmatches = classifier.classify()
         log.info("got {:d} classifications".format(len(classifications)))
         log.info("got {:d} crossmatches".format(len(crossmatches)))
