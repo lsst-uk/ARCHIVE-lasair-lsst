@@ -177,9 +177,9 @@ def rebuild_cache(wl_id, name, cones, max_depth, cache_dir, chk):
 if __name__ == "__main__":
     import settings
     msl = mysql.connector.connect(
-        user    =settings.DB_USER_REMOTE,
-        password=settings.DB_PASS_REMOTE,
-        host    =settings.DB_HOST_REMOTE,
+        user    =settings.DB_USER_READ,
+        password=settings.DB_PASS_READ,
+        host    =settings.DB_HOST,
         database='ztf'
     )
 

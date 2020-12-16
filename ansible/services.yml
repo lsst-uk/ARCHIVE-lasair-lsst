@@ -1,0 +1,60 @@
+---
+- hosts: services
+  gather_facts: no
+  tasks:
+    - name: install swig
+    apt:
+        name: swig
+        state: present
+        update_cache: true
+    become: yes
+
+    - name: install python-dev
+      apt:
+#          name: python-dev
+          name: libpython3.7-dev
+          state: present
+          update_cache: true
+      become: yes
+
+    - name: install pip3
+      apt:
+          name: python3-pip
+          state: present
+          update_cache: true
+      become: yes
+
+    - name: install gkhtm
+      pip:
+          executable: pip3
+          name: gkhtm
+
+    - name: install docopt
+      pip:
+          executable: pip3
+          name: docopt
+
+    - name: install numpy
+      pip:
+          executable: pip3
+          name: numpy
+
+    - name: install MOC
+      pip:
+          executable: pip3
+          name: mocpy
+
+    - name: install requests
+      pip:
+          executable: pip3
+          name: requests
+
+    - name: install mysql.connector
+      pip:
+          executable: pip3
+          name: mysql-connector-python
+
+    - name: Make sure the repo is up to date
+      git: 
+          repo: https://github.com/lsst-uk/lasair-lsst.git
+          dest: /home/ubuntu/lasair-lsst
