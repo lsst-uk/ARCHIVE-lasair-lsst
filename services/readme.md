@@ -11,9 +11,11 @@ available. They are:
 They can run in a cron that might do the TNS polling every four hours, and the watchlist
 and areas just after midnight UTC, before observations begin in California.
 
-`1 */4 * * * python3 /home/ubuntu/lasair-lsst/services/TNS/poll_tns.py --pageSize=500 --inLastNumberOfDays=180`
-`10 0 * * * python3 /home/ubuntu/lasair-lsst/services/areas/make_area_files.py`
-`12 0 * * * python3 /home/ubuntu/lasair-lsst/services/watchlists/make_watchlist_files.py`
+```
+1 */4 * * * python3 /home/ubuntu/lasair-lsst/services/TNS/poll_tns.py --pageSize=500 --inLastNumberOfDays=180
+10 0 * * * python3 /home/ubuntu/lasair-lsst/services/areas/make_area_files.py
+12 0 * * * python3 /home/ubuntu/lasair-lsst/services/watchlists/make_watchlist_files.py
+```
 
 There is a special watchlist called __TNS__ that should be a mirror of the `crossmatch_tns` 
 table, where the ra, dec, and `tns_name` are copied. This is how the real-time stream 
