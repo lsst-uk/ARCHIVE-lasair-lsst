@@ -6,10 +6,15 @@ named ar_<nn>.fits where nn is the area id from the database. These files are
 "Multi-Order Coverage maps", https://cds-astro.github.io/mocpy/. 
 """
 import mysql.connector
-import os
+import os, sys
 import stat
 import time
+from datetime import datetime
 import base64
+sys.path.append('/home/ubuntu/lasair-lsst/utility')
+import date_nid
+
+logfile = ''
 
 def bytes2string(bytes):
     """bytes2string.
@@ -37,10 +42,11 @@ def write_cache_file(msl, ar_id, cache_dir):
     """
     cursor = msl.cursor(buffered=True, dictionary=True)
 
-    cursor.execute('SELECT moc FROM areas WHERE ar_id=%d ' % ar_id)
+    cursor.execute('SELECT name,moc FROM areas WHERE ar_id=%d ' % ar_id)
     # Build lists of all the data from the database
     for row in cursor:
         txtmoc = row['moc']
+        logfile.write('caching area %s\n' % row['name'])
     moc = string2bytes(txtmoc)
 
     area_file = cache_dir + '/ar_%d.fits' % ar_id
@@ -59,7 +65,6 @@ def fetch_active_areas(msl, cache_dir):
     get  = []
     cursor.execute('SELECT ar_id, name, timestamp FROM areas WHERE active > 0 ')
     for row in cursor:
-        print('name', row['name'])
         # unix time of last update from the database
         area_timestamp = time.mktime(row['timestamp'].timetuple())
 
@@ -83,10 +88,16 @@ def fetch_active_areas(msl, cache_dir):
 
 if __name__ == "__main__":
     import settings
+    nid  = date_nid.nid_now()
+    date = date_nid.nid_to_date(nid)
+    logfile = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
+    now = datetime.now()
+    logfile.write('-- make_area_files at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
+
     msl = mysql.connector.connect(
-        user    =settings.DB_USER_REMOTE,
-        password=settings.DB_PASS_REMOTE,
-        host    =settings.DB_HOST_REMOTE,
+        user    =settings.DB_USER_READ,
+        password=settings.DB_PASS_READ,
+        host    =settings.DB_HOST,
         database='ztf'
     )
 

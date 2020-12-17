@@ -33,7 +33,7 @@ def run_tns_crossmatch(radius):
     print("%d entries in TNS, %d hits in ZTF" % (n_tns, n_hits))
     return
 
-def tns_name_crossmatch(tns_name, myRA, myDecl, radius):
+def tns_name_crossmatch(tns_name, myRA, myDecl, radius, logfile=None):
     cursor2 = msl.cursor(buffered=True, dictionary=True)
 # insert the new TNS entry into the watchlist
     query2 = 'INSERT INTO watchlist_cones (wl_id, name, ra, decl) VALUES (%d, "%s", %f, %f)'
@@ -44,7 +44,10 @@ def tns_name_crossmatch(tns_name, myRA, myDecl, radius):
     cursor2.execute(query2)
     for row in cursor2:
         cone_id = row['cone_id']
-#    print('%s got cone_id %d' % (tns_name, cone_id))
+
+    s = '%s got cone_id %d' % (tns_name, cone_id)
+    if logfile: logfile.write(s)
+    else:       print(s)
 
 # refresh the watchlist so ist MOC file is remade
     query2 = 'UPDATE watchlists SET timestamp=NOW() WHERE wl_id=%d' % settings.TNS_WATCHLIST_ID
@@ -65,9 +68,12 @@ def tns_name_crossmatch(tns_name, myRA, myDecl, radius):
         n_hits += 1
         query3 = "REPLACE into watchlist_hits (wl_id, cone_id, objectId, arcsec, name) VALUES\n"
         query3 += ' (%d, %d, "%s", %.2f, "%s")' % (settings.TNS_WATCHLIST_ID, cone_id, objectId, arcsec, tns_name)
-        print('%s recorded as watchlist cone_id %d' % (tns_name, cone_id))
         cursor3.execute(query3)
         msl.commit()
+
+        s = '%s matches %s' % (tns_name, objectId)
+        if logfile: logfile.write(s)
+        else:       print(s)
     return n_hits
 
 if __name__ == "__main__":

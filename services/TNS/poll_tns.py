@@ -24,11 +24,15 @@ import mysql.connector as MySQLdb
 from gkutils import Struct, cleanOptions, dbConnect, coords_sex_to_dec, floatValue, intValue, nullValue
 import requests
 import csv
-
+from datetime import datetime
 import run_tns_crossmatch
-
 from gkhtm import _gkhtm as htmCircle
+
+sys.path.append('/home/ubuntu/lasair-lsst/utility')
+import date_nid
 import settings
+
+logfile = ''
 
 def getTNSRow(conn, tnsName):
    """
@@ -49,7 +53,8 @@ def getTNSRow(conn, tnsName):
       cursor.close ()
 
    except MySQLdb.Error as e:
-      print("Error %d: %s" % (e.args[0], e.args[1]))
+      s = "Error %d: %s\n" % (e.args[0], e.args[1])
+      logfile.write(s)
       sys.exit (1)
 
    return resultSet
@@ -66,7 +71,7 @@ def deleteTNSRow(conn, tnsName):
             """, (tnsName,))
 
     except MySQLdb.Error as e:
-        print("Error %d: %s" % (e.args[0], e.args[1]))
+        logile.write("Error %d: %s\n" % (e.args[0], e.args[1]))
 
     cursor.close ()
     conn.commit()
@@ -134,9 +139,9 @@ def insertTNS(conn, tnsEntry):
 
     except MySQLdb.Error as e:
         if e[0] == 1142: # Can't insert - don't have permission
-            print("Can't insert.  User doesn't have permission.")
+            logfile.write("Can't insert.  User doesn't have permission.\n")
         else:
-            print(e)
+            logfile.write(e)
 
     #insertId = conn.insert_id()
     conn.commit()
@@ -154,7 +159,7 @@ def pollTNS(page=0, resultSize=50, inLastNumberDays=None):
 
     try:
         response = requests.get(
-            url="http://wis-tns.weizmann.ac.il/search",
+            url=settings.TNS_SEARCH_URL,
             params={
                 "page": page,
                 "name": "",
@@ -206,7 +211,8 @@ def pollTNS(page=0, resultSize=50, inLastNumberDays=None):
         content = response.text
         status_code = response.status_code
     except requests.exceptions.RequestException:
-        print('HTTP Request failed')
+        logfile.write('HTTP Request failed\n')
+        logfile.write(response.text)
         sys.exit(0)
 
     return status_code, content
@@ -234,7 +240,7 @@ def getTNSData(opts):
 
     conn = dbConnect(hostname, username, password, database)
     if not conn:
-        print("Cannot connect to the database")
+        logfile.write("Cannot connect to the database\n")
         return 1
 
     radius = 3.0 # arcseconds from crossmatch
@@ -274,7 +280,7 @@ def getTNSData(opts):
         row['suffix'] = suffix
         ra, dec = coords_sex_to_dec(row['RA'], row['DEC'])
         if ra == 0 and dec == 0:
-            print("Cannot store record for %s. No coordinates provided!" % row['Name'].strip())
+            logfile.write("Cannot store record for %s. No coordinates provided!\n" % row['Name'].strip())
             continue
 
         row['ra'] = ra
@@ -287,17 +293,18 @@ def getTNSData(opts):
                 # The entry has been updated on TNS - classified! Otherwise do nothing!
                 deleteTNSRow(conn, suffix)
                 insertTNS(conn, row)
-                print("Object %s has been updated" % row['suffix'])
+                logfile.write("Object %s has been updated\n" % row['suffix'])
                 rowsChanged += 1
         else:
             insertTNS(conn, row)
-            print("Object %s has been added" % row['suffix'])
-            run_tns_crossmatch.tns_name_crossmatch(row['suffix'], ra, dec, radius)
+            logfile.write("Object %s has been added\n" % row['suffix'])
+            run_tns_crossmatch.tns_name_crossmatch(\
+                    row['suffix'], ra, dec, radius, logfile=logfile)
 
             rowsAdded += 1
         #print prefix, suffix, ra, dec, htm16, row['Discovery Date (UT)']
 
-    print("Total rows added = %d, modified = %d" % (rowsAdded, rowsChanged))
+    logfile.write("Total rows added = %d, modified = %d\n" % (rowsAdded, rowsChanged))
 
     conn.commit()
     conn.close()
@@ -313,4 +320,9 @@ def main():
 
 
 if __name__ == '__main__':
+    nid  = date_nid.nid_now()
+    date = date_nid.nid_to_date(nid)
+    logfile = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
+    now = datetime.now()
+    logfile.write('-- poll_tns at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
     main()

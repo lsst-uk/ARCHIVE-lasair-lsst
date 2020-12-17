@@ -19,8 +19,13 @@ import astropy.units as u
 import mysql.connector
 import math
 import time
-import os
+from datetime import datetime
+import os, sys
 import stat
+sys.path.append('/home/ubuntu/lasair-lsst/utility')
+import date_nid
+
+logfile = ''
 
 def moc_watchlist(watchlist, max_depth):
     """
@@ -131,10 +136,10 @@ def fetch_active_watchlists(msl, cache_dir):
         d = {'wl_id':row['wl_id'], 'name':row['name'],'radius':row['radius']}
         if newer > 0:
             get.append(d)
-            print('Make', d['name'])
+            logfile.write('Make %s\n' % d['name'])
         else:
             keep.append(d)
-            print('Keep', d['name'])
+#            print('Keep', d['name'])
     # watchlists which will have their caches rebuilt
     return {'keep': keep, 'get':get}
 
@@ -171,11 +176,17 @@ def rebuild_cache(wl_id, name, cones, max_depth, cache_dir, chk):
     # now write the moc files
     for i in range(len(moclist)):
         moclist[i].write(watchlist_dir + 'moc%03d.fits'%i)
-    print('Watchlist "%s" with %d cones rebuilt in %.2f seconds' 
+    logfile.write('Watchlist "%s" with %d cones rebuilt in %.2f seconds\n' 
             % (name, len(ralist), time.time() - t))
 
 if __name__ == "__main__":
     import settings
+    nid  = date_nid.nid_now()
+    date = date_nid.nid_to_date(nid)
+    logfile = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
+    now = datetime.now()
+    logfile.write('-- make_watchlist_files at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
+
     msl = mysql.connector.connect(
         user    =settings.DB_USER_READ,
         password=settings.DB_PASS_READ,

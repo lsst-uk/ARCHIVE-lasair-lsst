@@ -1,4 +1,4 @@
-- hosts: filter_nodes
+- hosts: ingest_nodes
   remote_user: ubuntu
   gather_facts: no
   become: yes
@@ -10,9 +10,9 @@
       state: directory
       mode: '0755'
 
-  - name: Create the /ceph mount directory
+  - name: Create the /mnt/cephfs mount directory
     file:
-      path: /ceph
+      path: /mnt/cephfs
       state: directory
       mode: '0755'
 
@@ -27,20 +27,27 @@
   - name: copy the ceph.conf file
     copy: src=/etc/ceph/ceph.conf dest=/etc/ceph/ceph.conf owner=root group=root mode=0644
 
-  - name: copy the ceph.client.admin file
-    copy: src=/etc/ceph/ceph.client.admin.keyring dest=/etc/ceph/ceph.client.admin.keyring owner=root group=root mode=0600
-    become: yes
-
   - name: copy the rbdmap file
     copy: src=/etc/ceph/rbdmap dest=/etc/ceph/rbdmap owner=root group=root mode=0644
 
+  - name: Update and upgrade apt packages
+    become: true
+    apt:
+      upgrade: yes
+      update_cache: yes
+      cache_valid_time: 86400 #One day
+
   - name: install ceph
     apt:
-       name: ceph-common ceph-fuse autofs
+       name: ceph-common 
     apt:
        name: ceph-fuse
     apt:
        name: autofs
+
+  - name: copy the ceph.client.admin file
+    copy: src=/etc/ceph/ceph.client.admin.keyring dest=/etc/ceph/ceph.client.admin.keyring owner=root group=root mode=0600
+    become: yes
 
   - name: mount the ceph share
     command: mount -a
