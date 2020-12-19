@@ -59,6 +59,12 @@ def make_ema(candlist):
         }
     return ema 
 
+def mymax(a, b):
+    if not a: return b
+    if not b: return a
+    if a > b: return a
+    else:     return b
+
 def create_insert_query(alert):
     """create_insert_query.
     Creates an insert sql statement for building the object and 
@@ -198,7 +204,7 @@ def create_insert_query(alert):
     else:            sets['jdgmax'] = 'NULL'
     if len(jdr) > 0: sets['jdrmax'] = np.max(jdr)
     else:            sets['jdrmax'] = 'NULL'
-    sets['jdmax']      = max(sets['jdgmax'], sets['jdgmax'])
+    sets['jdmax']      = mymax(sets['jdgmax'], sets['jdgmax'])
     sets['glatmean']   = glatmean
     sets['glonmean']   = glonmean
 
