@@ -45,9 +45,9 @@ def tns_name_crossmatch(tns_name, myRA, myDecl, radius, logfile=None):
     for row in cursor2:
         cone_id = row['cone_id']
 
-    s = '%s got cone_id %d' % (tns_name, cone_id)
-    if logfile: logfile.write(s)
-    else:       print(s)
+#    s = '%s got cone_id %d\n' % (tns_name, cone_id)
+#    if logfile: logfile.write(s)
+#    else:       print(s)
 
 # refresh the watchlist so ist MOC file is remade
     query2 = 'UPDATE watchlists SET timestamp=NOW() WHERE wl_id=%d' % settings.TNS_WATCHLIST_ID
@@ -71,7 +71,7 @@ def tns_name_crossmatch(tns_name, myRA, myDecl, radius, logfile=None):
         cursor3.execute(query3)
         msl.commit()
 
-        s = '%s matches %s' % (tns_name, objectId)
+        s = '     matches %s\n' % objectId
         if logfile: logfile.write(s)
         else:       print(s)
     return n_hits

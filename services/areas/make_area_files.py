@@ -92,7 +92,7 @@ if __name__ == "__main__":
     date = date_nid.nid_to_date(nid)
     logfile = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
     now = datetime.now()
-    logfile.write('-- make_area_files at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
+    logfile.write('\n-- make_area_files at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
 
     msl = mysql.connector.connect(
         user    =settings.DB_USER_READ,
