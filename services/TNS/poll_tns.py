@@ -259,7 +259,11 @@ def getTNSData(opts):
     rowsAdded = 0
     rowsChanged = 0
     for row in data:
-        name = row['Name'].strip().split()
+        if 'Name' in row:
+            name = row['Name'].strip().split()
+        else:
+            print(row)
+            sys.exit()
 
         if len(name) != 2:
             prefix = 'SN'
