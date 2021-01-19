@@ -9,7 +9,6 @@ import ephem
 from gkhtm import _gkhtm as htmCircle
 import settings
 import cassandra_import
-from cassandra.cluster import Cluster
 
 def make_ema(candlist):
     """make_ema.
@@ -76,6 +75,8 @@ def insert_cassandra(alert):
         if len(settings.CASSANDRA_HEAD) == 0: return 0
     except:
         return 0
+
+    from cassandra.cluster import Cluster
 
     objectId =  alert['objectId']
 
