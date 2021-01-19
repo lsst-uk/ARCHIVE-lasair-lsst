@@ -22,6 +22,9 @@ conf = {
         'sherlock_settings': 'sherlock.yaml'
         }
 
+class NotFoundException(Exception):
+    pass
+
 # run the sherlock classifier
 def classify(name,ra,dec,lite=False):
     with open(conf['sherlock_settings'], "r") as f:
@@ -40,7 +43,9 @@ def classify(name,ra,dec,lite=False):
         return classifications, crossmatches
 
 # look up the dec and ra for a name
-def lookup(name):
+def lookup(names):
+    ra = []
+    dec = []
     with open(conf['settings_file'], "r") as f:
         settings = yaml.safe_load(f)
         connection = pymysql.connect(
@@ -50,12 +55,16 @@ def lookup(name):
             db=settings['database']['db'],
             charset='utf8mb4',
             cursorclass=pymysql.cursors.DictCursor)        
-        query = "SELECT ramean,decmean FROM objects WHERE objectID='{}'".format(name)
-        with connection.cursor() as cursor:
-            cursor.execute(query)
-            result = cursor.fetchone()
-            ra = result['ramean']
-            dec = result['decmean']
+        for name in names:
+            query = "SELECT ramean,decmean FROM objects WHERE objectID='{}'".format(name)
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchone()
+                if result:
+                    ra.append(result['ramean'])
+                    dec.append(result['decmean'])
+                else:
+                    raise NotFoundException("Object {} not found".format(name))
         connection.close()
         return ra, dec
 
@@ -70,8 +79,13 @@ class Object(Resource):
         parser.add_argument("lite", type=inputs.boolean, default=False)
         message = request.data
         args = parser.parse_args()
-        ra, dec = lookup(name)
-        classifications, crossmatches = classify(name, ra, dec, args['lite'])
+        names = name.split(',')
+        try:
+            ra, dec = lookup(names)
+        except NotFoundException as e:
+            return {"message":str(e)}, 404
+
+        classifications, crossmatches = classify(names, ra, dec, args['lite'])
         result = {
             'classifications': classifications,
             'crossmatches': crossmatches
@@ -92,16 +106,25 @@ class Query(Resource):
 
     def get(self):
         parser = reqparse.RequestParser()
-        parser.add_argument("name", type=inputs.regex("^[\w\-]+$"), default="query")
-        parser.add_argument("ra", type=inputs.regex("^[0-9\.]*$"), required=True)
-        parser.add_argument("dec", type=inputs.regex("^[0-9\.]*$"), required=True)
+        parser.add_argument("name", type=inputs.regex("^[\w\-,]+$"), default="")
+        parser.add_argument("ra", type=inputs.regex("^[0-9\.,]*$"), required=True)
+        parser.add_argument("dec", type=inputs.regex("^[0-9\.\-,]*$"), required=True)
         parser.add_argument("lite", type=inputs.boolean, default=False)
         message = request.data
         args = parser.parse_args()
+        name = args['name'].split(',')
+        ra = args['ra'].split(',')
+        dec = args['dec'].split(',')
+        if len(ra) != len(dec):
+            return "ra and dec lists must be equal length", 400
+        if len(name) != len(ra):
+            name = []
+            for i in range(len(ra)):
+                name.append("query"+str(i))
         classifications, crossmatches = classify(
-                args['name'],
-                args['ra'],
-                args['dec'],
+                name,
+                ra,
+                dec,
                 lite=args['lite'])
         result = {
                 'classifications': classifications,

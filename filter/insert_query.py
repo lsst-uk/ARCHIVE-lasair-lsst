@@ -62,7 +62,6 @@ def make_ema(candlist):
         }
     return ema 
 
-
 def insert_cassandra(alert):
     """insert_casssandra.
     Creates an insert for cassandra
@@ -121,6 +120,12 @@ def insert_cassandra(alert):
     cassandra_import.loadGenericCassandraTable(session, 'candidates', detectionCandlist)
     cluster.shutdown()
     return len(detectionCandlist)
+
+def mymax(a, b):
+    if not a: return b
+    if not b: return a
+    if a > b: return a
+    else:     return b
 
 def create_insert_query(alert):
     """create_insert_query.
@@ -262,7 +267,7 @@ def create_insert_query(alert):
     else:            sets['jdgmax'] = 'NULL'
     if len(jdr) > 0: sets['jdrmax'] = np.max(jdr)
     else:            sets['jdrmax'] = 'NULL'
-    sets['jdmax']      = max(sets['jdgmax'], sets['jdgmax'])
+    sets['jdmax']      = mymax(sets['jdgmax'], sets['jdgmax'])
     sets['glatmean']   = glatmean
     sets['glonmean']   = glonmean
 

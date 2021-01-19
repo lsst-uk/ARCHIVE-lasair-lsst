@@ -33,15 +33,16 @@ def consume(conf, log, alerts, consumer=None):
         settings = {
             'bootstrap.servers': conf['broker'],
             'group.id': conf['group'],
-            'session.timeout.ms': 6000,
+            'session.timeout.ms': 30000,
+            'max.poll.interval.ms': 300000,
             'default.topic.config': {'auto.offset.reset': 'smallest'},
             'enable.auto.commit': False
         }
         c = Consumer(settings, logger=log)
+        c.subscribe([conf['input_topic']])
     else:
         c = consumer
 
-    c.subscribe([conf['input_topic']])
 
     n = 0
     n_error = 0
@@ -176,7 +177,7 @@ def classify(conf, log, alerts):
     # run sherlock
     cm_by_name = {}
     if len(names) > 0:
-        log.info("running Sherlock classifier on {:d} alerts".format(len(alerts)))
+        log.info("running Sherlock classifier on {:d} objects".format(len(names)))
         classifications, crossmatches = classifier.classify()
         log.info("got {:d} classifications".format(len(classifications)))
         log.info("got {:d} crossmatches".format(len(crossmatches)))
@@ -289,11 +290,13 @@ def run(conf, log):
     settings = {
         'bootstrap.servers': conf['broker'],
         'group.id': conf['group'],
-        'session.timeout.ms': 6000,
+        'session.timeout.ms': 30000,
+        'max.poll.interval.ms': 300000,
         'default.topic.config': {'auto.offset.reset': 'smallest'},
         'enable.auto.commit': False
     }
     consumer = Consumer(settings, logger=log)
+    consumer.subscribe([conf['input_topic']])
 
     batches = conf['max_batches']
     while batches != 0:
@@ -306,6 +309,7 @@ def run(conf, log):
 #        elif conf['stop_at_end']:
 #            break
         if n==0 and conf['stop_at_end']:
+            consumer.close()
             break
          
 
