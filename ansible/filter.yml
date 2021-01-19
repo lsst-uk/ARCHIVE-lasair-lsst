@@ -64,6 +64,32 @@
           update_cache: true
       become: yes
 
+    # Added by KWS for gkdbutils - not sure it's required.
+    # KWS START
+    - name: install mysql
+      apt: 
+          name: libmysqlclient-dev
+          state: present
+          update_cache: true
+      become: yes
+
+    - name: install MySQLdb
+      pip: 
+          executable: pip3 
+          name: mysqlclient
+
+    - name: install Cassandra client
+      pip: 
+          executable: pip3 
+          name: cassandra-driver
+
+    - name: install gkdbutils
+      pip: 
+          executable: pip3 
+          name: gkdbutils
+
+    # KWS END
+
     - name: Start the MySQL service
       service:
           name: mysql

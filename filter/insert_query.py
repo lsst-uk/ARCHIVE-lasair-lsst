@@ -7,6 +7,9 @@ import math
 import numpy as np
 import ephem
 from gkhtm import _gkhtm as htmCircle
+import settings
+import cassandra_import
+from cassandra.cluster import Cluster
 
 def make_ema(candlist):
     """make_ema.
@@ -59,6 +62,66 @@ def make_ema(candlist):
         }
     return ema 
 
+
+def insert_cassandra(alert):
+    """insert_casssandra.
+    Creates an insert for cassandra
+    a query for inserting it.
+
+    Args:
+        alert:
+    """
+
+    # if this is not set, then we are not doing cassandra
+    try:
+        if len(settings.CASSANDRA_HEAD) == 0: return 0
+    except:
+        return 0
+
+    objectId =  alert['objectId']
+
+    candlist = None
+    # Make a list of candidates and noncandidates in time order
+    if 'candidate' in alert and alert['candidate'] != None:
+        if 'prv_candidates' in alert and alert['prv_candidates'] != None:
+            candlist = alert['prv_candidates'] + [alert['candidate']]
+        else:
+            candlist = [alert['candidate']]
+
+    # will be list of real detections, each has a non-null candid
+    detectionCandlist = []
+
+    for cand in candlist:
+        if cand['candid'] is None: 
+            continue
+        cand['objectId'] = objectId
+        detectionCandlist.append(cand)
+
+    if len(detectionCandlist) == 0:
+        return 0
+
+    # connect to cassandra cluster
+    try:
+        cluster = Cluster(settings.CASSANDRA_HEAD)
+        session = cluster.connect()
+        session.set_keyspace('lasair')
+    except Exception as e:
+        print("Cassandra connection failed for %s" % str(settings.CASSANDRA_HEAD))
+        print(e)
+        return 0
+
+    # Add the htm16 IDs in bulk. Could have done it above as we iterate through the candidates,
+    # but the new C++ bulk code is 100 times faster than doing it one at a time.
+    htm16s = htmCircle.htmIDBulk(16, [[x['ra'],x['dec']] for x in detectionCandlist])
+
+    # Now add the htmid16 value into each dict.
+    for i in range(len(detectionCandlist)):
+        detectionCandlist[i]['htmid16'] = htm16s[i]
+
+    cassandra_import.loadGenericCassandraTable(session, 'candidates', detectionCandlist)
+    cluster.shutdown()
+    return len(detectionCandlist)
+
 def create_insert_query(alert):
     """create_insert_query.
     Creates an insert sql statement for building the object and 
@@ -100,6 +163,7 @@ def create_insert_query(alert):
     srmag1    = None
     sgscore1  = None
     distpsnr1 = None
+
     for cand in candlist:
         # if this is a real detection, it will have a candid else nondetection
         if cand['candid'] is None: continue
