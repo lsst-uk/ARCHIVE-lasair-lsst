@@ -164,16 +164,18 @@ def create_insert_query(alert):
     jdg   = []
     jdr   = []
     latestgmag = latestrmag = 'NULL'
-    ncandgp = 0
     sgmag1    = None
     srmag1    = None
     sgscore1  = None
     distpsnr1 = None
 
+    g_nid = {}
+    r_nid = {}
     for cand in candlist:
         # if this is a real detection, it will have a candid else nondetection
         if cand['candid'] is None: continue
 
+        nid = cand['nid']
         ra.append(cand['ra'])
         dec.append(cand['dec'])
         if cand['jd'] < jdmin:
@@ -182,10 +184,12 @@ def create_insert_query(alert):
             magg.append(cand['magpsf'])
             jdg.append(cand['jd'])
             latestgmag = cand['magpsf']
+            g_nid[nid] = (cand['magpsf'], cand['jd'])
         else:
             magr.append(cand['magpsf'])
             jdr.append(cand['jd'])
             latestrmag = cand['magpsf']
+            r_nid[nid] = (cand['magpsf'], cand['jd'])
 
         # if it also has the 'drb' data quality flag, copy the PS1 data
         if 'drb' in cand:
@@ -193,13 +197,35 @@ def create_insert_query(alert):
             srmag1    = cand['srmag1']
             sgscore1  = cand['sgscore1']
             distpsnr1 = cand['distpsnr1']
-        if cand['rb'] > 0.75 and cand['isdiffpos'] == 't':
-            ncandgp += 1
         ncand += 1
 
     # only want light curves with at least 2 candidates
     if ncand <= 1:
         return None
+
+
+    if len(jdg) > 0: jdgmax = np.max(jdg)
+    else:            jdgmax = 'NULL'
+    if len(jdr) > 0: jdrmax = np.max(jdr)
+    else:            jdrmax = 'NULL'
+    jdmax            = mymax(jdgmax, jdgmax)
+
+    ncandgp = ncandgp_8 = ncandgp_28 = 0
+    for cand in candlist:
+        if cand['candid'] is None: continue
+        if cand['rb'] > 0.75 and cand['isdiffpos'] == 't':
+            ncandgp += 1
+            age = jdmax - cand['jd']
+            if age < 8.0:  ncandgp_8 += 1
+            if age < 28.0: ncandgp_28 += 1
+
+    g_minus_r = None
+    jd_g_minus_r = None
+    for nid in r_nid.keys():
+        if nid in g_nid:
+            match_nid = nid
+            g_minus_r = g_nid[nid][0] - r_nid[nid][0]
+            jd_g_minus_r = g_nid[nid][1]
 
     # statistics of the g light curve
     dmdt_g = dmdt_g_2 = 'NULL'
@@ -263,12 +289,14 @@ def create_insert_query(alert):
     sets['dmdt_r']     = dmdt_r
     sets['dmdt_g_2']   = dmdt_g_2
     sets['dmdt_r_2']   = dmdt_r_2
+    sets['jdgmax']     = jdgmax
+    sets['jdrmax']     = jdrmax
+    sets['jdmax']      = jdmax
     sets['jdmin']      = jdmin
-    if len(jdg) > 0: sets['jdgmax'] = np.max(jdg)
-    else:            sets['jdgmax'] = 'NULL'
-    if len(jdr) > 0: sets['jdrmax'] = np.max(jdr)
-    else:            sets['jdrmax'] = 'NULL'
-    sets['jdmax']      = mymax(sets['jdgmax'], sets['jdgmax'])
+
+    sets['g_minus_r']      = g_minus_r
+    sets['jd_g_minus_r']   = jd_g_minus_r
+
     sets['glatmean']   = glatmean
     sets['glonmean']   = glonmean
 
@@ -278,6 +306,8 @@ def create_insert_query(alert):
     sets['sgscore1']   = sgscore1
     sets['distpsnr1']  = distpsnr1
     sets['ncandgp']    = ncandgp
+    sets['ncandgp_8']  = ncandgp_8
+    sets['ncandgp_28'] = ncandgp_28
 
     # HTM id
     sets['htm16']      = htm16
