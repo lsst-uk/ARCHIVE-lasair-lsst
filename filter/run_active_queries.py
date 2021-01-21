@@ -2,6 +2,7 @@
 Fetch them from database, construct SQL, execute, produce kafka
 """
 
+import os
 import time
 import json
 import settings
@@ -128,6 +129,7 @@ def run_query(query, msl, topic):
         digestdict_text = json.dumps(digestdict, default=datetime_converter)
 
         file = open(filename, 'w')
+        os.chmod(filename, 666)
         file.write(digestdict_text)
         file.close()
     return n
