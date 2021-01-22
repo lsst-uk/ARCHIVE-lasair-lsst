@@ -210,14 +210,14 @@ def create_insert_query(alert):
     else:            jdrmax = 'NULL'
     jdmax            = mymax(jdgmax, jdgmax)
 
-    ncandgp = ncandgp_8 = ncandgp_28 = 0
+    ncandgp = ncandgp_7 = ncandgp_14 = 0
     for cand in candlist:
         if cand['candid'] is None: continue
         if cand['rb'] > 0.75 and cand['isdiffpos'] == 't':
             ncandgp += 1
             age = jdmax - cand['jd']
-            if age < 8.0:  ncandgp_8 += 1
-            if age < 28.0: ncandgp_28 += 1
+            if age < 7.0:  ncandgp_7 += 1
+            if age < 14.0: ncandgp_14 += 1
 
     g_minus_r = None
     jd_g_minus_r = None
@@ -306,8 +306,8 @@ def create_insert_query(alert):
     sets['sgscore1']   = sgscore1
     sets['distpsnr1']  = distpsnr1
     sets['ncandgp']    = ncandgp
-    sets['ncandgp_8']  = ncandgp_8
-    sets['ncandgp_28'] = ncandgp_28
+    sets['ncandgp_7']  = ncandgp_7
+    sets['ncandgp_14'] = ncandgp_14
 
     # HTM id
     sets['htm16']      = htm16

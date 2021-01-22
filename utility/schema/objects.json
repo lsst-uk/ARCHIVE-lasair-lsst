@@ -169,14 +169,14 @@
       "doc": "Number in light curve with good quality and brighter than reference"
     },
     {
-      "name": "ncandgp_8",
+      "name": "ncandgp_7",
       "type": "int",
       "doc": "Number in light curve with good quality and brighter than reference in last 7 days"
     },
     {
-      "name": "ncandgp_28",
+      "name": "ncandgp_14",
       "type": "int",
-      "doc": "Number in light curve with good quality and brighter than reference in last 28 days"
+      "doc": "Number in light curve with good quality and brighter than reference in last 14 days"
     },
     {
       "name": "g_minus_r",
