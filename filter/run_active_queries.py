@@ -129,7 +129,7 @@ def run_query(query, msl, topic):
         digestdict_text = json.dumps(digestdict, default=datetime_converter)
 
         file = open(filename, 'w')
-        os.chmod(filename, 666)
+        os.chmod(filename, 0O666)
         file.write(digestdict_text)
         file.close()
     return n
