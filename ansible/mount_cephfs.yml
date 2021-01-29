@@ -32,20 +32,30 @@
     copy: src=/etc/ceph/rbdmap dest=/etc/ceph/rbdmap owner=root group=root mode=0644
 
   - name: Update and upgrade apt packages
-    become: true
     apt:
       upgrade: yes
       update_cache: yes
       cache_valid_time: 86400 #One day
+    become: yes
 
-  - name: install ceph
-    become: true
+  - name: install ceph-common
     apt:
-       name: ceph-common 
+       name: ceph-common
+       state: present
+       update_cache: true
+
+  - name: install ceph-fuse
     apt:
        name: ceph-fuse
+       state: present
+       update_cache: true
+
+  - name: install autofs
     apt:
        name: autofs
+       state: present
+       update_cache: true
+    become: yes
 
   - name: copy the ceph.client.admin file
     copy: src=/home/ubuntu/ceph/ceph.client.admin.keyring dest=/etc/ceph/ceph.client.admin.keyring owner=root group=root mode=0600

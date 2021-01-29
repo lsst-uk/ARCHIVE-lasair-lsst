@@ -1,7 +1,13 @@
-# first install mysql
+# change hosts.yml to new filter_nodes and new cephfs_nodes
+# cd ~
 # git clone https://github.com/genghisken/gkansible.git
 # follow instructions in readme.md
+# cd ~/gkansible
 # ansible-playbook install-mysql.yml
+#
+# cd ~/lasair-lsst/ansible
+# ansible-playbook --inventory-file=hosts.yml mount-cephfs.yml
+# ansible-playbook --inventory-file=hosts.yml filter.yml
 ---
 - hosts: filter_nodes
   gather_facts: no
