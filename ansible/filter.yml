@@ -126,13 +126,27 @@
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
 
-          #    - name: run mysql setup
-          #      shell:
-          #          cmd: sh setup_mysql.sh
-          #          chdir: /home/ubuntu/lasair-lsst/filter
-          #      become: yes
+    - name: run mysql setup
+      shell:
+          cmd: mysql --user=root --password=root123password < mysql_setup.sql
+          chdir: /home/ubuntu/lasair-lsst/utility
 
+    - name: create object table
+      shell:
+          cmd: mysql --user=ztf --password=123password < objects.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
 
-# mysql -u ztf -p ztf < ../utility/mysql_setup.sql
-# mysql -u ztf -p ztf < ../utility/schema/objects.sql
-# mysql -u ztf -p ztf < ../utility/schema/sherlock_crossmatches.sql
+    - name: create sherlock_classifications table
+      shell:
+          cmd: mysql --user=ztf --password=123password < sherlock_classifications.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+    - name: create area_hits table
+      shell:
+          cmd: mysql --user=ztf --password=123password < area_hits.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+    - name: create watchlist_hits table
+      shell:
+          cmd: mysql --user=ztf --password=123password < watchlist_hits.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
