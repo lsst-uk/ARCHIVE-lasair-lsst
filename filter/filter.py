@@ -86,7 +86,7 @@ print('QUERIES %.1f seconds' % (time.time() - t))
 ##### build CSV file with local database
 t = time.time()
 print('SEND to ARCHIVE')
-cmd = 'rm /var/lib/mysql-files/*'
+cmd = 'rm /data/mysql/mysqltmp/*'
 os.system(cmd)
 cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_LOCAL
 os.system(cmd)
