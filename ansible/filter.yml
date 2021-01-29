@@ -1,3 +1,7 @@
+# first install mysql
+# git clone https://github.com/genghisken/gkansible.git
+# follow instructions in readme.md
+# ansible-playbook install-mysql.yml
 ---
 - hosts: filter_nodes
   gather_facts: no
