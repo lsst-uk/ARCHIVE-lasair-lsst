@@ -1,5 +1,5 @@
 USE ztf;
-CREATE TABLE objects(
+CREATE TABLE IF NOT EXISTS objects(
 `objectId` varchar(16) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
 `decmean` double,
 `decstd` double,
