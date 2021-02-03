@@ -86,25 +86,22 @@ print('QUERIES %.1f seconds' % (time.time() - t))
 ##### build CSV file with local database
 t = time.time()
 print('SEND to ARCHIVE')
-cmd = 'rm /var/lib/mysql-files/*'
+cmd = 'rm /data/mysql/mysqltmp/*'
 os.system(cmd)
 cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_LOCAL
 os.system(cmd)
 
 tablelist = ['objects', 'sherlock_classifications', 'watchlist_hits', 'area_hits']
-for table in tablelist:
-    cmd = 'mv /var/lib/mysql-files/%s.txt /home/ubuntu/scratch/%s.txt' % (table, table)
-    os.system(cmd)
 
 ##### send CSV file to central database
 for table in tablelist:
-    outfile = '/home/ubuntu/scratch/%s.txt' % table
+    outfile = '/data/mysql/mysqltmp/%s.txt' % table
     if os.path.exists(outfile) and os.stat(outfile).st_size == 0:
         print('SEND %s file is empty' % table)
         print('SEND %.1f seconds' % (time.time() - t))
     else:
         vm = gethostname()
-        cmd = 'scp /home/ubuntu/scratch/%s.txt %s:scratch/%s__%s' % (table, settings.DB_HOST_REMOTE, vm, table)
+        cmd = 'scp /data/mysql/mysqltmp/%s.txt %s:scratch/%s__%s' % (table, settings.DB_HOST_REMOTE, vm, table)
         os.system(cmd)
 
 ##### ingest CSV file to central database

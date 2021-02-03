@@ -36,7 +36,7 @@ def create_table(schema):
         lines.append(s)
     #    if 'doc'     in f and f['doc']:     s += ', ' + f['doc']
     
-    sql = 'CREATE TABLE ' + schema['name'] + '(\n'
+    sql = 'USE ztf;\nCREATE TABLE IF NOT EXISTS ' + schema['name'] + '(\n'
     sql += ',\n'.join(lines)
 
     if 'indexes' in schema:
