@@ -22,8 +22,6 @@ import time
 from datetime import datetime
 import os, sys
 import stat
-sys.path.append('/home/ubuntu/lasair-lsst/utility')
-import date_nid
 
 logfile = sys.stdout
 
@@ -181,6 +179,8 @@ def rebuild_cache(wl_id, name, cones, max_depth, cache_dir, chk):
 
 if __name__ == "__main__":
     import settings
+    sys.path.append('/home/ubuntu/lasair-lsst/utility')
+    import date_nid
     nid  = date_nid.nid_now()
     date = date_nid.nid_to_date(nid)
     logfile = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
