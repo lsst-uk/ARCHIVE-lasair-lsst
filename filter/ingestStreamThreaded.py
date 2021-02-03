@@ -104,6 +104,7 @@ def alert_filter(alert, msl):
         cursor.close()
     except mysql.connector.Error as err:
         print('INGEST object Database insert candidate failed: %s' % str(err))
+        print(query)
     msl.commit()
 
     # now ingest the sherlock_classifications

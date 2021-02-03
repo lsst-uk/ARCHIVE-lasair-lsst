@@ -4,11 +4,10 @@ import os
 import unittest.main
 from unittest import TestCase, expectedFailure
 import json
-import logging
 from time import sleep
 import context  # cant find sherlock_wrapper
 
-from filter.make_watchlist_files import rebuild_cache
+from services.watchlists.make_watchlist_files import rebuild_cache
 from filter.check_alerts_watchlists import check_alerts_against_watchlists
 from filter.check_alerts_watchlists import read_watchlist_cache_files
 

@@ -25,7 +25,7 @@ import stat
 sys.path.append('/home/ubuntu/lasair-lsst/utility')
 import date_nid
 
-logfile = ''
+logfile = sys.stdout
 
 def moc_watchlist(watchlist, max_depth):
     """

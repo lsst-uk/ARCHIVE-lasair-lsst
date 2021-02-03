@@ -123,8 +123,8 @@ def insert_cassandra(alert):
     return len(detectionCandlist)
 
 def mymax(a, b):
-    if not a: return b
-    if not b: return a
+    if a=='NULL': return b
+    if b=='NULL': return a
     if a > b: return a
     else:     return b
 
@@ -204,11 +204,11 @@ def create_insert_query(alert):
         return None
 
 
-    if len(jdg) > 0: jdgmax = np.max(jdg)
+    if len(jdg) > 0: jdgmax = max(jdg)
     else:            jdgmax = 'NULL'
-    if len(jdr) > 0: jdrmax = np.max(jdr)
+    if len(jdr) > 0: jdrmax = max(jdr)
     else:            jdrmax = 'NULL'
-    jdmax            = mymax(jdgmax, jdgmax)
+    jdmax            = mymax(jdgmax, jdrmax)
 
     ncandgp = ncandgp_7 = ncandgp_14 = 0
     for cand in candlist:
@@ -219,8 +219,8 @@ def create_insert_query(alert):
             if age < 7.0:  ncandgp_7 += 1
             if age < 14.0: ncandgp_14 += 1
 
-    g_minus_r = None
-    jd_g_minus_r = None
+    g_minus_r = 'NULL'
+    jd_g_minus_r = 'NULL'
     for nid in r_nid.keys():
         if nid in g_nid:
             match_nid = nid
@@ -378,6 +378,7 @@ def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace
         msl.commit()
     except mysql.connector.Error as err:
         print('INGEST %s Database insert candidate failed: %s' % (annClass, str(err)))
+        print(query)
 
 import os
 if __name__ == '__main__':
