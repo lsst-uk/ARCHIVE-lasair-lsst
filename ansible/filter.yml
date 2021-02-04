@@ -84,7 +84,7 @@
 
     - name: permissions on mysql-files
       file:
-          path: /data/mysql/mysqltmp
+          path: /var/lib/mysql-files
           mode: '777'
       become: yes
 
