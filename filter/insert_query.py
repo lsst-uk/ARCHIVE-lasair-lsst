@@ -123,8 +123,8 @@ def insert_cassandra(alert):
     return len(detectionCandlist)
 
 def mymax(a, b):
-    if a=='NULL': return b
-    if b=='NULL': return a
+    if a: return b
+    if b: return a
     if a > b: return a
     else:     return b
 
@@ -163,7 +163,7 @@ def create_insert_query(alert):
     magr = []
     jdg   = []
     jdr   = []
-    latestgmag = latestrmag = 'NULL'
+    latestgmag = latestrmag = None
     sgmag1    = None
     srmag1    = None
     sgscore1  = None
@@ -205,22 +205,22 @@ def create_insert_query(alert):
 
 
     if len(jdg) > 0: jdgmax = max(jdg)
-    else:            jdgmax = 'NULL'
+    else:            jdgmax = None
     if len(jdr) > 0: jdrmax = max(jdr)
-    else:            jdrmax = 'NULL'
+    else:            jdrmax = None
     jdmax            = mymax(jdgmax, jdrmax)
 
     ncandgp = ncandgp_7 = ncandgp_14 = 0
     for cand in candlist:
         if cand['candid'] is None: continue
-        if cand['rb'] > 0.75 and cand['isdiffpos'] == 't':
+        if cand['rb'] > 0.75 and cand['isdiffpos'] == 't' and jdmax and cand['jd']:
             ncandgp += 1
             age = jdmax - cand['jd']
             if age < 7.0:  ncandgp_7 += 1
             if age < 14.0: ncandgp_14 += 1
 
-    g_minus_r = 'NULL'
-    jd_g_minus_r = 'NULL'
+    g_minus_r = None
+    jd_g_minus_r = None
     for nid in r_nid.keys():
         if nid in g_nid.keys():
             g_minus_r = g_nid[nid][0] - r_nid[nid][0]
@@ -232,7 +232,7 @@ def create_insert_query(alert):
 #        print(g_minus_r, jd_g_minus_r)
 
     # statistics of the g light curve
-    dmdt_g = dmdt_g_2 = 'NULL'
+    dmdt_g = dmdt_g_2 = None
     if len(magg) > 0:
         maggmin = np.min(magg)
         maggmax = np.max(magg)
@@ -242,10 +242,10 @@ def create_insert_query(alert):
         try:     dmdt_g_2 = (magg[-3] - magg[-2])/(jdg[-2] - jdg[-3])
         except:  pass
     else:
-        maggmin = maggmax = maggmean = maggmedian = 'NULL'
+        maggmin = maggmax = maggmean = maggmedian = None
 
     # statistics of the r light curve
-    dmdt_r = dmdt_r_2 = 'NULL'
+    dmdt_r = dmdt_r_2 = None
     if len(magr) > 0:
         magrmin = np.min(magr)
         magrmax = np.max(magr)
@@ -255,7 +255,7 @@ def create_insert_query(alert):
         try:     dmdt_r_2 = (magr[-3] - magr[-2])/(jdr[-2] - jdr[-3])
         except:  pass
     else:
-        magrmin = magrmax = magrmean = magrmedian = 'NULL'
+        magrmin = magrmax = magrmean = magrmedian = None
 
     # mean position
     ramean  = np.mean(ra)
@@ -328,13 +328,16 @@ def create_insert_query(alert):
     list = []
     query = 'REPLACE INTO objects SET objectId="%s", ' % objectId
     for key,value in sets.items():
-        if value == 'NULL':
+        if not value:
             list.append(key + '= NULL')
         elif isinstance(value, str):
             list.append(key + '= "' + str(value) + '"')
         else:
             list.append(key + '=' + str(value))
-    query += ', '.join(list)
+    query += ',\n'.join(list)
+
+#    if g_minus_r > 0.1 and g_minus_r < 0.9:
+#        print (query)
     return query
 
 def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace):

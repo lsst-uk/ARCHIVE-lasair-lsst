@@ -169,26 +169,6 @@
       "doc": "Number in light curve with good quality and brighter than reference"
     },
     {
-      "name": "ncandgp_7",
-      "type": "int",
-      "doc": "Number in light curve with good quality and brighter than reference in last 7 days"
-    },
-    {
-      "name": "ncandgp_14",
-      "type": "int",
-      "doc": "Number in light curve with good quality and brighter than reference in last 14 days"
-    },
-    {
-      "name": "g_minus_r",
-      "type": "float",
-      "doc": "Value of g-r on most recent night when both were available"
-    },
-    {
-      "name": "jd_g_minus_r",
-      "type": "double",
-      "doc": "Julian date of most recent g measure on a night when both ag and r were available"
-    },
-    {
       "name": "distpsnr1",
       "type": "float",
       "doc": "Distance of closest source from PS1 catalog; if exists within 30 arcsec [arcsec]"
@@ -212,6 +192,26 @@
       "name": "htm16",
       "type": "bigint",
       "doc": "Hierarchical Triangular Mesh level 16"
+    },
+    {
+      "name": "g_minus_r",
+      "type": "float",
+      "doc": "Value of g-r on most recent night when both were available"
+    },
+    {
+      "name": "jd_g_minus_r",
+      "type": "double",
+      "doc": "Julian date of most recent g measure on a night when both ag and r were available"
+    },
+    {
+      "name": "ncandgp_7",
+      "type": "int",
+      "doc": "Number in light curve with good quality and brighter than reference in last 7 days"
+    },
+    {
+      "name": "ncandgp_14",
+      "type": "int",
+      "doc": "Number in light curve with good quality and brighter than reference in last 14 days"
     }
   ],
   "indexes": [
