@@ -126,7 +126,7 @@ def run_query(query, msl, topic):
                 print(e)
 
         digestdict = {'last_entry': last_entry_text, 'digest':allrecords}
-        digestdict_text = json.dumps(digestdict, default=datetime_converter)
+        digestdict_text = json.dumps(digestdict, indent=2, default=datetime_converter)
 
         file = open(filename, 'w')
         os.chmod(filename, 0O666)

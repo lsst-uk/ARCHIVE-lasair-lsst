@@ -222,10 +222,14 @@ def create_insert_query(alert):
     g_minus_r = 'NULL'
     jd_g_minus_r = 'NULL'
     for nid in r_nid.keys():
-        if nid in g_nid:
-            match_nid = nid
+        if nid in g_nid.keys():
             g_minus_r = g_nid[nid][0] - r_nid[nid][0]
             jd_g_minus_r = g_nid[nid][1]
+#    if len(g_nid) > 0 and len(r_nid) > 0:
+#        print('----------')
+#        print(g_nid)
+#        print(r_nid)
+#        print(g_minus_r, jd_g_minus_r)
 
     # statistics of the g light curve
     dmdt_g = dmdt_g_2 = 'NULL'
