@@ -371,21 +371,14 @@ def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace
         list.append(key + '=' + "'" + str(value).replace("'", '') + "'")
 #    else:
 #        list.append(key + '=' + str(value))
-    query += ', '.join(list)
+    query += ',\n'.join(list)
     query = query.replace('None', 'NULL')
 #    print('=====')
 #    print(ann)
 #    print('--')
 #    print(query)
 #    print('=====')
-    try:
-        cursor = msl.cursor(buffered=True)
-        cursor.execute(query)
-        cursor.close()
-        msl.commit()
-    except mysql.connector.Error as err:
-        print('INGEST %s Database insert candidate failed: %s' % (annClass, str(err)))
-        print(query)
+    return query
 
 import os
 if __name__ == '__main__':

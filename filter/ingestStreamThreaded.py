@@ -80,6 +80,16 @@ def make_database_connection():
         )
     return msl
 
+def execute_query(query, msl):
+    try:
+        cursor = msl.cursor(buffered=True)
+        cursor.execute(query)
+        cursor.close()
+    except mysql.connector.Error as err:
+        print('INGEST object Database insert candidate failed: %s' % str(err))
+        print(query)
+    msl.commit()
+
 def alert_filter(alert, msl):
     """alert_filter.
 
@@ -98,14 +108,15 @@ def alert_filter(alert, msl):
     query = insert_query.create_insert_query(alert)
     if query is None:
         return {'objects':0, 'candidates':ncandidates} 
-    try:
-        cursor = msl.cursor(buffered=True)
-        cursor.execute(query)
-        cursor.close()
-    except mysql.connector.Error as err:
-        print('INGEST object Database insert candidate failed: %s' % str(err))
-        print(query)
-    msl.commit()
+    execute_query(query, msl)
+
+
+#    f = open('data/%s_alert.json'%objectId, 'w')
+#    f.write(json.dumps(alert, indent=2))
+#    f.close()
+#    f = open('data/%s_object.json'%objectId, 'w')
+#    f.write(query)
+#    f.close()
 
     # now ingest the sherlock_classifications
     if 'annotations' in alert:
@@ -116,8 +127,12 @@ def alert_filter(alert, msl):
                 if "transient_object_id" in ann:  # hack here. Sherlock and Lasair have different names
                     ann['objectId'] = ann.pop('transient_object_id')
 
-                insert_query.create_insert_annotation(msl, objectId, annClass, ann, 
+                query = insert_query.create_insert_annotation(msl, objectId, annClass, ann, 
                     sherlock_attributes, 'sherlock_classifications', replace=True)
+#                f = open('data/%s_sherlock.json'%objectId, 'w')
+#                f.write(query)
+#                f.close()
+                execute_query(query, msl)
     return {'objects':1, 'candidates':ncandidates} 
 
 class Consumer(threading.Thread):
