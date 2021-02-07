@@ -340,12 +340,11 @@ def create_insert_query(alert):
 #        print (query)
     return query
 
-def create_insert_annotation(msl, objectId, annClass, ann, attrs, table, replace):
+def create_insert_annotation(objectId, annClass, ann, attrs, table, replace):
     """create_insert_annotation.
     This code makes the insert query for the genaric annotation
 
     Args:
-        msl:
         objectId:
         annClass:
         ann:
