@@ -42,8 +42,8 @@ This test uses a small watchlist to build a MOC file. Several mock alerts are ru
 the MOC file, and the number of hits asserted. The watchlist and the mock alerts are
 in the same csv file, which also includes a program that generates such a csv file.
 It uses the following auxiliary files and directories:
-**watchlist_sample.csv**
-**watchlist_cache**
+* watchlist_sample.csv
+* watchlist_cache
 
 ## Lasair API
 **api/runemall.sh
@@ -51,7 +51,8 @@ It uses the following auxiliary files and directories:
 This is a battery of 3 access methods (curl, get, python),each with 7 tests 
 (cone, lightcurves, query, sherlockobjects, sherlockposition, streamsregex, streamstopic)
 It uses the following auxiliary files and directories:
-**api/runemall.sh**
-**api/curl**
-**api/get**
-**api/python**
+
+* api/runemall.sh
+* api/curl
+* api/get
+* api/python
