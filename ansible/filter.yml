@@ -64,7 +64,7 @@
     - name: install confluent kafka
       pip: 
           executable: pip3 
-          name: confluent-kafka
+          name: confluent-kafka==1.5
       become: yes
 
     - name: install mysql.connector
