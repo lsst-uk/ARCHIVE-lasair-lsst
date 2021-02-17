@@ -56,12 +56,12 @@ including the ordering of attributes, then it will not work.
 
 ### Lasair API
 **api/runemall.sh
+=======
+## Lasair API
+**api/runemall.py
 
 This is a battery of 3 access methods (curl, get, python),each with 7 tests 
 (cone, lightcurves, query, sherlockobjects, sherlockposition, streamsregex, streamstopic)
 It uses the following auxiliary files and directories:
 
-* api/runemall.sh
-* api/curl
-* api/get
-* api/python
+* api/runemall.py

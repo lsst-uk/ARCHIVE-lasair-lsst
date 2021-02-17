@@ -52,7 +52,7 @@ def run_query(query, msl, topic):
     active = query['active']
     email = query['email']
     page = 0
-    perpage = 1000
+    perpage = 10000
     sqlquery_real = query_utilities.make_query(
         query['selected'], query['tables'], query['conditions'], page, perpage)
 
@@ -95,7 +95,7 @@ def run_query(query, msl, topic):
         delta = (now_number - last_entry_number)
         delta = delta.days + delta.seconds/86400.0
             
-        allrecords = (recent + digest)[:1000]
+        allrecords = (recent + digest)[:10000]
 
         if active == 1:
             # send a message at most every 24 hours
