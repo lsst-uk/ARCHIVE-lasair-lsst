@@ -103,11 +103,6 @@
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
 
-    - name: Copy settings file
-      copy:
-        src: /home/ubuntu/lasair-lsst/filter/settings.py
-        dest: /home/ubuntu/lasair-lsst/filter/settings.py
-
     - name: run mysql setup
       shell:
           cmd: mysql --user=root --password=root123password < mysql_setup.sql
