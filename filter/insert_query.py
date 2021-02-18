@@ -184,12 +184,14 @@ def create_insert_query(alert):
             magg.append(cand['magpsf'])
             jdg.append(cand['jd'])
             latestgmag = cand['magpsf']
-            g_nid[nid] = (cand['magpsf'], cand['jd'])
+            if cand['isdiffpos'] == 't':
+                g_nid[nid] = (cand['magpsf'], cand['jd'])
         else:
             magr.append(cand['magpsf'])
             jdr.append(cand['jd'])
             latestrmag = cand['magpsf']
-            r_nid[nid] = (cand['magpsf'], cand['jd'])
+            if cand['isdiffpos'] == 't':
+                r_nid[nid] = (cand['magpsf'], cand['jd'])
 
         # if it also has the 'drb' data quality flag, copy the PS1 data
         if 'drb' in cand:
