@@ -2,8 +2,7 @@
 """
 from __future__ import print_function
 import argparse
-import sys
-import os
+import os, sys
 import time
 import settings
 import mysql.connector
@@ -99,6 +98,9 @@ def alert_filter(alert, msl):
     """
     # Filter to apply to each alert.
     objectId = alert['objectId']
+
+    if not 'candid' in alert['candidate'] or not alert['candidate']['candid']:
+        return {'objects':0, 'candidates':0} 
 
     # run the cassandra process
     ncandidates = insert_query.insert_cassandra(alert)

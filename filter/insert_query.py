@@ -3,6 +3,7 @@
 from __future__ import print_function
 from mag import dc_mag_dict
 import json
+import sys
 import math
 import numpy as np
 import ephem
@@ -27,7 +28,7 @@ def make_ema(candlist):
     n = 0
     for c in candlist:
         jd = c['jd']
-        if not c['magpsf']:
+        if not 'magpsf' in c:
             continue
 #        d = dc_mag_dict(
 #            c['fid'], 
@@ -76,6 +77,10 @@ def insert_cassandra(alert):
     except:
         return 0
 
+    # if it does not have all the ZTF attributes, don't try to ingest
+    if not 'candid' in alert['candidate'] or not alert['candidate']['candid']:  
+        return 0
+
     from cassandra.cluster import Cluster
 
     objectId =  alert['objectId']
@@ -92,7 +97,7 @@ def insert_cassandra(alert):
     detectionCandlist = []
 
     for cand in candlist:
-        if cand['candid'] is None: 
+        if not 'candid' in cand or not cand['candid']:   # ignore the nondetections for now
             continue
         cand['objectId'] = objectId
         detectionCandlist.append(cand)
@@ -138,19 +143,17 @@ def create_insert_query(alert):
     """
     objectId =  alert['objectId']
 
-    candlist = None
     # Make a list of candidates and noncandidates in time order
     if 'candidate' in alert and alert['candidate'] != None:
         if 'prv_candidates' in alert and alert['prv_candidates'] != None:
-            candlist = alert['prv_candidates'] + [alert['candidate']]
+            clist = alert['prv_candidates'] + [alert['candidate']]
         else:
-            candlist = [alert['candidate']]
+            clist = [alert['candidate']]
 
-#    s = '-'
-#    for c in candlist:
-#        if c['candid'] is None: s += 'N'
-#        else: s += 'D'
-#    print(s)
+    candlist = []
+    for cand in clist:
+        if 'candid' in cand and cand['candid']:
+            candlist.append(cand)
 
     if not candlist: return None
     ema = make_ema(candlist)
@@ -173,7 +176,8 @@ def create_insert_query(alert):
     r_nid = {}
     for cand in candlist:
         # if this is a real detection, it will have a candid else nondetection
-        if cand['candid'] is None: continue
+        if not 'candid' in cand or not cand['candid']: 
+            continue
 
         nid = cand['nid']
         ra.append(cand['ra'])
@@ -194,11 +198,13 @@ def create_insert_query(alert):
                 r_nid[nid] = (cand['magpsf'], cand['jd'])
 
         # if it also has the 'drb' data quality flag, copy the PS1 data
-        if 'drb' in cand:
+        if 'sgmag1' in cand:
             sgmag1    = cand['sgmag1']
             srmag1    = cand['srmag1']
             sgscore1  = cand['sgscore1']
             distpsnr1 = cand['distpsnr1']
+        if 'drb' in cand:
+            drb = cand['drb']
         ncand += 1
 
     # only want light curves with at least 2 candidates
@@ -214,7 +220,9 @@ def create_insert_query(alert):
 
     ncandgp = ncandgp_7 = ncandgp_14 = 0
     for cand in candlist:
-        if cand['candid'] is None: continue
+        if not 'candid'in cand: 
+            continue
+
         if cand['rb'] > 0.75 and cand['isdiffpos'] == 't' and jdmax and cand['jd']:
             ncandgp += 1
             age = jdmax - cand['jd']
