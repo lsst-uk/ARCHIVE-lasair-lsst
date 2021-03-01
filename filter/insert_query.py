@@ -95,14 +95,28 @@ def insert_cassandra(alert):
 
     # will be list of real detections, each has a non-null candid
     detectionCandlist = []
+    nondetectionCandList = []
 
+    # 2021-03-01 KWS Issue 134: Add non detections.
     for cand in candlist:
-        if not 'candid' in cand or not cand['candid']:   # ignore the nondetections for now
-            continue
         cand['objectId'] = objectId
-        detectionCandlist.append(cand)
+        if not 'candid' in cand or not cand['candid']:
+            # This is a non-detection. Just append the subset of attributes we want to keep.
+            # The generic cassandra inserter should be able to insert correctly based on this.
+            nondetectionCandlist.append({'objectId': cand['objectId'],
+                                         'jd': cand['jd'],
+                                         'fid': cand['fid'],
+                                         'diffmaglim': cand['diffmaglim'],
+                                         'nid': cand['nid'],
+                                         'field': cand['field'],
+                                         'magzpsci': cand['magzpsci'],
+                                         'magzpsciunc': cand['magzpsciunc'],
+                                         'magzpscirms': cand['magzpscirms']})
+        else:
+            detectionCandlist.append(cand)
 
-    if len(detectionCandlist) == 0:
+    if len(detectionCandlist) == 0 and len(nondetectionCandlist) == 0:
+        # No point continuing. We have no data.
         return 0
 
     # connect to cassandra cluster
@@ -115,15 +129,23 @@ def insert_cassandra(alert):
         print(e)
         return 0
 
-    # Add the htm16 IDs in bulk. Could have done it above as we iterate through the candidates,
-    # but the new C++ bulk code is 100 times faster than doing it one at a time.
-    htm16s = htmCircle.htmIDBulk(16, [[x['ra'],x['dec']] for x in detectionCandlist])
+    if len(detectionCandlist) > 0:
+        # Add the htm16 IDs in bulk. Could have done it above as we iterate through the candidates,
+        # but the new C++ bulk code is 100 times faster than doing it one at a time.
+        # Note that although we are inserting them into cassandra, we are NOT using
+        # HTM indexing inside Cassandra. Hence this is a redundant column.
+        htm16s = htmCircle.htmIDBulk(16, [[x['ra'],x['dec']] for x in detectionCandlist])
 
-    # Now add the htmid16 value into each dict.
-    for i in range(len(detectionCandlist)):
-        detectionCandlist[i]['htmid16'] = htm16s[i]
+        # Now add the htmid16 value into each dict.
+        for i in range(len(detectionCandlist)):
+            detectionCandlist[i]['htmid16'] = htm16s[i]
 
-    cassandra_import.loadGenericCassandraTable(session, 'candidates', detectionCandlist)
+        cassandra_import.loadGenericCassandraTable(session, 'candidates', detectionCandlist)
+
+    if len(nondetectionCandlist) > 0:
+        cassandra_import.loadGenericCassandraTable(session, 'noncandidates', nondetectionCandlist)
+
+
     cluster.shutdown()
     return len(detectionCandlist)
 
