@@ -95,7 +95,7 @@ def insert_cassandra(alert):
 
     # will be list of real detections, each has a non-null candid
     detectionCandlist = []
-    nondetectionCandList = []
+    nondetectionCandlist = []
 
     # 2021-03-01 KWS Issue 134: Add non detections.
     for cand in candlist:
