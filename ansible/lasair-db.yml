@@ -1,3 +1,15 @@
+# change hosts.yml to new rdbms
+# cd ~
+# git clone https://github.com/genghisken/gkansible.git
+# cd ~/gkansible/gkansible
+# cp ansible_example.cfg ansible.cfg
+# cp hosts_example.yml file hosts.yml
+# set mysql_root_password in roles/install-mysql/defaults/main.yml
+# edit hosts for correct IP
+# ansible-playbook install-mysql.yml
+#
+# cd ~/lasair-lsst/ansible
+# ansible-playbook --inventory-file=hosts.yml lasair-db.yml
 ---
 - hosts: rdbms
   gather_facts: no
@@ -8,18 +20,6 @@
           state: present
           update_cache: true
       become: yes
-
-    - name: install mysql
-      apt: 
-          name: mysql-server
-          state: present
-          update_cache: true
-      become: yes
-
-    - name: Start the MySQL service
-      service:
-          name: mysql
-          state: started
 
     - name: permissions on mysql-files
       file:
@@ -32,12 +32,37 @@
           path: /home/ubuntu/scratch
           state: directory
 
+    - name: Copy git credentials
+      copy:
+        src: /home/ubuntu/.git-credentials
+        dest: /home/ubuntu/.git-credentials
+
     - name: Make sure the repo is up to date
       git: 
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
 
-# # mysql -u ztf -p ztf < ../utility/mysql_setup.sql
-# mysql -u ztf -p ztf < ../utility/schema/objects.sql
-# mysql -u ztf -p ztf < ../utility/schema/sherlock_crossmatches.sql
+    - name: run mysql setup
+      shell:
+          cmd: mysql --user=root --password=root123password < mysql_setup.sql
+          chdir: /home/ubuntu/lasair-lsst/utility
 
+    - name: create object table
+      shell:
+          cmd: mysql --user=ztf --password=123password < objects.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+    - name: create sherlock_classifications table
+      shell:
+          cmd: mysql --user=ztf --password=123password < sherlock_classifications.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+    - name: create area_hits table
+      shell:
+          cmd: mysql --user=ztf --password=123password < area_hits.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+    - name: create watchlist_hits table
+      shell:
+          cmd: mysql --user=ztf --password=123password < watchlist_hits.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
