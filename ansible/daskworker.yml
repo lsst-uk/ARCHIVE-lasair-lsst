@@ -1,0 +1,32 @@
+---
+- hosts: daskworkers
+  gather_facts: no
+  tasks:
+    - name: python3-pip
+      apt: 
+          name: python3-pip
+          state: present
+          update_cache: true
+      become: yes
+
+    - name: install dask[distributed]
+      pip: 
+          executable: pip3 
+          name: dask[distributed]
+      become: yes
+
+#for scheduler node
+#sudo apt update
+#sudo apt install python3-pip
+#pip3 install dask[bag]
+#pip3 install dask[distributed]
+#pip3 install jupyter
+#pip3 install bokeh
+
+#$ jupyter notebook password
+#$ jupyter notebook --generate-config
+#then edit ~/.jupyter/jupyter_notebook_config.py
+#c.NotebookApp.ip = '*'
+#c.NotebookApp.port = 8080
+#c.NotebookApp.open_browser = False
+
