@@ -140,10 +140,12 @@ def insert_cassandra(alert):
         for i in range(len(detectionCandlist)):
             detectionCandlist[i]['htmid16'] = htm16s[i]
 
-        cassandra_import.loadGenericCassandraTable(session, 'candidates', detectionCandlist)
+        cassandra_import.loadGenericCassandraTable(session, \
+                settings.CASSANDRA_CANDIDATES, detectionCandlist)
 
     if len(nondetectionCandlist) > 0:
-        cassandra_import.loadGenericCassandraTable(session, 'noncandidates', nondetectionCandlist)
+        cassandra_import.loadGenericCassandraTable(session, \
+                settings.CASSANDRA_NONCANDIDATES, nondetectionCandlist)
 
 
     cluster.shutdown()
