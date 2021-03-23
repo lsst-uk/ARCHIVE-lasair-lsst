@@ -25,6 +25,7 @@ while 1:
     stdout, stderr = process.communicate()
     rc = process.returncode
     os.system('date')
+    print('topic ', topic)
 
     stdout = stdout.decode('utf-8')
     fh.write(stdout)
