@@ -114,22 +114,22 @@ def join_old_and_new(alert, old):
             allcandidates.append(extract(p))
 
     if old:
-        allcandidates.append(old['candidate'])
+        allcandidates += old['candidates']
         if 'prv_candidates' in old:
-            allcandidates += old['prv_candidates']
+            allcandidates += old['noncandidates']
 
     # sort by jd
     allcandidates = sorted(allcandidates, key=lambda c:c['jd'], reverse=True)
-    candict = {}
+    candidates = []
+    noncandidates = []
     for c in allcandidates:
-        jd = c['jd']
-        candict[jd] = c
-    allcandidates = []
-    for jd, c in candict.items():
-        allcandidates.append(c)
+        if 'candid' in c and c['candid']:
+            candidates.append(c)
+        else:
+            noncandidates.append(c)
 
-    new['candidate'] = allcandidates[0]
-    new['prv_candidates'] = allcandidates[1:]
+    new['candidates'] = candidates
+    new['noncandidates'] = noncandidates
     return new
 
 def handle_alert(alert, json_store, image_store, producer, topicout):
@@ -156,9 +156,12 @@ def handle_alert(alert, json_store, image_store, producer, topicout):
     jold = json_store.getObject(objectId)
     if jold:
         old = json.loads(jold)
+#        print('--- old ---', old)   #####
     else:
         old = None
+#    print('--- alert ---', alert_noimages)   #####
     new = join_old_and_new(alert_noimages, old)
+#    print('--- new ---', json.dumps(new, indent=2))   #####
 
     # store the new version of the object
     new_object_json = json.dumps(new, indent=2)
