@@ -1,6 +1,6 @@
 import json, sys
 sys.path.append('/home/ubuntu/lasair_api/lasair')
-import lasair_external
+import lasair
 try:
     import settings
     token = settings.token
@@ -12,8 +12,8 @@ dec = 48.852
 objectIds = ['ZTF21aapvmcu', 'ZTF21aaopqqk']
 topic = '2SN-likecandidates'
 
-#L = lasair_external.lasair(token, cache='api_cache')
-L = lasair_external.lasair_client(token)
+L = lasair.lasair_client(token, cache='api_cache')
+#L = lasair.lasair_client(token)
 
 print('------- cone all ------------')
 c = L.cone(ra, dec, radius=240.0, requestType='all')
