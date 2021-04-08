@@ -6,7 +6,8 @@ import os
 import time
 import json
 import settings
-import query_utilities
+import topic_name
+import query_builder
 from confluent_kafka import Producer, KafkaError
 import datetime
 import mysql.connector
@@ -51,10 +52,17 @@ def run_query(query, msl, topic):
     """
     active = query['active']
     email = query['email']
-    page = 0
-    perpage = 10000
-    sqlquery_real = query_utilities.make_query(
-        query['selected'], query['tables'], query['conditions'], page, perpage)
+    limit = 1000
+    offset = 0
+    error = query_builder.check_query_builder(
+        query['selected'], query['tables'], query['conditions'], limit, offset)
+    if error:
+        print('Query builder error')
+        print(error)
+        return 0
+
+    sqlquery_real = query_builder.query_builder(
+        query['selected'], query['tables'], query['conditions'], limit, offset)
 
     cursor = msl.cursor(buffered=True, dictionary=True)
     n = 0
@@ -73,9 +81,10 @@ def run_query(query, msl, topic):
             recent.append(recorddict)
             n += 1
     except Exception as e:
-        print("Query failed for %s" % topic)
+        print("SQL error for %s" % topic)
         print(e)
         print(sqlquery_real)
+        return 0
 
     #print(recent)
     if len(recent) > 0:
@@ -174,7 +183,7 @@ def run_queries():
     msl_local = mysql.connector.connect(**config)
 
     for query in query_list:
-        topic = query_utilities.topic_name(query['user'], query['name'])
+        topic = topic_name.topic_name(query['user'], query['name'])
         t = time.time()
         n = run_query(query, msl_local, topic)
         t = time.time() - t
