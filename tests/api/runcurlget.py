@@ -10,10 +10,9 @@ except:
 out_file = 'tmp.json'
 url      = 'https://lasair-iris.roe.ac.uk/api'
 
-def alltest(input, method, case):
+def curlgettest(input, method, case):
     curltest(input, method, case)
     gettest(input, method, case)
-    pythontest(input, method, case)
 
 def curltest(input, method, case):
     arglist = []
@@ -52,40 +51,23 @@ def gettest(input, method, case):
     except:
         print('---> test failed\n\n')
 
-def pythontest(input, method, case):
-    headers = { 'Authorization': 'Token %s'%token }
-    url = 'https://lasair-iris.roe.ac.uk/api/'
-
-    print('** python test of %s:%s' % (method, case))
-    r = requests.post('%s/%s/'%(url, method), data=input, headers=headers)
-    if r.status_code == 200:
-        response = r.json()
-        computed = json.dumps(response, indent=2)
-        try:
-            json.loads(computed)
-            print('---> test succeeded\n\n')
-        except:
-            print('---> test failed\n\n')
-    else: 
-        print('---> test failed\n\n')
-
 input = {'ra':194.494, 'dec':48.851, 'radius':240.0, 'requestType':'all'}
-alltest(input, 'cone', '')
+curlgettest(input, 'cone', '')
 
 input={'objectIds':'ZTF20acpwljl,ZTF20acqqbkl,ZTF20acplggt'}
-alltest(input, 'lightcurves', '')
+curlgettest(input, 'lightcurves', '')
 
 input = {'selected':'objectId,gmag', 'tables':'objects', 'conditions':'gmag<12.0'}
-alltest(input, 'query', '')
+curlgettest(input, 'query', '')
 
 input={'objectIds':'ZTF20acpwljl,ZTF20acqqbkl,ZTF20acplggt'}
-alltest(input, 'sherlock/objects', '')
+curlgettest(input, 'sherlock/objects', '')
 
 input = {'ra':124.879948, 'dec':-6.020519, 'lite':True}
-alltest(input, 'sherlock/position', '')
+curlgettest(input, 'sherlock/position', '')
 
 input = {'regex':'.*SN.*'}
-alltest(input, 'streams', 'regex')
+curlgettest(input, 'streams', 'regex')
 
 input = {'limit':3}
-alltest(input, 'streams/2SN-likecandidates', '')
+curlgettest(input, 'streams/2SN-likecandidates', '')

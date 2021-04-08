@@ -8,6 +8,7 @@ import threading
 import alertConsumer
 import objectStore
 import json
+import zlib
 sys.path.append('../utility/')
 from manage_status import manage_status
 from confluent_kafka import Producer, KafkaError
@@ -30,8 +31,10 @@ def parse_args():
                         help='Max alerts to be fetched per thread')
     parser.add_argument('--nthread', type=int,
                         help='Number of threads to use')
-    parser.add_argument('--avrodir', type=str,
-                        help='Directory for blobs')
+    parser.add_argument('--objectdir', type=str,
+                        help='Directory for objects')
+    parser.add_argument('--fitsdir', type=str,
+                        help='Directory for fits images')
     args = parser.parse_args()
     return args
 
@@ -45,58 +48,164 @@ def msg_text(message):
                     if k not in ['cutoutDifference', 'cutoutTemplate', 'cutoutScience']}
     return message_text
 
-def handle_alert(alert, store, producer, topicout):
+def store_images(message, store, candid):
+    for cutoutType in ['cutoutDifference', 'cutoutTemplate', 'cutoutScience']:
+        contentgz = message[cutoutType]['stampData']
+        content = zlib.decompress(contentgz, 16+zlib.MAX_WBITS)
+        filename = '%d_%s' % (candid, cutoutType)
+        store.putObject(filename, content)
+
+candidate_attributes = [
+'candid',
+'dec',
+'drb',
+'diffmaglim',
+'fid',
+'field',
+'isdiffpos',
+'jd',
+'magnr',
+'magpsf',
+'magzpsci',
+'neargaia',
+'neargaiabright',
+'nid',
+'objectidps1',
+'ra',
+'rb',
+'sgmag1',
+'srmag1',
+'sgscore1',
+'distpsnr1',
+'sigmagnr',
+'sigmapsf',
+'ssdistnr',
+'ssmagnr',
+'ssnamenr',
+]
+
+def extract(candidate):
+    # get just what we want 
+    newcan = {}
+    for ca in candidate_attributes:
+        if ca in candidate:
+            c = candidate[ca]
+            if c: newcan[ca] = c
+    return newcan
+
+def join_old_and_new(alert, old):
+    """join_old_and_new.
+    Args:
+        alert:
+        old:
+    """
+    # here is the part of the alert that has no binary images
+    objectId = alert['objectId']
+
+    # this will be the new version of the object
+    new = {}
+    new['objectId'] = objectId
+    allcandidates = []
+
+    # put in the list what just came in
+    allcandidates.append(extract(alert['candidate']))
+    if 'prv_candidates' in alert and alert['prv_candidates']:
+        for p in alert['prv_candidates']:
+            allcandidates.append(extract(p))
+
+    if old:
+        allcandidates += old['candidates']
+        if 'prv_candidates' in old:
+            allcandidates += old['noncandidates']
+
+    # sort by jd
+    allcandidates = sorted(allcandidates, key=lambda c:c['jd'], reverse=True)
+    candidates = []
+    noncandidates = []
+    for c in allcandidates:
+        if 'candid' in c and c['candid']:
+            candidates.append(c)
+        else:
+            noncandidates.append(c)
+
+    new['candidates'] = candidates
+    new['noncandidates'] = noncandidates
+    return new
+
+def handle_alert(alert, json_store, image_store, producer, topicout):
     """handle_alert.
     Filter to apply to each alert.
        See schemas: https://github.com/ZwickyTransientFacility/ztf-avro-alert
 
     Args:
         alert:
-        store:
+        json_store:
+        image_store:
         producer:
         topicout:
     """
     # here is the part of the alert that has no binary images
-    nonimage = msg_text(alert)
-    objectId = nonimage['objectId']
+    alert_noimages = msg_text(alert)
+    candid = alert_noimages['candidate']['candid']
 
-    if nonimage:  # Write your condition statement here
-        # JSON version of the image-free alert
-        s = json.dumps(nonimage, indent=2).encode()
+    if not alert_noimages:
+        return None
 
-        # do not put known solar system objects into kafka
-        ss_mag = nonimage['candidate']['ssmagnr']
-        if ss_mag > 0:
-            return None
+    objectId = alert_noimages['objectId']
+    # fetch the stored version of the object
+    jold = json_store.getObject(objectId)
+    if jold:
+        old = json.loads(jold)
+#        print('--- old ---', old)   #####
+    else:
+        old = None
+#    print('--- alert ---', alert_noimages)   #####
+    new = join_old_and_new(alert_noimages, old)
+#    print('--- new ---', json.dumps(new, indent=2))   #####
+
+    # store the new version of the object
+    new_object_json = json.dumps(new, indent=2)
+    json_store.putObject(objectId, new_object_json)
+
+    # store the fits images
+    store_images(alert, image_store, candid)
+
+    # do not put known solar system objects into kafka
+    ss_mag = alert_noimages['candidate']['ssmagnr']
+    if ss_mag > 0:
+        return None
 
         # produce to kafka
-        if producer is not None:
-            try:
-                producer.produce(topicout, s)
-            except Exception as e:
-                print("Kafka production failed for %s" % topicout)
-                print(e)
-        return objectId
+    if producer is not None:
+        try:
+            s = json.dumps(alert_noimages)
+            producer.produce(topicout, json.dumps(alert_noimages))
+        except Exception as e:
+            print("Kafka production failed for %s" % topicout)
+            print(e)
+    return objectId
 
 class Consumer(threading.Thread):
     """Consumer.
     """
 
     # Threaded ingestion through this object
-    def __init__(self, threadID, nalert_in_list, nalert_out_list, args, store, conf):
+    def __init__(self, threadID, nalert_in_list, nalert_out_list, args, json_store, image_store, conf):
         """__init__.
 
         Args:
             threadID:
             nalert_list:
             args:
-            store:
+            json_store:
+            image_store:
             conf:
         """
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.conf = conf
-        self.store = store
+        self.json_store = json_store
+        self.image_store = image_store
         self.args = args
         self.nalert_in_list = nalert_in_list
         self.nalert_out_list = nalert_out_list
@@ -137,24 +246,31 @@ class Consumer(threading.Thread):
         nalert_out = 0
         startt = time.time()
         while nalert_in < maxalert:
+            t = time.time()
             try:
                 msg = streamReader.poll(decode=True, timeout=settings.KAFKA_TIMEOUT)
+#                t = time.time() -t
+#                print('%.3f %d' % (t, nalert_in))
             except alertConsumer.EopError as e:
-                continue
+#                t = time.time() -t
+#                print('%.3f eop %d' % (t, nalert_in))
+#                continue
+                print('eop end of messages')
+                break
 
             if msg is None:
+                print('null message end of messages')
                 break
             else:
                 for alert in msg:
                     # Apply filter to each alert
-                    objectId = handle_alert(alert, self.store, producer, topicout)
+                    objectId = handle_alert(alert, self.json_store, self.image_store, producer, topicout)
 
                     if objectId:
-                        self.store.putObject(objectId, streamReader.raw_msg)
                         nalert_out += 1
 
                     nalert_in += 1
-                    if nalert_in%1000 == 0:
+                    if nalert_in%5000 == 0:
                         print('thread %d nalert %d time %.1f' % ((self.threadID, nalert_in, time.time()-startt)))
                         # if this is not flushed, it will run out of memory
                         if producer is not None:
@@ -187,7 +303,8 @@ def main():
         'default.topic.config': {'auto.offset.reset': 'smallest'}
     }
 
-    store = objectStore.objectStore(suffix='avro', fileroot=args.avrodir)
+    json_store = objectStore.objectStore(suffix='json', fileroot=args.objectdir)
+    image_store  = objectStore.objectStore(suffix='fits', fileroot=args.fitsdir)
 
     print('Configuration = %s' % str(conf))
 
@@ -203,7 +320,7 @@ def main():
     # make the thread list
     thread_list = []
     for t in range(args.nthread):
-        thread_list.append(Consumer(t, nalert_in_list, nalert_out_list, args, store, conf))
+        thread_list.append(Consumer(t, nalert_in_list, nalert_out_list, args, json_store, image_store, conf))
     
     # start them up
     t = time.time()

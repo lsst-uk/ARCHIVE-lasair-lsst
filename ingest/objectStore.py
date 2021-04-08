@@ -54,10 +54,13 @@ class objectStore():
         Args:
             objectId:
         """
-        f = open(self.getFileName(objectId))
-        str = f.read()
-        f.close()
-        return str
+        try:
+            f = open(self.getFileName(objectId))
+            str = f.read()
+            f.close()
+            return str
+        except:
+            return None
 
     def putObject(self, objectId, objectBlob):
         """putObject.
@@ -68,7 +71,10 @@ class objectStore():
         """
         filename = self.getFileName(objectId, mkdir=True)
 #        print(objectId, filename)
-        f = open(filename, 'wb')
+        if isinstance(objectBlob, str):
+            f = open(filename, 'w')
+        else:
+            f = open(filename, 'wb')
         f.write(objectBlob)
         f.close()
 
