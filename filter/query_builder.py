@@ -69,8 +69,7 @@ def check_select_forbidden(select_expression):
 where_forbidden_word_list = [
     'create',
     'select', 'union', 'exists', 'window',
-    'having',
-    'group', 'groupby',
+#    'having', 'group', 'groupby',
     'for',
     'into', 'outfile', 'dumpfile',
 ]
