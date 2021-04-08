@@ -174,6 +174,8 @@ def query_builder(select_expression, from_expression, where_condition, limit=100
 
     # Extra clauses of the WHERE expression to make the JOINs
     where_clauses = []
+    if sherlock_classifications:
+        where_clauses.append('objects.objectId=sherlock_classifications.objectId')
     if watchlist_id:
         where_clauses.append('objects.objectId=watchlist_hits.objectId')
         where_clauses.append('watchlist_hits.wl_id=%s' % watchlist_id)
