@@ -1,0 +1,101 @@
+{
+  "name": "crossmatch_tns",
+  "version": "1.0",
+  "fields": [
+  {
+    "name": "ra",
+    "type": "double",
+    "doc": "Right ascension in decimal degrees"
+  },
+  {
+    "name": "decl",
+    "type": "double",
+    "doc": "Declination in decimal degrees"
+  },
+  {
+    "name": "tns_name",
+    "type": "string",
+    "doc": "TNS name, for example 2021iru"
+  },
+  {
+    "name": "tns_prefix",
+    "type": "string",
+    "doc": "For example SN or AT"
+  },
+  {
+    "name": "disc_mag",
+    "type": "float",
+    "doc": "Discovery magnitude"
+  },
+  {
+    "name": "disc_mag_filter",
+    "type": "string",
+    "doc": "string"
+  },
+  {
+    "name": "type",
+    "type": "string",
+    "doc": "Astrophysical type of supernova, eg SN Ia"
+  },
+  {
+    "name": "z",
+    "type": "float",
+    "doc": "Redshift"
+  },
+  {
+    "name": "hostz",
+    "type": "float",
+    "doc": "Redshift of host galaxy"
+  },
+  {
+    "name": "host_name",
+    "type": "string",
+    "doc": "Name of host galaxy"
+  },
+  {
+    "name": "disc_instruments",
+    "type": "string",
+    "doc": "Discovery instruments"
+  },
+  {
+    "name": "sender",
+    "type": "string",
+    "doc": "Sender of this transient notice"
+  },
+  {
+    "name": "associated_groups",
+    "type": "string",
+    "doc": "Groups associated to sender of this transient notice"
+  },
+  {
+    "name": "classifying_groups",
+    "type": "string",
+    "doc": "Classifier of this transient notice"
+  },
+  {
+    "name": "discovering_groups",
+    "type": "string",
+    "doc": "Groups discoering this transient"
+  },
+  {
+    "name": "class_instrument",
+    "type": "string",
+    "doc": "Instrument used to classify the supernova"
+  },
+  {
+    "name": "disc_int_name",
+    "type": "string",
+    "doc": "Discoverers internal name"
+  },
+  {
+    "name": "ext_catalogs",
+    "type": "string",
+    "doc": "External catalogues used"
+  },
+  {
+    "name": "disc_date",
+    "type": "date",
+    "doc": "Discovery date"
+  }
+]
+}
