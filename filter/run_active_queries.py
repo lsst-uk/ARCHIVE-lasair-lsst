@@ -53,16 +53,16 @@ def run_query(query, msl, topic):
     active = query['active']
     email = query['email']
     limit = 1000
-    offset = 0
     error = query_builder.check_query_builder(
-        query['selected'], query['tables'], query['conditions'], limit, offset)
+        query['selected'], query['tables'], query['conditions'])
     if error:
         print('Query builder error')
         print(error)
         return 0
 
     sqlquery_real = query_builder.query_builder(
-        query['selected'], query['tables'], query['conditions'], limit, offset)
+        query['selected'], query['tables'], query['conditions'])
+    sqlquery_real += ' LIMIT %d' % limit
 
     cursor = msl.cursor(buffered=True, dictionary=True)
     n = 0

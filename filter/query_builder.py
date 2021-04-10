@@ -5,13 +5,12 @@ The SQL looks like
     SELECT <select_expression> 
     FROM <from_expression> 
     WHERE <where_condition> 
+Note that this part of query is added outside of this code
     LIMIT <limit> OFFSET <offset>
 Example:
     select_expression = 'objectId'
     from_expression   = 'objects'
     where_condition   = 'mag < 14 ORDER BY jd' 
-    limit             = 10 
-    OFFSET            = 0
 The syntax checking happens in two stages, first in this code and then in the SQL engine.
 The limit and offset are checked here that they are integers. 
 
@@ -69,7 +68,7 @@ def check_select_forbidden(select_expression):
 where_forbidden_word_list = [
     'create',
     'select', 'union', 'exists', 'window',
-#    'having', 'group', 'groupby',
+#    'having', 'group', 'groupby',    # until after broker workshop
     'for',
     'into', 'outfile', 'dumpfile',
 ]
@@ -95,16 +94,10 @@ def check_where_forbidden(where_condition):
 
     return None
 
-def check_query_builder(select_expression, from_expression, where_condition, limit=1000, offset=0):
+def check_query_builder(select_expression, from_expression, where_condition):
     """ Check the query arguments with the functions above
     """
 
-    # First make sure the limit and offset are integers
-    try: x = int(limit)
-    except: return 'Limit value %s is not integer' % limit
-    try: x = int(offset)
-    except: return 'Offset value %s is not integer' % offset
-    
     # check if the select expression is OK
     s = check_select_forbidden(select_expression)
     if s: return s
@@ -115,7 +108,7 @@ def check_query_builder(select_expression, from_expression, where_condition, lim
 
     return None
 
-def query_builder(select_expression, from_expression, where_condition, limit=1000, offset=0):
+def query_builder(select_expression, from_expression, where_condition):
     """ Build a real SQL query from the pre-sanitised input
     """
 
@@ -190,13 +183,6 @@ def query_builder(select_expression, from_expression, where_condition, limit=100
     if len(where_condition.strip()) > 0:
         where_clauses.append(where_condition)
 
-    # Handle the LIMIT and OFFSET
-    real_limit = max_query_rows
-    limit = int(limit)
-    if limit < max_query_rows:
-        real_limit = int(limit)
-    offset = int(offset)
-
     # Now we can build the real SQL
     sql = 'SELECT /*+ MAX_EXECUTION_TIME(%d) */ ' % max_execution_time
     sql += select_expression
@@ -208,14 +194,9 @@ def query_builder(select_expression, from_expression, where_condition, limit=100
     if len(where_clauses) > 0:
         sql += '\nWHERE\n' + ' AND\n'.join(where_clauses)
 
-    # LIMIT and OFFSET
-    sql += ' LIMIT %d OFFSET %d' % (real_limit, offset)
     return sql
 
 if __name__ == "__main__":
-    limit = 10
-    offset = 100
-
     print('===============')
     s = """
 objects.objectId, objects.ramean, objects.decmean, 
@@ -237,9 +218,9 @@ AND sherlock_classifications.classification != "NT"'
 order    by magmean
 """
 
-    e = check_query_builder(s, f, w, limit, offset)
+    e = check_query_builder(s, f, w)
     if e:
         print(e)
     else:
-        sql = query_builder(s, f, w, limit, offset)
+        sql = query_builder(s, f, w)
         print(sql)
