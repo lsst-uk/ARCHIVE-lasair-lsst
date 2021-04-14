@@ -152,10 +152,13 @@ def insert_cassandra(alert):
     return len(detectionCandlist)
 
 def mymax(a, b):
-    if a: return b
-    if b: return a
-    if a > b: return a
-    else:     return b
+    if a and b:
+        if a > b: return a
+        else:     return b
+    if a:
+        return a
+    else:
+        return b
 
 def create_insert_query(alert):
     """create_insert_query.
