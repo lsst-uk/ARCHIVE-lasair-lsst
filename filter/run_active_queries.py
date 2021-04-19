@@ -6,8 +6,6 @@ import os
 import time
 import json
 import settings
-import topic_name
-import query_builder
 from confluent_kafka import Producer, KafkaError
 import datetime
 import mysql.connector
@@ -42,7 +40,7 @@ def datetime_converter(o):
     if isinstance(o, datetime.datetime):
         return o.__str__()
 
-def run_query(query, msl, topic):
+def run_query(query, msl):
     """run_query.
 
     Args:
@@ -52,17 +50,10 @@ def run_query(query, msl, topic):
     """
     active = query['active']
     email = query['email']
+    topic = query['topic_name']
     limit = 1000
-    error = query_builder.check_query_builder(
-        query['selected'], query['tables'], query['conditions'])
-    if error:
-        print('Query builder error')
-        print(error)
-        return 0
 
-    sqlquery_real = query_builder.query_builder(
-        query['selected'], query['tables'], query['conditions'])
-    sqlquery_real += ' LIMIT %d' % limit
+    sqlquery_real = query['real_sql'] + (' LIMIT %d' % limit)
 
     cursor = msl.cursor(buffered=True, dictionary=True)
     n = 0
@@ -156,7 +147,7 @@ def run_queries():
     msl_remote = mysql.connector.connect(**config)
 
     cursor   = msl_remote.cursor(buffered=True, dictionary=True)
-    query = 'SELECT user, name, email, active, selected, tables, conditions '
+    query = 'SELECT user, name, email, active, real_sql, topic_name '
     query += 'FROM myqueries, auth_user WHERE myqueries.user = auth_user.id AND active > 0'
     cursor.execute(query)
 
@@ -167,9 +158,8 @@ def run_queries():
             'name':      query['name'],
             'active':    query['active'],
             'email':     query['email'],
-            'selected':  query['selected'],
-            'tables':    query['tables'],
-            'conditions':query['conditions'],
+            'real_sql':  query['real_sql'],
+            'topic_name':query['topic_name'],
         }
         query_list.append(query_dict)
 
@@ -183,11 +173,10 @@ def run_queries():
     msl_local = mysql.connector.connect(**config)
 
     for query in query_list:
-        topic = topic_name.topic_name(query['user'], query['name'])
         t = time.time()
-        n = run_query(query, msl_local, topic)
+        n = run_query(query, msl_local)
         t = time.time() - t
-        print('   %s got %d in %.1f seconds' % (topic, n, t))
+        print('   %s got %d in %.1f seconds' % (query['topic_name'], n, t))
 
 if __name__ == "__main__":
     print('--------- RUN ACTIVE QUERIES -----------')
