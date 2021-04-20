@@ -10,7 +10,7 @@ RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-insta
 
 RUN pip install \
   flask-restful \
-  qub-sherlock==2.1.7
+  qub-sherlock==2.1.8
 
 COPY ./app /app 
 
