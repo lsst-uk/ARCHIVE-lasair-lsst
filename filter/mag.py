@@ -37,8 +37,10 @@ def dc_mag_dict(fid, magpsf,sigmapsf, magnr,sigmagnr, magzpsci, isdiffpos):
     difference_sigflux = (sigmapsf/1.0857)*difference_flux
 
     # add or subract difference flux based on isdiffpos
-    if isdiffpos == 't': dc_flux = ref_flux + difference_flux
-    else:                dc_flux = ref_flux - difference_flux
+    if isdiffpos == 't' or isdiffpos == '1': 
+        dc_flux = ref_flux + difference_flux
+    else:
+        dc_flux = ref_flux - difference_flux
 
     # assumes errors are independent. Maybe too conservative.
     dc_sigflux =  math.sqrt( difference_sigflux**2 + ref_sigflux**2 )

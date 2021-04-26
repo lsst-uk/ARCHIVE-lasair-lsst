@@ -9,6 +9,12 @@
           update_cache: true
       become: yes
 
+    - name: install dask[bag]
+      pip: 
+          executable: pip3 
+          name: dask[distributed]
+      become: yes
+
     - name: install dask[distributed]
       pip: 
           executable: pip3 
