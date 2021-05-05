@@ -104,18 +104,15 @@ def alert_filter(alert, msl):
 
     # build the insert query for this object.
     # if not wanted, returns None
-    query = insert_query.create_insert_query(alert)
-    if query is None:
-        return 0
-    execute_query(query, msl)
+    iq_dict = insert_query.create_insert_query(alert)
+    if not iq_dict:
+        return {'ss':0, 'nalert':0}
+    query = iq_dict['query']
+    ss = iq_dict['ss']
 
-
-#    f = open('data/%s_alert.json'%objectId, 'w')
-#    f.write(json.dumps(alert, indent=2))
-#    f.close()
-#    f = open('data/%s_object.json'%objectId, 'w')
-#    f.write(query)
-#    f.close()
+    # lets not fill up the database with SS detections right now
+    if ss == 0:   
+        execute_query(query, msl)
 
     # now ingest the sherlock_classifications
     if 'annotations' in alert:
@@ -132,18 +129,19 @@ def alert_filter(alert, msl):
 #                f.write(query)
 #                f.close()
                 execute_query(query, msl)
-    return 1
+    return {'ss':iq_dict['ss'], 'nalert':1}
 
 class Consumer(threading.Thread):
     """ Threaded consumer of kafka. Calls alert_filter() for each one
     """
-    def __init__(self, threadID, nalert_in_list, nalert_out_list, args, conf):
+    def __init__(self, threadID, nalert_in_list, nalert_out_list, nalert_ss_list, args, conf):
         """__init__.
 
         Args:
             threadID:
             nalert_in_list:
             nalert_out_list:
+            nalert_ss_list:
             args:
             conf:
         """
@@ -151,6 +149,7 @@ class Consumer(threading.Thread):
         self.threadID = threadID
         self.nalert_in_list       = nalert_in_list
         self.nalert_out_list      = nalert_out_list
+        self.nalert_ss_list       = nalert_ss_list
         self.conf = conf
         self.args = args
 
@@ -174,7 +173,7 @@ class Consumer(threading.Thread):
         else:
             maxalert = 50000
     
-        nalert_in = nalert_out = 0
+        nalert_in = nalert_out = nalert_ss = 0
         startt = time.time()
         while nalert_in < maxalert:
             # Here we get the next alert by kafka
@@ -189,8 +188,9 @@ class Consumer(threading.Thread):
                 # Apply filter to each alert
                 alert = json.loads(msg.value())
                 nalert_in += 1
-                output_dict = alert_filter(alert, msl)
-                nalert_out += output_dict['objects']
+                d = alert_filter(alert, msl)
+                nalert_out += d['nalert']
+                nalert_ss  += d['ss']
                 if nalert_in%1000 == 0:
                     print('thread %d nalert_in %d nalert_out  %d time %.1f' % 
                         ((self.threadID, nalert_in, nalert_out, time.time()-startt)))
@@ -202,6 +202,7 @@ class Consumer(threading.Thread):
         consumer.close()
         self.nalert_in_list[self.threadID] = nalert_in
         self.nalert_out_list[self.threadID] = nalert_out
+        self.nalert_ss_list[self.threadID] = nalert_ss
 
 def main():
     """main.
@@ -225,12 +226,13 @@ def main():
 
     # number of alerts from each
     nalert_in_list = [0] * nthread
-    nalert_out_list = [0] * nthread
+    nalert_out_list= [0] * nthread
+    nalert_ss_list = [0] * nthread
 
     # make the thread list
     thread_list = []
     for t in range(args.nthread):
-        thread_list.append(Consumer(t, nalert_in_list, nalert_out_list, args, conf))
+        thread_list.append(Consumer(t, nalert_in_list, nalert_out_list, nalert_ss_list, args, conf))
 
     # start them up
     t = time.time()
@@ -242,12 +244,17 @@ def main():
          th.join()
 
     nalert_in = sum(nalert_in_list)
-    nalert_out = sum(nalert_out_list)
-    print('INGEST finished %d in, %d out' % (nalert_in, nalert_out))
+    nalert_out= sum(nalert_out_list)
+    nalert_ss = sum(nalert_ss_list)
+    print('INGEST finished %d in, %d out, %d solar system' % (nalert_in, nalert_out, nalert_ss))
 
     ms = manage_status('nid', settings.SYSTEM_STATUS)
     nid  = date_nid.nid_now()
-    ms.add({'today_filter':nalert_in, 'today_filter_out':nalert_out}, nid)
+    ms.add({
+        'today_filter':nalert_in, 
+        'today_filter_out':nalert_out,
+        'today_filter_ss':nalert_ss
+        }, nid)
 
     if nalert_in > 0: return 1
     else:             return 0

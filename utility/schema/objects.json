@@ -212,6 +212,11 @@
       "name": "ncandgp_14",
       "type": "int",
       "doc": "Number in light curve with good quality and brighter than reference in last 14 days"
+    },
+    {
+      "name": "ssnamenr",
+      "type": "string",
+      "doc": "MPC name of Solar System object"
     }
   ],
   "indexes": [

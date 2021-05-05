@@ -9,7 +9,6 @@ import numpy as np
 import ephem
 from gkhtm import _gkhtm as htmCircle
 import settings
-import cassandra_import
 
 def make_ema(candlist):
     """make_ema.
@@ -109,6 +108,7 @@ def create_insert_query(alert):
     srmag1    = None
     sgscore1  = None
     distpsnr1 = None
+    ssnamenr = None
 
     g_nid = {}
     r_nid = {}
@@ -143,12 +143,16 @@ def create_insert_query(alert):
             distpsnr1 = cand['distpsnr1']
         if 'drb' in cand:
             drb = cand['drb']
+
+        ssnamenr = cand['ssnamenr']
+        if ssnamenr == 'null':
+            ssnamenr = None
+
         ncand += 1
 
-    # only want light curves with at least 2 candidates
-    if ncand <= 1:
+    # if non-solar-system and one-night stand then reject
+    if not ssnamenr and ncand <= 1:
         return None
-
 
     if len(jdg) > 0: jdgmax = max(jdg)
     else:            jdgmax = None
@@ -173,11 +177,6 @@ def create_insert_query(alert):
         if nid in g_nid.keys():
             g_minus_r = g_nid[nid][0] - r_nid[nid][0]
             jd_g_minus_r = g_nid[nid][1]
-#    if len(g_nid) > 0 and len(r_nid) > 0:
-#        print('----------')
-#        print(g_nid)
-#        print(r_nid)
-#        print(g_minus_r, jd_g_minus_r)
 
     # statistics of the g light curve
     dmdt_g = dmdt_g_2 = None
@@ -252,11 +251,12 @@ def create_insert_query(alert):
     sets['glatmean']   = glatmean
     sets['glonmean']   = glonmean
 
-    # pannstarrs
+    # miscellaneous
     sets['sgmag1']     = sgmag1
     sets['srmag1']     = srmag1
     sets['sgscore1']   = sgscore1
     sets['distpsnr1']  = distpsnr1
+    sets['ssnamenr']   = ssnamenr
     sets['ncandgp']    = ncandgp
     sets['ncandgp_7']  = ncandgp_7
     sets['ncandgp_14'] = ncandgp_14
@@ -286,7 +286,9 @@ def create_insert_query(alert):
 
 #    if g_minus_r > 0.1 and g_minus_r < 0.9:
 #        print (query)
-    return query
+    if ssnamenr: ss = 1
+    else:        ss = 0
+    return {'ss':ss, 'query':query}
 
 def create_insert_annotation(objectId, annClass, ann, attrs, table, replace):
     """create_insert_annotation.
@@ -320,11 +322,6 @@ def create_insert_annotation(objectId, annClass, ann, attrs, table, replace):
 #        list.append(key + '=' + str(value))
     query += ',\n'.join(list)
     query = query.replace('None', 'NULL')
-#    print('=====')
-#    print(ann)
-#    print('--')
-#    print(query)
-#    print('=====')
     return query
 
 import os
