@@ -13,6 +13,9 @@ sys.path.append('../utility/')
 from manage_status import manage_status
 from confluent_kafka import Producer, KafkaError
 import date_nid
+from gkhtm import _gkhtm as htmCircle
+from cassandra.cluster import Cluster
+import cassandra_import
 
 def parse_args():
     """parse_args.
@@ -55,7 +58,7 @@ def store_images(message, store, candid):
         filename = '%d_%s' % (candid, cutoutType)
         store.putObject(filename, content)
 
-def insert_cassandra(alert):
+def insert_cassandra(alert, session):
     """insert_casssandra.
     Creates an insert for cassandra
     a query for inserting it.
@@ -73,8 +76,6 @@ def insert_cassandra(alert):
     # if it does not have all the ZTF attributes, don't try to ingest
     if not 'candid' in alert['candidate'] or not alert['candidate']['candid']:
         return 0
-
-    from cassandra.cluster import Cluster
 
     objectId =  alert['objectId']
 
@@ -112,16 +113,6 @@ def insert_cassandra(alert):
         # No point continuing. We have no data.
         return 0
 
-    # connect to cassandra cluster
-    try:
-        cluster = Cluster(settings.CASSANDRA_HEAD)
-        session = cluster.connect()
-        session.set_keyspace('lasair')
-    except Exception as e:
-        print("Cassandra connection failed for %s" % str(settings.CASSANDRA_HEAD))
-        print(e)
-        return 0
-
     if len(detectionCandlist) > 0:
         # Add the htm16 IDs in bulk. Could have done it above as we iterate through the candidates,
         # but the new C++ bulk code is 100 times faster than doing it one at a time.
@@ -141,7 +132,6 @@ def insert_cassandra(alert):
                 settings.CASSANDRA_NONCANDIDATES, nondetectionCandlist)
 
 
-    cluster.shutdown()
     return len(detectionCandlist)
 
 candidate_attributes = [
@@ -221,7 +211,7 @@ def join_old_and_new(alert, old):
     new['noncandidates'] = noncandidates
     return new
 
-def handle_alert(alert, json_store, image_store, producer, topicout):
+def handle_alert(alert, json_store, image_store, producer, topicout, session):
     """handle_alert.
     Filter to apply to each alert.
        See schemas: https://github.com/ZwickyTransientFacility/ztf-avro-alert
@@ -235,21 +225,14 @@ def handle_alert(alert, json_store, image_store, producer, topicout):
     """
     # here is the part of the alert that has no binary images
     alert_noimages = msg_text(alert)
-
-
-
-    # Call on Cassandra
-    insert_cassandra(alert_noimages)
-
-
-
-
-
-    candid = alert_noimages['candidate']['candid']
-
     if not alert_noimages:
         return None
 
+    # Call on Cassandra
+    ncandidate = insert_cassandra(alert_noimages, session)
+
+    # add to CephFS
+    candid = alert_noimages['candidate']['candid']
     objectId = alert_noimages['objectId']
     # fetch the stored version of the object
     jold = json_store.getObject(objectId)
@@ -266,13 +249,14 @@ def handle_alert(alert, json_store, image_store, producer, topicout):
     new_object_json = json.dumps(new, indent=2)
     json_store.putObject(objectId, new_object_json)
 
+
     # store the fits images
     store_images(alert, image_store, candid)
 
     # do not put known solar system objects into kafka
-    ss_mag = alert_noimages['candidate']['ssmagnr']
-    if ss_mag > 0:
-        return None
+#    ss_mag = alert_noimages['candidate']['ssmagnr']
+#    if ss_mag > 0:
+#        return None
 
         # produce to kafka
     if producer is not None:
@@ -282,14 +266,14 @@ def handle_alert(alert, json_store, image_store, producer, topicout):
         except Exception as e:
             print("Kafka production failed for %s" % topicout)
             print(e)
-    return objectId
+    return ncandidate
 
 class Consumer(threading.Thread):
     """Consumer.
     """
 
     # Threaded ingestion through this object
-    def __init__(self, threadID, nalert_in_list, nalert_out_list, args, json_store, image_store, conf):
+    def __init__(self, threadID, nalert_list, ncandidate_list, args, json_store, image_store, conf):
         """__init__.
 
         Args:
@@ -306,12 +290,22 @@ class Consumer(threading.Thread):
         self.json_store = json_store
         self.image_store = image_store
         self.args = args
-        self.nalert_in_list = nalert_in_list
-        self.nalert_out_list = nalert_out_list
+        self.nalert_list = nalert_list
+        self.ncandidate_list = ncandidate_list
 
     def run(self):
         """run.
         """
+        # connect to cassandra cluster
+        try:
+            cluster = Cluster(settings.CASSANDRA_HEAD)
+            session = cluster.connect()
+            session.set_keyspace('lasair')
+        except Exception as e:
+            print("Cassandra connection failed for %s" % str(settings.CASSANDRA_HEAD))
+            print(e)
+            return
+
         try:
             streamReader = alertConsumer.AlertConsumer(self.args.topic, **self.conf)
             streamReader.__enter__()
@@ -340,19 +334,20 @@ class Consumer(threading.Thread):
             maxalert = self.args.maxalert
         else:
             maxalert = 50000
+
     
-        nalert_in = 0
-        nalert_out = 0
+        nalert = 0
+        ncandidate = 0
         startt = time.time()
-        while nalert_in < maxalert:
+        while nalert < maxalert:
             t = time.time()
             try:
                 msg = streamReader.poll(decode=True, timeout=settings.KAFKA_TIMEOUT)
 #                t = time.time() -t
-#                print('%.3f %d' % (t, nalert_in))
+#                print('%.3f %d' % (t, nalert))
             except alertConsumer.EopError as e:
 #                t = time.time() -t
-#                print('%.3f eop %d' % (t, nalert_in))
+#                print('%.3f eop %d' % (t, nalert))
 #                continue
                 print('eop end of messages')
                 break
@@ -363,14 +358,14 @@ class Consumer(threading.Thread):
             else:
                 for alert in msg:
                     # Apply filter to each alert
-                    objectId = handle_alert(alert, self.json_store, self.image_store, producer, topicout)
+                    icandidate = handle_alert(alert, self.json_store, self.image_store, producer, topicout, session)
 
-                    if objectId:
-                        nalert_out += 1
+                    if icandidate > 0:
+                        nalert += 1
+                        ncandidate += icandidate
 
-                    nalert_in += 1
-                    if nalert_in%5000 == 0:
-                        print('thread %d nalert %d time %.1f' % ((self.threadID, nalert_in, time.time()-startt)))
+                    if nalert%5000 == 0:
+                        print('thread %d nalert %d time %.1f' % ((self.threadID, nalert, time.time()-startt)))
                         # if this is not flushed, it will run out of memory
                         if producer is not None:
                             producer.flush()
@@ -379,11 +374,15 @@ class Consumer(threading.Thread):
         if producer is not None:
             producer.flush()
             print('kafka flushed')
-        print('INGEST %d finished with %d alerts' % (self.threadID, nalert_in))
-        self.nalert_in_list[self.threadID] = nalert_in
-        self.nalert_out_list[self.threadID] = nalert_out
+        print('INGEST %d finished with %d alerts %d candidates' \
+                % (self.threadID, nalert, ncandidate))
+        self.nalert_list[self.threadID] = nalert
+        self.ncandidate_list[self.threadID] = ncandidate
           
         streamReader.__exit__(0,0,0)
+
+        # shut down the cassandra cluster
+        cluster.shutdown()
 
 def main():
     """main.
@@ -413,13 +412,13 @@ def main():
         nthread = 1
     print('Threads = %d' % nthread)
 
-    nalert_in_list = [0] * nthread
-    nalert_out_list = [0] * nthread
+    nalert_list = [0] * nthread
+    ncandidate_list = [0] * nthread
 
     # make the thread list
     thread_list = []
     for t in range(args.nthread):
-        thread_list.append(Consumer(t, nalert_in_list, nalert_out_list, args, json_store, image_store, conf))
+        thread_list.append(Consumer(t, nalert_list, ncandidate_list, args, json_store, image_store, conf))
     
     # start them up
     t = time.time()
@@ -430,15 +429,15 @@ def main():
     for th in thread_list:
          th.join()
 
-    nalert_in = sum(nalert_in_list)
-    nalert_out = sum(nalert_out_list)
+    nalert = sum(nalert_list)
+    ncandidate = sum(ncandidate_list)
     os.system('date')
     ms = manage_status('nid', settings.SYSTEM_STATUS)
     nid  = date_nid.nid_now()
-    ms.add({'today_ingest':nalert_in, 'today_ingest_out':nalert_out}, nid)
+    ms.add({'today_alert':nalert, 'today_candidate':ncandidate}, nid)
 
-    if nalert_in > 0: return 1
-    else:             return 0
+    if nalert > 0: return 1
+    else:          return 0
 
 if __name__ == '__main__':
     rc = main()

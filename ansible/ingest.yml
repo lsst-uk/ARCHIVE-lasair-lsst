@@ -20,6 +20,24 @@
           executable: pip3 
           name: fastavro
       become: yes
+      
+    - name: install cassandra client
+      pip:
+          executable: pip3 
+          name: cassandra-driver
+      become: yes
+
+    - name: install gkhtm
+      pip:
+          executable: pip3 
+          name: gkhtm
+      become: yes
+
+    - name: install gkutils
+      pip:
+          executable: pip3 
+          name: gkutils
+      become: yes
 
     - name: Make sure the repo is up to date
       git: 
