@@ -9,7 +9,6 @@ import numpy as np
 import ephem
 from gkhtm import _gkhtm as htmCircle
 import settings
-import cassandra_import
 
 def make_ema(candlist):
     """make_ema.
@@ -62,95 +61,6 @@ def make_ema(candlist):
         }
     return ema 
 
-def insert_cassandra(alert):
-    """insert_casssandra.
-    Creates an insert for cassandra
-    a query for inserting it.
-
-    Args:
-        alert:
-    """
-
-    # if this is not set, then we are not doing cassandra
-    try:
-        if len(settings.CASSANDRA_HEAD) == 0: return 0
-    except:
-        return 0
-
-    # if it does not have all the ZTF attributes, don't try to ingest
-    if not 'candid' in alert['candidate'] or not alert['candidate']['candid']:  
-        return 0
-
-    from cassandra.cluster import Cluster
-
-    objectId =  alert['objectId']
-
-    candlist = None
-    # Make a list of candidates and noncandidates in time order
-    if 'candidate' in alert and alert['candidate'] != None:
-        if 'prv_candidates' in alert and alert['prv_candidates'] != None:
-            candlist = alert['prv_candidates'] + [alert['candidate']]
-        else:
-            candlist = [alert['candidate']]
-
-    # will be list of real detections, each has a non-null candid
-    detectionCandlist = []
-    nondetectionCandlist = []
-
-    # 2021-03-01 KWS Issue 134: Add non detections.
-    for cand in candlist:
-        cand['objectId'] = objectId
-        if not 'candid' in cand or not cand['candid']:
-            # This is a non-detection. Just append the subset of attributes we want to keep.
-            # The generic cassandra inserter should be able to insert correctly based on this.
-            nondetectionCandlist.append({'objectId': cand['objectId'],
-                                         'jd': cand['jd'],
-                                         'fid': cand['fid'],
-                                         'diffmaglim': cand['diffmaglim'],
-                                         'nid': cand['nid'],
-                                         'field': cand['field'],
-                                         'magzpsci': cand['magzpsci'],
-                                         'magzpsciunc': cand['magzpsciunc'],
-                                         'magzpscirms': cand['magzpscirms']})
-        else:
-            detectionCandlist.append(cand)
-
-    if len(detectionCandlist) == 0 and len(nondetectionCandlist) == 0:
-        # No point continuing. We have no data.
-        return 0
-
-    # connect to cassandra cluster
-    try:
-        cluster = Cluster(settings.CASSANDRA_HEAD)
-        session = cluster.connect()
-        session.set_keyspace('lasair')
-    except Exception as e:
-        print("Cassandra connection failed for %s" % str(settings.CASSANDRA_HEAD))
-        print(e)
-        return 0
-
-    if len(detectionCandlist) > 0:
-        # Add the htm16 IDs in bulk. Could have done it above as we iterate through the candidates,
-        # but the new C++ bulk code is 100 times faster than doing it one at a time.
-        # Note that although we are inserting them into cassandra, we are NOT using
-        # HTM indexing inside Cassandra. Hence this is a redundant column.
-        htm16s = htmCircle.htmIDBulk(16, [[x['ra'],x['dec']] for x in detectionCandlist])
-
-        # Now add the htmid16 value into each dict.
-        for i in range(len(detectionCandlist)):
-            detectionCandlist[i]['htmid16'] = htm16s[i]
-
-        cassandra_import.loadGenericCassandraTable(session, \
-                settings.CASSANDRA_CANDIDATES, detectionCandlist)
-
-    if len(nondetectionCandlist) > 0:
-        cassandra_import.loadGenericCassandraTable(session, \
-                settings.CASSANDRA_NONCANDIDATES, nondetectionCandlist)
-
-
-    cluster.shutdown()
-    return len(detectionCandlist)
-
 def mymax(a, b):
     if a and b:
         if a > b: return a
@@ -198,6 +108,7 @@ def create_insert_query(alert):
     srmag1    = None
     sgscore1  = None
     distpsnr1 = None
+    ssnamenr = None
 
     g_nid = {}
     r_nid = {}
@@ -232,12 +143,16 @@ def create_insert_query(alert):
             distpsnr1 = cand['distpsnr1']
         if 'drb' in cand:
             drb = cand['drb']
+
+        ssnamenr = cand['ssnamenr']
+        if ssnamenr == 'null':
+            ssnamenr = None
+
         ncand += 1
 
-    # only want light curves with at least 2 candidates
-    if ncand <= 1:
+    # if non-solar-system and one-night stand then reject
+    if not ssnamenr and ncand <= 1:
         return None
-
 
     if len(jdg) > 0: jdgmax = max(jdg)
     else:            jdgmax = None
@@ -262,11 +177,6 @@ def create_insert_query(alert):
         if nid in g_nid.keys():
             g_minus_r = g_nid[nid][0] - r_nid[nid][0]
             jd_g_minus_r = g_nid[nid][1]
-#    if len(g_nid) > 0 and len(r_nid) > 0:
-#        print('----------')
-#        print(g_nid)
-#        print(r_nid)
-#        print(g_minus_r, jd_g_minus_r)
 
     # statistics of the g light curve
     dmdt_g = dmdt_g_2 = None
@@ -341,11 +251,12 @@ def create_insert_query(alert):
     sets['glatmean']   = glatmean
     sets['glonmean']   = glonmean
 
-    # pannstarrs
+    # miscellaneous
     sets['sgmag1']     = sgmag1
     sets['srmag1']     = srmag1
     sets['sgscore1']   = sgscore1
     sets['distpsnr1']  = distpsnr1
+    sets['ssnamenr']   = ssnamenr
     sets['ncandgp']    = ncandgp
     sets['ncandgp_7']  = ncandgp_7
     sets['ncandgp_14'] = ncandgp_14
@@ -375,7 +286,9 @@ def create_insert_query(alert):
 
 #    if g_minus_r > 0.1 and g_minus_r < 0.9:
 #        print (query)
-    return query
+    if ssnamenr: ss = 1
+    else:        ss = 0
+    return {'ss':ss, 'query':query}
 
 def create_insert_annotation(objectId, annClass, ann, attrs, table, replace):
     """create_insert_annotation.
@@ -409,11 +322,6 @@ def create_insert_annotation(objectId, annClass, ann, attrs, table, replace):
 #        list.append(key + '=' + str(value))
     query += ',\n'.join(list)
     query = query.replace('None', 'NULL')
-#    print('=====')
-#    print(ann)
-#    print('--')
-#    print(query)
-#    print('=====')
     return query
 
 import os

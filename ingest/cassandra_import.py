@@ -73,4 +73,3 @@ def loadGenericCassandraTable(session, table, data, bundlesize = 1, types = None
             #print "Error %d: %s" % (e.args[0], e.args[1])
 
     return
-

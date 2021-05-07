@@ -77,11 +77,6 @@
           executable: pip3 
           name: mocpy
 
-    - name: install Cassandra client
-      pip: 
-          executable: pip3 
-          name: cassandra-driver
-
     - name: permissions on mysql-files
       file:
           path: /var/lib/mysql-files
