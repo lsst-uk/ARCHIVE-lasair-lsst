@@ -58,7 +58,7 @@ def store_images(message, store, candid):
         filename = '%d_%s' % (candid, cutoutType)
         store.putObject(filename, content)
 
-def insert_cassandra(alert, session):
+def insert_cassandra(alert, cassandra_session):
     """insert_casssandra.
     Creates an insert for cassandra
     a query for inserting it.
@@ -68,9 +68,7 @@ def insert_cassandra(alert, session):
     """
 
     # if this is not set, then we are not doing cassandra
-    try:
-        if len(settings.CASSANDRA_HEAD) == 0: return 0
-    except:
+    if not cassandra_session:
         return 0
 
     # if it does not have all the ZTF attributes, don't try to ingest
@@ -124,11 +122,11 @@ def insert_cassandra(alert, session):
         for i in range(len(detectionCandlist)):
             detectionCandlist[i]['htmid16'] = htm16s[i]
 
-        cassandra_import.loadGenericCassandraTable(session, \
+        cassandra_import.loadGenericCassandraTable(cassandra_session, \
                 settings.CASSANDRA_CANDIDATES, detectionCandlist)
 
     if len(nondetectionCandlist) > 0:
-        cassandra_import.loadGenericCassandraTable(session, \
+        cassandra_import.loadGenericCassandraTable(cassandra_session, \
                 settings.CASSANDRA_NONCANDIDATES, nondetectionCandlist)
 
 
@@ -211,7 +209,7 @@ def join_old_and_new(alert, old):
     new['noncandidates'] = noncandidates
     return new
 
-def handle_alert(alert, json_store, image_store, producer, topicout, session):
+def handle_alert(alert, json_store, image_store, producer, topicout, cassandra_session):
     """handle_alert.
     Filter to apply to each alert.
        See schemas: https://github.com/ZwickyTransientFacility/ztf-avro-alert
@@ -229,29 +227,31 @@ def handle_alert(alert, json_store, image_store, producer, topicout, session):
         return None
 
     # Call on Cassandra
-    ncandidate = insert_cassandra(alert_noimages, session)
+    if cassandra_session:
+        ncandidate = insert_cassandra(alert_noimages, cassandra_session)
+    else:
+        ncandidate = 0
 
     # add to CephFS
     candid = alert_noimages['candidate']['candid']
     objectId = alert_noimages['objectId']
-    # fetch the stored version of the object
-    jold = json_store.getObject(objectId)
-    if jold:
-        old = json.loads(jold)
-#        print('--- old ---', old)   #####
-    else:
-        old = None
-#    print('--- alert ---', alert_noimages)   #####
-    new = join_old_and_new(alert_noimages, old)
-#    print('--- new ---', json.dumps(new, indent=2))   #####
+
+    if json_store:
+        # fetch the stored version of the object
+        jold = json_store.getObject(objectId)
+        if jold:
+            old = json.loads(jold)
+        else:
+            old = None
+        new = join_old_and_new(alert_noimages, old)
 
     # store the new version of the object
-    new_object_json = json.dumps(new, indent=2)
-    json_store.putObject(objectId, new_object_json)
-
+        new_object_json = json.dumps(new, indent=2)
+        json_store.putObject(objectId, new_object_json)
 
     # store the fits images
-    store_images(alert, image_store, candid)
+    if image_store:
+        store_images(alert, image_store, candid)
 
     # do not put known solar system objects into kafka
 #    ss_mag = alert_noimages['candidate']['ssmagnr']
@@ -299,12 +299,12 @@ class Consumer(threading.Thread):
         # connect to cassandra cluster
         try:
             cluster = Cluster(settings.CASSANDRA_HEAD)
-            session = cluster.connect()
-            session.set_keyspace('lasair')
+            cassandra_session = cluster.connect()
+            cassandra_session.set_keyspace('lasair')
         except Exception as e:
-            print("Cassandra connection failed for %s" % str(settings.CASSANDRA_HEAD))
+            print("Cassandra connection not made")
+            cassandra_session = None
             print(e)
-            return
 
         try:
             streamReader = alertConsumer.AlertConsumer(self.args.topic, **self.conf)
@@ -358,11 +358,10 @@ class Consumer(threading.Thread):
             else:
                 for alert in msg:
                     # Apply filter to each alert
-                    icandidate = handle_alert(alert, self.json_store, self.image_store, producer, topicout, session)
+                    icandidate = handle_alert(alert, self.json_store, self.image_store, producer, topicout, cassandra_session)
 
-                    if icandidate > 0:
-                        nalert += 1
-                        ncandidate += icandidate
+                    nalert += 1
+                    ncandidate += icandidate
 
                     if nalert%5000 == 0:
                         print('thread %d nalert %d time %.1f' % ((self.threadID, nalert, time.time()-startt)))
@@ -382,7 +381,8 @@ class Consumer(threading.Thread):
         streamReader.__exit__(0,0,0)
 
         # shut down the cassandra cluster
-        cluster.shutdown()
+        if cassandra_session:
+            cluster.shutdown()
 
 def main():
     """main.
@@ -401,8 +401,17 @@ def main():
         'default.topic.config': {'auto.offset.reset': 'smallest'}
     }
 
-    json_store = objectStore.objectStore(suffix='json', fileroot=args.objectdir)
-    image_store  = objectStore.objectStore(suffix='fits', fileroot=args.fitsdir)
+    if args.objectdir and len(args.objectdir) > 0:
+        json_store = objectStore.objectStore(suffix='json', fileroot=args.objectdir)
+    else:
+        print('No object directory found for file storage')
+        json_store = None
+
+    if args.fitsdir and len(args.fitsdir) > 0:
+        image_store  = objectStore.objectStore(suffix='fits', fileroot=args.fitsdir)
+    else:
+        print('No image directory found for file storage')
+        image_store = None
 
     print('Configuration = %s' % str(conf))
 

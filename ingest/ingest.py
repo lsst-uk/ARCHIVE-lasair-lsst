@@ -34,8 +34,13 @@ t = time.time()
 cmd =  'python3 ingestBatch.py '
 cmd += '--maxalert %d ' % settings.KAFKA_MAXALERTS
 cmd += '--nthread %d '  % settings.KAFKA_THREADS
-cmd += '--objectdir %s/objectjson ' % settings.BLOB_FILEROOT 
-cmd += '--fitsdir %s/fits '         % settings.BLOB_FILEROOT 
+
+try: cmd += '--objectdir %s '% settings.OBJECTJSON
+except: pass
+
+try: cmd += '--fitsdir %s '  % settings.IMAGEFITS
+except: pass
+
 cmd += '--group %s '    % settings.KAFKA_GROUPID
 cmd += '--topic %s '    % topic
 cmd += '--topicout %s ' % settings.KAFKA_TOPIC_OUT
