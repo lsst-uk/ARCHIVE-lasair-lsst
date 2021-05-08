@@ -9,6 +9,20 @@
           update_cache: true
       become: yes
 
+    - name: install swig
+      apt: 
+          name: swig
+          state: present
+          update_cache: true
+      become: yes
+
+    - name: install zlib
+      apt:
+          name: zlib1g
+          state: present
+          update_cache: true
+      become: yes
+
     - name: install confluent kafka
       pip: 
           executable: pip3 
