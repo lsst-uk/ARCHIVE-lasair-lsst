@@ -19,8 +19,16 @@ config = {
 }
 msl = mysql.connector.connect(**config)
 
-def run_tns_crossmatch(radius):
+def rebuild_tns_crossmatch(radius):
+    """ Delete all the cones and hits and remake.
+    """
     cursor  = msl.cursor(buffered=True, dictionary=True)
+    query = 'DELETE FROM watchlist_cones WHERE wl_id=%d' % settings.TNS_WATCHLIST_ID
+    cursor.execute(query)
+    query = 'DELETE FROM watchlist_hits WHERE wl_id=%d' % settings.TNS_WATCHLIST_ID
+    cursor.execute(query)
+    msl.commit()
+
     n_tns = 0
     n_hits = 0
     n_newhits = 0
@@ -66,16 +74,17 @@ def tns_name_crossmatch(tns_name, myRA, myDecl, radius, logfile=None):
         if arcsec > radius:
             continue
         n_hits += 1
-        query3 = "REPLACE into watchlist_hits (wl_id, cone_id, objectId, arcsec, name) VALUES\n"
+        query3 = "INSERT INTO watchlist_hits (wl_id, cone_id, objectId, arcsec, name) VALUES\n"
         query3 += ' (%d, %d, "%s", %.2f, "%s")' % (settings.TNS_WATCHLIST_ID, cone_id, objectId, arcsec, tns_name)
-        cursor3.execute(query3)
-        msl.commit()
-
-        s = '     matches %s\n' % objectId
-        if logfile: logfile.write(s)
-        else:       print(s)
+        try:
+            cursor3.execute(query3)
+            msl.commit()
+        except:
+            s = '     matches %s\n' % objectId
+            if logfile: logfile.write(s)
+            else:       print(s)
     return n_hits
 
 if __name__ == "__main__":
     radius = 3  # arcseconds
-    run_tns_crossmatch(radius)
+    rebuild_tns_crossmatch(radius)
