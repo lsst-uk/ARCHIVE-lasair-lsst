@@ -158,8 +158,10 @@ def pollTNS(page=0, resultSize=50, inLastNumberDays=None):
         pastTime = ""
 
     try:
+        tns_user_agent = 'tns_marker{"tns_id":2297,"type": "user", "name":"TNSrobot"}'
         response = requests.get(
             url=settings.TNS_SEARCH_URL,
+            headers={ 'User-Agent': tns_user_agent},
             params={
                 "page": page,
                 "name": "",
