@@ -1,10 +1,19 @@
 KAFKA_INPUT      = '192.41.108.22:9092'
-KAFKA_GROUPID    = 'LASAIR1'
-KAFKA_THREADS    = 1
+KAFKA_GROUPID    = 'LASAIR_speedtest'
+KAFKA_PROCESSES  = 4
 KAFKA_TIMEOUT    = 5
-KAFKA_MAXALERTS  = 100000
-KAFKA_TOPIC_OUT  = 'ztf_ingest'
+KAFKA_MAXALERTS  = 100
+
+CASSANDRA_CANDIDATES    = 'speedtest_candidates'
+CASSANDRA_NONCANDIDATES = 'speedtest_noncandidates'
+
+KAFKA_TOPIC_OUT  = 'ztf_speedtest'
 INGEST_WAIT_TIME = 180
 KAFKA_OUTPUT     = '192.41.108.22:9092'
-BLOB_FILEROOT    = '/mnt/cephfs/roy'
-SYSTEM_STATUS    = '/mnt/cephfs/roy/system_status.json'
+
+CASSANDRA_HEAD          = ['192.168.0.11']
+OBJECTJSON       = '/mnt/cephfs/roy/speedtest/objectjson'
+IMAGEFITS        = '/mnt/cephfs/roy/speedtest/fits'
+
+SYSTEM_STATUS    = '/mnt/cephfs/roy/speedtest/system_status.json'
+

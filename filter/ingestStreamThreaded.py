@@ -6,7 +6,7 @@ import os, sys
 import time
 import settings
 import mysql.connector
-import threading
+from multiprocessing import Process, Manager
 import insert_query
 import confluent_kafka
 import json
@@ -59,10 +59,10 @@ def parse_args():
                         'as in a queue). Default is value of $HOSTNAME.')
 
     parser.add_argument('--maxalert', type=int,
-                        help='Max alerts to be fetched per thread')
+                        help='Max alerts to be fetched per process')
 
-    parser.add_argument('--nthread', type=int,
-                        help='Number of threads to use')
+    parser.add_argument('--nprocess', type=int,
+                        help='Number of process to use')
 
     args = parser.parse_args()
     return args
@@ -131,78 +131,60 @@ def alert_filter(alert, msl):
                 execute_query(query, msl)
     return {'ss':iq_dict['ss'], 'nalert':1}
 
-class Consumer(threading.Thread):
-    """ Threaded consumer of kafka. Calls alert_filter() for each one
+def run(runarg, return_dict):
+    """run.
     """
-    def __init__(self, threadID, nalert_in_list, nalert_out_list, nalert_ss_list, args, conf):
-        """__init__.
+    processID = runarg['processID']
+    # Configure database connection
+    msl = make_database_connection()
 
-        Args:
-            threadID:
-            nalert_in_list:
-            nalert_out_list:
-            nalert_ss_list:
-            args:
-            conf:
-        """
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        self.nalert_in_list       = nalert_in_list
-        self.nalert_out_list      = nalert_out_list
-        self.nalert_ss_list       = nalert_ss_list
-        self.conf = conf
-        self.args = args
+    # Start consumer and print alert stream
+    try:
+        consumer = confluent_kafka.Consumer(**runarg['conf'])
+        consumer.subscribe([runarg['args'].topic])
+    except Exception as e:
+        print('INGEST Cannot start reader: %d: %s\n' % (processID, e))
+        return
 
-    def run(self):
-        """run.
-        """
-        # Configure database connection
-        msl = make_database_connection()
-    
-        # Start consumer and print alert stream
-        try:
-            consumer = confluent_kafka.Consumer(**self.conf)
-            consumer.subscribe([self.args.topic])
-        except Exception as e:
-            print('INGEST Cannot start reader: %d: %s\n' % (self.threadID, e))
-            return
-    
-        # Number of alerts in the batch
-        if self.args.maxalert:
-            maxalert = self.args.maxalert
+    # Number of alerts in the batch
+    if runarg['args'].maxalert:
+        maxalert = runarg['args'].maxalert
+    else:
+        maxalert = 50000
+
+    nalert_in = nalert_out = nalert_ss = 0
+    startt = time.time()
+    while nalert_in < maxalert:
+        # Here we get the next alert by kafka
+        msg = consumer.poll(timeout=settings.KAFKA_TIMEOUT)
+        if msg is None:
+            break
+        if msg.error():
+            continue
+        if msg.value() is None:
+            continue
         else:
-            maxalert = 50000
-    
-        nalert_in = nalert_out = nalert_ss = 0
-        startt = time.time()
-        while nalert_in < maxalert:
-            # Here we get the next alert by kafka
-            msg = consumer.poll(timeout=settings.KAFKA_TIMEOUT)
-            if msg is None:
-                break
-            if msg.error():
-                continue
-            if msg.value() is None:
-                continue
-            else:
-                # Apply filter to each alert
-                alert = json.loads(msg.value())
-                nalert_in += 1
-                d = alert_filter(alert, msl)
-                nalert_out += d['nalert']
-                nalert_ss  += d['ss']
-                if nalert_in%1000 == 0:
-                    print('thread %d nalert_in %d nalert_out  %d time %.1f' % 
-                        ((self.threadID, nalert_in, nalert_out, time.time()-startt)))
-                    # refresh the database every 1000 alerts
-                    # make sure everything is committed
-                    msl.close()
-                    msl = make_database_connection()
-    
-        consumer.close()
-        self.nalert_in_list[self.threadID] = nalert_in
-        self.nalert_out_list[self.threadID] = nalert_out
-        self.nalert_ss_list[self.threadID] = nalert_ss
+            # Apply filter to each alert
+            alert = json.loads(msg.value())
+            nalert_in += 1
+            d = alert_filter(alert, msl)
+            nalert_out += d['nalert']
+            nalert_ss  += d['ss']
+            if nalert_in%1000 == 0:
+                print('process %d nalert_in %d nalert_out  %d time %.1f' % 
+                    (processID, nalert_in, nalert_out, time.time()-startt))
+                # refresh the database every 1000 alerts
+                # make sure everything is committed
+                msl.close()
+                msl = make_database_connection()
+
+    consumer.close()
+    return_dict[processID] = {
+            'nalert_in':nalert_in, 
+            'nalert_out': nalert_out, 
+            'nalert_ss':nalert_ss 
+            }
+
 
 def main():
     """main.
@@ -219,33 +201,36 @@ def main():
     else:          conf['group.id'] = 'LASAIR'
     print('Configuration = %s' % str(conf))
 
-    # How many threads
-    if args.nthread: nthread = args.nthread
-    else:            nthread = 1
-    print('Threads = %d' % nthread)
+    # How many processs
+    if args.nprocess: nprocess = args.nprocess
+    else:             nprocess = 1
+    print('Processes = %d' % nprocess)
 
-    # number of alerts from each
-    nalert_in_list = [0] * nthread
-    nalert_out_list= [0] * nthread
-    nalert_ss_list = [0] * nthread
-
-    # make the thread list
-    thread_list = []
-    for t in range(args.nthread):
-        thread_list.append(Consumer(t, nalert_in_list, nalert_out_list, nalert_ss_list, args, conf))
-
-    # start them up
+    runargs = []
+    process_list = []
+    manager = Manager()
+    return_dict = manager.dict()
     t = time.time()
-    for th in thread_list:
-         th.start()
-    
-    # wait for them to finish
-    for th in thread_list:
-         th.join()
+    for t in range(nprocess):
+        runarg = {
+            'processID':t,
+            'args':args,
+            'conf':conf,
+        }
+        p = Process(target=run, args=(runarg, return_dict))
+        process_list.append(p)
+        p.start()
 
-    nalert_in = sum(nalert_in_list)
-    nalert_out= sum(nalert_out_list)
-    nalert_ss = sum(nalert_ss_list)
+    for p in process_list:
+        p.join()
+
+    r = return_dict.values()
+    nalert_in = nalert_out = nalert_ss = 0
+    for t in range(nprocess):
+        nalert_in  += r[t]['nalert_in']
+        nalert_out += r[t]['nalert_out']
+        nalert_ss  += r[t]['nalert_ss']
+
     print('INGEST finished %d in, %d out, %d solar system' % (nalert_in, nalert_out, nalert_ss))
 
     ms = manage_status('nid', settings.SYSTEM_STATUS)

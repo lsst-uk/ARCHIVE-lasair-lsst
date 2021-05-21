@@ -33,7 +33,7 @@ t = time.time()
 
 cmd =  'python3 ingestBatch.py '
 cmd += '--maxalert %d ' % settings.KAFKA_MAXALERTS
-cmd += '--nthread %d '  % settings.KAFKA_THREADS
+cmd += '--nprocess %d '  % settings.KAFKA_PROCESSES
 
 try: cmd += '--objectdir %s '% settings.OBJECTJSON
 except: pass

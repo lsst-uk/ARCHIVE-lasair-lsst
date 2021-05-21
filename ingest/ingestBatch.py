@@ -4,7 +4,7 @@ import sys
 import os
 import time
 import settings
-import threading
+from multiprocessing import Process, Manager
 import alertConsumer
 import objectStore
 import json
@@ -31,9 +31,9 @@ def parse_args():
                         '(i.e., only one consumer will receive a message, '
                         'as in a queue). Default is value of $HOSTNAME.')
     parser.add_argument('--maxalert', type=int,
-                        help='Max alerts to be fetched per thread')
-    parser.add_argument('--nthread', type=int,
-                        help='Number of threads to use')
+                        help='Max alerts to be fetched per process')
+    parser.add_argument('--nprocess', type=int,
+                        help='Number of processs to use')
     parser.add_argument('--objectdir', type=str,
                         help='Directory for objects')
     parser.add_argument('--fitsdir', type=str,
@@ -268,121 +268,91 @@ def handle_alert(alert, json_store, image_store, producer, topicout, cassandra_s
             print(e)
     return ncandidate
 
-class Consumer(threading.Thread):
-    """Consumer.
+def run(runarg, return_dict):
+    """run.
     """
+    processID = runarg['processID']
+    # connect to cassandra cluster
+    try:
+        cluster = Cluster(settings.CASSANDRA_HEAD)
+        cassandra_session = cluster.connect()
+        cassandra_session.set_keyspace('lasair')
+    except Exception as e:
+        print("Cassandra connection not made")
+        cassandra_session = None
+        print(e)
 
-    # Threaded ingestion through this object
-    def __init__(self, threadID, nalert_list, ncandidate_list, args, json_store, image_store, conf):
-        """__init__.
+    try:
+        streamReader = alertConsumer.AlertConsumer(runarg['args'].topic, **runarg['conf'])
+        streamReader.__enter__()
+    except alertConsumer.EopError as e:
+        print('INGEST Cannot start reader: %d: %s\n' % (processID, e.message))
+        return
 
-        Args:
-            threadID:
-            nalert_list:
-            args:
-            json_store:
-            image_store:
-            conf:
-        """
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        self.conf = conf
-        self.json_store = json_store
-        self.image_store = image_store
-        self.args = args
-        self.nalert_list = nalert_list
-        self.ncandidate_list = ncandidate_list
+    # if we are doing a kafka output
+    if runarg['args'].topicout:
+        conf = {
+            'bootstrap.servers': '%s' % settings.KAFKA_OUTPUT,
+            'group.id': 'copy-topic',
+            'client.id': 'client-1',
+            'enable.auto.commit': True,
+            'session.timeout.ms': 6000,
+            'default.topic.config': {'auto.offset.reset': 'smallest'}
+        }
+        producer = Producer(conf)
+        topicout = runarg['args'].topicout
+#        print('Producing Kafka to %s with topic %s' % (settings.KAFKA_OUTPUT, topicout))
+    else:
+        producer = None
+        topicout = None
 
-    def run(self):
-        """run.
-        """
-        # connect to cassandra cluster
+    if runarg['args'].maxalert:
+        maxalert = runarg['args'].maxalert
+    else:
+        maxalert = 50000
+
+    nalert = 0
+    ncandidate = 0
+    startt = time.time()
+    while nalert < maxalert:
+        t = time.time()
         try:
-            cluster = Cluster(settings.CASSANDRA_HEAD)
-            cassandra_session = cluster.connect()
-            cassandra_session.set_keyspace('lasair')
-        except Exception as e:
-            print("Cassandra connection not made")
-            cassandra_session = None
-            print(e)
-
-        try:
-            streamReader = alertConsumer.AlertConsumer(self.args.topic, **self.conf)
-            streamReader.__enter__()
+            msg = streamReader.poll(decode=True, timeout=settings.KAFKA_TIMEOUT)
         except alertConsumer.EopError as e:
-            print('INGEST Cannot start reader: %d: %s\n' % (self.threadID, e.message))
-            return
+            print('eop end of messages')
+            break
 
-        # if we are doing a kafka output
-        if self.args.topicout:
-            conf = {
-                'bootstrap.servers': '%s' % settings.KAFKA_OUTPUT,
-                'group.id': 'copy-topic',
-                'client.id': 'client-1',
-                'enable.auto.commit': True,
-                'session.timeout.ms': 6000,
-                'default.topic.config': {'auto.offset.reset': 'smallest'}
-            }
-            producer = Producer(conf)
-            topicout = self.args.topicout
-            print('Producing Kafka to %s with topic %s' % (settings.KAFKA_OUTPUT, topicout))
+        if msg is None:
+            print('null message end of messages')
+            break
         else:
-            producer = None
-            topicout = None
-    
-        if self.args.maxalert:
-            maxalert = self.args.maxalert
-        else:
-            maxalert = 50000
+            for alert in msg:
+                # Apply filter to each alert
+                icandidate = handle_alert(alert, runarg['json_store'], runarg['image_store'], \
+                        producer, topicout, cassandra_session)
 
-    
-        nalert = 0
-        ncandidate = 0
-        startt = time.time()
-        while nalert < maxalert:
-            t = time.time()
-            try:
-                msg = streamReader.poll(decode=True, timeout=settings.KAFKA_TIMEOUT)
-#                t = time.time() -t
-#                print('%.3f %d' % (t, nalert))
-            except alertConsumer.EopError as e:
-#                t = time.time() -t
-#                print('%.3f eop %d' % (t, nalert))
-#                continue
-                print('eop end of messages')
-                break
+                nalert += 1
+                ncandidate += icandidate
 
-            if msg is None:
-                print('null message end of messages')
-                break
-            else:
-                for alert in msg:
-                    # Apply filter to each alert
-                    icandidate = handle_alert(alert, self.json_store, self.image_store, producer, topicout, cassandra_session)
+                if nalert%5000 == 0:
+                    print('process %d nalert %d time %.1f' % \
+                            ((processID, nalert, time.time()-startt)))
+                    # if this is not flushed, it will run out of memory
+                    if producer is not None:
+                        producer.flush()
+    # finally flush
+    if producer is not None:
+        producer.flush()
 
-                    nalert += 1
-                    ncandidate += icandidate
+    print('INGEST %d finished with %d alerts %d candidates' \
+            % (processID, nalert, ncandidate))
+    streamReader.__exit__(0,0,0)
 
-                    if nalert%5000 == 0:
-                        print('thread %d nalert %d time %.1f' % ((self.threadID, nalert, time.time()-startt)))
-                        # if this is not flushed, it will run out of memory
-                        if producer is not None:
-                            producer.flush()
-    
-        # finally flush
-        if producer is not None:
-            producer.flush()
-            print('kafka flushed')
-        print('INGEST %d finished with %d alerts %d candidates' \
-                % (self.threadID, nalert, ncandidate))
-        self.nalert_list[self.threadID] = nalert
-        self.ncandidate_list[self.threadID] = ncandidate
-          
-        streamReader.__exit__(0,0,0)
+    # shut down the cassandra cluster
+    if cassandra_session:
+        cluster.shutdown()
 
-        # shut down the cassandra cluster
-        if cassandra_session:
-            cluster.shutdown()
+    return_dict[processID] = { 'nalert':nalert, 'ncandidate': ncandidate }
 
 def main():
     """main.
@@ -415,31 +385,39 @@ def main():
 
     print('Configuration = %s' % str(conf))
 
-    if args.nthread:
-        nthread = args.nthread
+    if args.nprocess:
+        nprocess = args.nprocess
     else:
-        nthread = 1
-    print('Threads = %d' % nthread)
+        nprocess = 1
+    print('Processes = %d' % nprocess)
 
-    nalert_list = [0] * nthread
-    ncandidate_list = [0] * nthread
-
-    # make the thread list
-    thread_list = []
-    for t in range(args.nthread):
-        thread_list.append(Consumer(t, nalert_list, ncandidate_list, args, json_store, image_store, conf))
-    
-    # start them up
+    runargs = []
+    process_list = []
+    manager = Manager()
+    return_dict = manager.dict()
     t = time.time()
-    for th in thread_list:
-         th.start()
-    
-    # wait for them to finish
-    for th in thread_list:
-         th.join()
+    for t in range(nprocess):
+        runarg = {
+            'processID':t, 
+            'args':args, 
+            'json_store': json_store, 
+            'image_store': image_store,
+            'conf':conf,
+        }
+        p = Process(target=run, args=(runarg, return_dict))
+        process_list.append(p)
+        p.start()
 
-    nalert = sum(nalert_list)
-    ncandidate = sum(ncandidate_list)
+    for p in process_list:
+        p.join()
+
+    r = return_dict.values()
+    nalert = ncandidate = 0
+    for t in range(nprocess):
+        nalert     += r[t]['nalert']
+        ncandidate += r[t]['ncandidate']
+    print('%d alerts and %d candidates' % (nalert, ncandidate))
+
     os.system('date')
     ms = manage_status('nid', settings.SYSTEM_STATUS)
     nid  = date_nid.nid_now()
