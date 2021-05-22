@@ -108,7 +108,12 @@ def run_query(query, msl):
                     if out_number > last_entry_number:
                         jsonout = json.dumps(out, default=datetime_converter)
                         message += jsonout + '\n'
-                send_email(email, topic, message)
+                try:
+                    send_email(email, topic, message)
+                except Exception as e:
+                    print('ERROR: Cannot send email!')
+                    print(e)
+
                 last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
 
         if active == 2:
