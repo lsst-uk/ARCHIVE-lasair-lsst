@@ -54,6 +54,12 @@ the names and order of the attributes. This is important because records are tra
 local and master database as CSV files, and if the two databases do not have identical schema, 
 including the ordering of attributes, then it will not work.
 
+### Check TNS copied to cones
+`check_TNS_cones.py`
+
+To check that every entry of the table crossmatch_tns has a corresponding entry in the table watchlist_cones.
+This means that real-time crossmatch is happening between incoming alerts and the TNS objects.
+
 ### Lasair API
 `api/runemall.py`
 

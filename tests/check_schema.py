@@ -1,18 +1,23 @@
+import sys
+import settings
 import json
+import mysql.connector
 from subprocess import Popen, PIPE
 
-args = ['mysql', '--user=ztf', '--password=123password', '--execute', 'use ztf;describe objects']
-process = Popen(args, stdout=PIPE, stderr=PIPE)
-stdout, stderr = process.communicate()
-rc = process.returncode
+config = {
+    'user'    : settings.DB_USER_REMOTE,
+    'password': settings.DB_PASS_REMOTE,
+    'host'    : settings.DB_HOST_REMOTE,
+    'database': 'ztf'
+}
+msl = mysql.connector.connect(**config)
 
+cursor = msl.cursor(buffered=True, dictionary=True)
+query = 'describe objects'
+cursor.execute(query)
 mysql_names = []
-output = stdout.decode('utf-8')
-lines = output.split('\n')[1:]
-for line in lines:
-    tok = line.split()
-    if len(tok) > 0:
-        mysql_names.append(tok[0])
+for row in cursor:
+    mysql_names.append(row['Field'])
 
 schema_names = []
 my_objects = json.loads(open('../utility/schema/objects.json').read())
