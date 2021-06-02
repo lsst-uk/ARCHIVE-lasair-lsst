@@ -17,9 +17,8 @@ config = {
     'host'    : settings.DB_HOST,
     'database': 'ztf'
 }
-msl = mysql.connector.connect(**config)
 
-def rebuild_tns_crossmatch(radius):
+def rebuild_tns_crossmatch(msl, radius):
     """ Delete all the cones and hits and remake.
     """
     cursor  = msl.cursor(buffered=True, dictionary=True)
@@ -37,11 +36,11 @@ def rebuild_tns_crossmatch(radius):
     cursor.execute(query)
     for row in cursor:
         n_tns += 1
-        n_hits += tns_name_crossmatch(row['tns_name'], row['ra'], row['decl'], radius)
+        n_hits += tns_name_crossmatch(msl, row['tns_name'], row['ra'], row['decl'], radius)
     print("%d entries in TNS, %d hits in ZTF" % (n_tns, n_hits))
     return
 
-def tns_name_crossmatch(tns_name, myRA, myDecl, radius, logfile=None):
+def tns_name_crossmatch(msl, tns_name, myRA, myDecl, radius, logfile=None):
     cursor2 = msl.cursor(buffered=True, dictionary=True)
 # insert the new TNS entry into the watchlist
     query2 = 'INSERT INTO watchlist_cones (wl_id, name, ra, decl) VALUES (%d, "%s", %f, %f)'
@@ -87,4 +86,5 @@ def tns_name_crossmatch(tns_name, myRA, myDecl, radius, logfile=None):
 
 if __name__ == "__main__":
     radius = 3  # arcseconds
-    rebuild_tns_crossmatch(radius)
+    msl = mysql.connector.connect(**config)
+    rebuild_tns_crossmatch(msl, radius)

@@ -12,9 +12,10 @@ They can run in a cron that might do the TNS polling every four hours, and the w
 and areas just after midnight UTC, before observations begin in California.
 
 ```
-1 */4 * * * python3 /home/ubuntu/lasair-lsst/services/TNS/poll_tns.py --pageSize=500 --inLastNumberOfDays=180
-10 0 * * * python3 /home/ubuntu/lasair-lsst/services/areas/make_area_files.py
-12 0 * * * python3 /home/ubuntu/lasair-lsst/services/watchlists/make_watchlist_files.py
+1  */4 * * * python3 /home/ubuntu/lasair-lsst/services/TNS/poll_tns.py --pageSize=500 --inLastNumberOfDays=180
+11 */4 * * * /home/ubuntu/lasair-lsst/services/localTNS/dumpTNS.sh 
+10   0 * * * python3 /home/ubuntu/lasair-lsst/services/areas/make_area_files.py
+12   0 * * * python3 /home/ubuntu/lasair-lsst/services/watchlists/make_watchlist_files.py
 ```
 
 There is a special watchlist called __TNS__ that should be a mirror of the `crossmatch_tns` 
@@ -40,6 +41,13 @@ special `__TNS__` watchlist, and the endpoint of the TNS service, currently
 
 There is other code for checking that the `crossmatch_tns` table is complete,
 these are `poll_tns_periodic.sh` and `run_all_TNS.sh`
+
+## `dumpTNS.sh`
+In order that streaming queries work properly on the filter nodes, the local database there must
+have the updated TNS database, the table called crossmatch_tns. Therefore we have this process
+running right after the updata of TNS that runs on the database node, and does mysqldump for that
+table, putting the result in the CephFS. Each filter node should also have a crontab to fetch 
+that file and build it into the local database, that is the script get_crossmatch_tns.sh.
 
 ## `make_area_files.py`
 This code checks for new or updated area files uploaded to the database, and

@@ -305,7 +305,7 @@ def getTNSData(opts):
             insertTNS(conn, row)
             logfile.write("Object %s has been added\n" % row['suffix'])
             run_tns_crossmatch.tns_name_crossmatch(\
-                    row['suffix'], ra, dec, radius, logfile=logfile)
+                    conn, row['suffix'], ra, dec, radius, logfile=logfile)
 
             rowsAdded += 1
         #print prefix, suffix, ra, dec, htm16, row['Discovery Date (UT)']
