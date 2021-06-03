@@ -199,11 +199,15 @@ def join_old_and_new(alert, old):
     allcandidates = sorted(allcandidates, key=lambda c:c['jd'], reverse=True)
     candidates = []
     noncandidates = []
+    oldjd = 0
     for c in allcandidates:
+        if oldjd == c['jd']:  # remove repeats
+            continue
         if 'candid' in c and c['candid']:
             candidates.append(c)
         else:
             noncandidates.append(c)
+        oldjd = c['jd']
 
     new['candidates'] = candidates
     new['noncandidates'] = noncandidates
