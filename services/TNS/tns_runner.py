@@ -16,7 +16,9 @@ while 1:
 
     # compute the starting conditions
     worker_args = ['--pageSize=500', '--inLastNumberOfDays=180']
-    print('Args are ', worker_args)
+    rtxt = 'poll_tns at ' +  now()
+    print(rtxt)
+    log.write(rtxt + '\n')
 
     # start the worker in subprocess
     args = ['python3', 'poll_tns.py'] + worker_args
@@ -38,6 +40,9 @@ while 1:
 #            slack_webhook.send(rtxt)
 
     # close the log and get the return code
-    log.close()
     rc = process.wait()
+    rtxt = 'poll_tns exit at ' +  now()
+    print(rtxt)
+    log.write(rtxt + '\n')
+    log.close()
     time.sleep(settings.TNS_REPEAT_TIME)

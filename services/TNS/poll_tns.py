@@ -51,7 +51,7 @@ def getTNSRow(conn, tnsName):
       cursor.close ()
 
    except MySQLdb.Error as e:
-      print("ERROR in services/TNS: cannot connect to master database, Error %d: %s\n" % (e.args[0], e.args[1])
+      print("ERROR in services/TNS: cannot connect to master database, Error %d: %s\n" % (e.args[0], e.args[1]))
       sys.stdout.flush()
       sys.exit (1)
 
