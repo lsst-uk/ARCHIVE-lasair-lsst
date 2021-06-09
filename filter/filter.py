@@ -112,6 +112,7 @@ tablelist = ['objects', 'sherlock_classifications', 'watchlist_hits', 'area_hits
 
 ##### send CSV file to central database
 for table in tablelist:
+    t = time.time()
     outfile = '/var/lib/mysql-files/%s.txt' % table
     if os.path.exists(outfile) and os.stat(outfile).st_size == 0:
         print('SEND %s file is empty' % table)
@@ -125,12 +126,13 @@ for table in tablelist:
             print('ERROR in filter/filter: cannot copy CSV to master database node')
             sys.stdout.flush()
 
+t = time.time()
 ##### ingest CSV file to central database
         cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s__%s"' % (settings.DB_HOST_REMOTE, vm, table)
         if os.system(cmd) > 0:
             print('ERROR in filter/filter: cannot ingest CSV on master database node')
             sys.stdout.flush()
-print('SEND %.1f seconds' % (time.time() - t))
+print('Ingest at master %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 
 ms = manage_status('nid', settings.SYSTEM_STATUS)
@@ -140,7 +142,7 @@ ms.set({
     'today_database':d['count'], 
     'min_delay':d['delay'], 
     'total_count': d['total_count']})
-
+print('Exit status', rc)
+sys.stdout.flush()
 if rc > 0: sys.exit(1)
 else:      sys.exit(0)
-

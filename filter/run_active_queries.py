@@ -130,7 +130,7 @@ def run_query(query, msl):
                 # last_entry not really used with kafka, just a record of last blast
                 last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
             except Exception as e:
-                print("ERROR in filter/run_active_queries: cannot produce to public kafka)
+                print("ERROR in filter/run_active_queries: cannot produce to public kafka")
                 print(e)
                 sys.stdout.flush()
 
