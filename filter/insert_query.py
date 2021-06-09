@@ -219,7 +219,8 @@ def create_insert_query(alert):
         htm16 = htmCircle.htmID(16, ramean, decmean)
     except:
         htm16 = 0
-        print('Cannot get HTMID for ra=%f, dec=%f' % (ramean, decmean))
+        print('ERROR: filter/insert_query: Cannot compute HTM index')
+        sys.stdout.flush()
 
     # dictionary of attributes
     sets = {}

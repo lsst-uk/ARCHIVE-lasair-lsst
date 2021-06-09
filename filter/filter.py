@@ -38,6 +38,7 @@ print('------------------')
 ##### clear out the local database
 os.system('date')
 print('clear local caches')
+sys.stdout.flush()
 cmd = 'python3 refresh.py'
 os.system(cmd)
 
@@ -58,38 +59,54 @@ print(cmd)
 rc = os.system(cmd)
 print('INGEST duration %.1f seconds' % (time.time() - t))
 
-msl = db_connect()
+try:
+    msl = db_connect()
+except:
+    print('ERROR in filter/filter: cannot connect to local database')
+    sys.stdout.flush()
+
 ##### run the watchlists
 print('WATCHLIST start %s' % datetime.utcnow().strftime("%H:%M:%S"))
+sys.stdout.flush()
 t = time.time()
 hits = get_watchlist_hits(msl, settings.WATCHLIST_MOCS, settings.WATCHLIST_CHUNK)
 print('got %d watchlist hits' % len(hits))
+sys.stdout.flush()
 if len(hits) > 0:
     insert_watchlist_hits(msl, hits)
 print('WATCHLIST %.1f seconds' % (time.time() - t))
+sys.stdout.flush()
 
 ##### run the areas
 print('AREA start %s' % datetime.utcnow().strftime("%H:%M:%S"))
+sys.stdout.flush()
 t = time.time()
 hits = get_area_hits(msl, settings.AREA_MOCS)
 print('got %d area hits' % len(hits))
+sys.stdout.flush()
 if len(hits) > 0:
     insert_area_hits(msl, hits)
 print('AREA %.1f seconds' % (time.time() - t))
+sys.stdout.flush()
 
 ##### run the user queries
 print('QUERIES start %s' % datetime.utcnow().strftime("%H:%M:%S"))
+sys.stdout.flush()
 t = time.time()
 run_active_queries.run_queries()
 print('QUERIES %.1f seconds' % (time.time() - t))
+sys.stdout.flush()
 
 ##### build CSV file with local database
 t = time.time()
 print('SEND to ARCHIVE')
+sys.stdout.flush()
 cmd = 'rm /var/lib/mysql-files/*'
 os.system(cmd)
 cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_LOCAL
-os.system(cmd)
+if os.system(cmd) > 0:
+    print('ERROR in filter/filter: cannot build CSV from local database')
+    sys.stdout.flush()
 
 tablelist = ['objects', 'sherlock_classifications', 'watchlist_hits', 'area_hits']
 
@@ -99,15 +116,22 @@ for table in tablelist:
     if os.path.exists(outfile) and os.stat(outfile).st_size == 0:
         print('SEND %s file is empty' % table)
         print('SEND %.1f seconds' % (time.time() - t))
+        sys.stdout.flush()
     else:
         vm = gethostname()
         cmd = 'scp /var/lib/mysql-files/%s.txt %s:scratch/%s__%s' % (table, settings.DB_HOST_REMOTE, vm, table)
         os.system(cmd)
+        if os.system(cmd) > 0:
+            print('ERROR in filter/filter: cannot copy CSV to master database node')
+            sys.stdout.flush()
 
 ##### ingest CSV file to central database
         cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s__%s"' % (settings.DB_HOST_REMOTE, vm, table)
-        os.system(cmd)
+        if os.system(cmd) > 0:
+            print('ERROR in filter/filter: cannot ingest CSV on master database node')
+            sys.stdout.flush()
 print('SEND %.1f seconds' % (time.time() - t))
+sys.stdout.flush()
 
 ms = manage_status('nid', settings.SYSTEM_STATUS)
 d = since_midnight()

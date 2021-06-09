@@ -32,7 +32,13 @@ def read_watchlist_cache_files(cache_dir):
         cache_dir:
     """
     watchlistlist = []
-    for wl_dir in os.listdir(cache_dir):
+    try:
+        dir_list = os.listdir(cache_dir)
+    except:
+        print('ERROR in filter/check_alerts_watchlists: cannot read watchlist cache directory')
+        sys.stdout.flush()
+
+    for wl_dir in dir_list:
         # every directory in the cache should be of the form wl_<nn> 
         # where nn is the watchlist id
         try:     wl_id = int(wl_dir[3:])
@@ -212,7 +218,6 @@ def insert_watchlist_hits(msl, hits):
         msl:
         hits:
     """
-    print('inserting')
     cursor = msl.cursor(buffered=True, dictionary=True)
 
     query = "REPLACE into watchlist_hits (wl_id, cone_id, objectId, arcsec, name) VALUES\n"
@@ -225,7 +230,8 @@ def insert_watchlist_hits(msl, hits):
        cursor.execute(query)
        cursor.close()
     except mysql.connector.Error as err:
-       print('WATCHLIST object Database insert candidate failed: %s' % str(err))
+       print('ERROR in filter/check_alerts_watchlists: insert watchlist_hit failed: %s' % str(err))
+       sys.stdout.flush()
     msl.commit()
 
 if __name__ == "__main__":

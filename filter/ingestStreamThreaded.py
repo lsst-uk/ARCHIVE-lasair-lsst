@@ -84,10 +84,11 @@ def execute_query(query, msl):
         cursor = msl.cursor(buffered=True)
         cursor.execute(query)
         cursor.close()
+        msl.commit()
     except mysql.connector.Error as err:
-        print('INGEST object Database insert candidate failed: %s' % str(err))
+        print('ERROR filter/ingestStream: object Database insert candidate failed: %s' % str(err))
         print(query)
-    msl.commit()
+        sys.stdout.flush()
 
 def alert_filter(alert, msl):
     """alert_filter.
@@ -136,14 +137,20 @@ def run(runarg, return_dict):
     """
     processID = runarg['processID']
     # Configure database connection
-    msl = make_database_connection()
+    try:
+        msl = make_database_connection()
+    except Exception as e:
+        print('ERROR cannot connect to local database', e)
+        sys.stdout.flush()
+        return
 
     # Start consumer and print alert stream
     try:
         consumer = confluent_kafka.Consumer(**runarg['conf'])
         consumer.subscribe([runarg['args'].topic])
     except Exception as e:
-        print('INGEST Cannot start reader: %d: %s\n' % (processID, e))
+        print('ERROR cannot connect to kafka', e)
+        sys.stdout.flush()
         return
 
     # Number of alerts in the batch
@@ -173,6 +180,7 @@ def run(runarg, return_dict):
             if nalert_in%1000 == 0:
                 print('process %d nalert_in %d nalert_out  %d time %.1f' % 
                     (processID, nalert_in, nalert_out, time.time()-startt))
+                sys.stdout.flush()
                 # refresh the database every 1000 alerts
                 # make sure everything is committed
                 msl.close()
@@ -205,6 +213,7 @@ def main():
     if args.nprocess: nprocess = args.nprocess
     else:             nprocess = 1
     print('Processes = %d' % nprocess)
+    sys.stdout.flush()
 
     runargs = []
     process_list = []
@@ -232,6 +241,7 @@ def main():
         nalert_ss  += r[t]['nalert_ss']
 
     print('INGEST finished %d in, %d out, %d solar system' % (nalert_in, nalert_out, nalert_ss))
+    sys.stdout.flush()
 
     ms = manage_status('nid', settings.SYSTEM_STATUS)
     nid  = date_nid.nid_now()

@@ -122,7 +122,6 @@ def insert_area_hits(msl, hits):
         msl:
         hits:
     """
-    print('inserting')
     cursor = msl.cursor(buffered=True, dictionary=True)
 
     query = "REPLACE into area_hits (ar_id, objectId) VALUES\n"
@@ -134,7 +133,8 @@ def insert_area_hits(msl, hits):
        cursor.execute(query)
        cursor.close()
     except mysql.connector.Error as err:
-       print('AREA object Database insert candidate failed: %s' % str(err))
+       print('ERROR in filter/check_alerts_areas cannot insert areas_hits: %s' % str(err))
+       sys.stdout.flush()
     msl.commit()
 
 if __name__ == "__main__":

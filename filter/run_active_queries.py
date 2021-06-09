@@ -2,7 +2,7 @@
 Fetch them from database, construct SQL, execute, produce kafka
 """
 
-import os
+import os, sys
 import time
 import json
 import settings
@@ -75,6 +75,7 @@ def run_query(query, msl):
         print("SQL error for %s" % topic)
         print(e)
         print(sqlquery_real)
+        sys.stdout.flush()
         return 0
 
     #print(recent)
@@ -101,6 +102,7 @@ def run_query(query, msl):
             # send a message at most every 24 hours
             if delta > 1.0:
                 print('   --- send email to %s' % email)
+                sys.stdout.flush()
                 message = 'Your active query with Lasair on topic ' + topic + '\n'
                 for out in allrecords: 
                     out_number = datetime.datetime.strptime(out['UTC'], "%Y-%m-%d %H:%M:%S")
@@ -111,8 +113,9 @@ def run_query(query, msl):
                 try:
                     send_email(email, topic, message)
                 except Exception as e:
-                    print('ERROR: Cannot send email!')
+                    print('ERROR in filter/run_active_queries: Cannot send email!')
                     print(e)
+                    sys.stdout.flush()
 
                 last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -127,8 +130,9 @@ def run_query(query, msl):
                 # last_entry not really used with kafka, just a record of last blast
                 last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
             except Exception as e:
-                print("Kafka production failed for %s" % topic)
+                print("ERROR in filter/run_active_queries: cannot produce to public kafka)
                 print(e)
+                sys.stdout.flush()
 
         digestdict = {'last_entry': last_entry_text, 'digest':allrecords}
         digestdict_text = json.dumps(digestdict, indent=2, default=datetime_converter)
@@ -175,16 +179,23 @@ def run_queries():
         'host'    : settings.DB_HOST_LOCAL,
         'database': 'ztf'
     }
-    msl_local = mysql.connector.connect(**config)
+    try:
+        msl_local = mysql.connector.connect(**config)
+    except:
+        print('ERROR in filter/run_active_queries: cannot connecto to local database')
+        sys.stdout.flush()
 
     for query in query_list:
         t = time.time()
         n = run_query(query, msl_local)
         t = time.time() - t
         print('   %s got %d in %.1f seconds' % (query['topic_name'], n, t))
+        sys.stdout.flush()
 
 if __name__ == "__main__":
     print('--------- RUN ACTIVE QUERIES -----------')
+    sys.stdout.flush()
     t = time.time()
     run_queries()
     print('Active queries done in %.1f seconds' % (time.time() - t))
+    sys.stdout.flush()

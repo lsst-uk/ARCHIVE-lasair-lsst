@@ -32,8 +32,6 @@ sys.path.append('/home/ubuntu/lasair-lsst/utility')
 import date_nid
 import settings
 
-logfile = ''
-
 def getTNSRow(conn, tnsName):
    """
    Has the TNS row been updated compared with what's in the database?
@@ -53,8 +51,8 @@ def getTNSRow(conn, tnsName):
       cursor.close ()
 
    except MySQLdb.Error as e:
-      s = "Error %d: %s\n" % (e.args[0], e.args[1])
-      logfile.write(s)
+      print("ERROR in services/TNS: cannot connect to master database, Error %d: %s\n" % (e.args[0], e.args[1])
+      sys.stdout.flush()
       sys.exit (1)
 
    return resultSet
@@ -139,9 +137,10 @@ def insertTNS(conn, tnsEntry):
 
     except MySQLdb.Error as e:
         if e[0] == 1142: # Can't insert - don't have permission
-            logfile.write("Can't insert.  User doesn't have permission.\n")
+            print("ERROR in services/TNS/poll_tns: Can't insert.  User doesn't have permission.\n")
         else:
-            logfile.write(e)
+            print('ERROR in services/TNS/poll_tns', e)
+        sys.stdout.flush()
 
     #insertId = conn.insert_id()
     conn.commit()
@@ -213,8 +212,8 @@ def pollTNS(page=0, resultSize=50, inLastNumberDays=None):
         content = response.text
         status_code = response.status_code
     except requests.exceptions.RequestException:
-        logfile.write('HTTP Request failed\n')
-        logfile.write(response.text)
+        print('ERROR in services/TNS/poll_tns: HTTP Request to TNS failed\n')
+        print(response.text)
         sys.exit(0)
 
     return status_code, content
@@ -242,7 +241,7 @@ def getTNSData(opts):
 
     conn = dbConnect(hostname, username, password, database)
     if not conn:
-        logfile.write("Cannot connect to the database\n")
+        print("ERROR in services/TNS/poll_tns: Cannot connect to the database\n")
         return 1
 
     radius = 3.0 # arcseconds from crossmatch
@@ -286,7 +285,7 @@ def getTNSData(opts):
         row['suffix'] = suffix
         ra, dec = coords_sex_to_dec(row['RA'], row['DEC'])
         if ra == 0 and dec == 0:
-            logfile.write("Cannot store record for %s. No coordinates provided!\n" % row['Name'].strip())
+            print("in services/TNS/poll_tns: Cannot store record for %s. No coordinates provided!\n" % row['Name'].strip())
             continue
 
         row['ra'] = ra
@@ -299,18 +298,18 @@ def getTNSData(opts):
                 # The entry has been updated on TNS - classified! Otherwise do nothing!
                 deleteTNSRow(conn, suffix)
                 insertTNS(conn, row)
-                logfile.write("Object %s has been updated\n" % row['suffix'])
+                print("Object %s has been updated\n" % row['suffix'])
                 rowsChanged += 1
         else:
             insertTNS(conn, row)
-            logfile.write("Object %s has been added\n" % row['suffix'])
+            print("Object %s has been added\n" % row['suffix'])
             run_tns_crossmatch.tns_name_crossmatch(\
-                    conn, row['suffix'], ra, dec, radius, logfile=logfile)
+                    conn, row['suffix'], ra, dec, radius)
 
             rowsAdded += 1
         #print prefix, suffix, ra, dec, htm16, row['Discovery Date (UT)']
 
-    logfile.write("Total rows added = %d, modified = %d\n" % (rowsAdded, rowsChanged))
+    print("Total rows added = %d, modified = %d\n" % (rowsAdded, rowsChanged))
 
     conn.commit()
     conn.close()

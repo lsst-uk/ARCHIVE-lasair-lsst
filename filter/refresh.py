@@ -1,5 +1,6 @@
 """ Clear out the local database
 """
+import sys
 import settings
 import mysql.connector
 config = {
@@ -8,8 +9,12 @@ config = {
     'host'    : settings.DB_HOST_LOCAL,
     'database': 'ztf'
 }
-msl = mysql.connector.connect(**config)
-cursor = msl.cursor(buffered=True, dictionary=True)
+try:
+    msl = mysql.connector.connect(**config)
+    cursor = msl.cursor(buffered=True, dictionary=True)
+except:
+    print('ERROR in filter/refresh: cannot clear local database')
+    sys.stdout.flush()
 
 query = 'TRUNCATE TABLE objects'
 cursor.execute(query)

@@ -268,8 +268,9 @@ def handle_alert(alert, json_store, image_store, producer, topicout, cassandra_s
             s = json.dumps(alert_noimages)
             producer.produce(topicout, json.dumps(alert_noimages))
         except Exception as e:
-            print("Kafka production failed for %s" % topicout)
+            print("ERROR in ingest/ingestBatch: Kafka production failed for %s" % topicout)
             print(e)
+            sys.stdout.flush()
     return ncandidate
 
 def run(runarg, return_dict):
@@ -282,7 +283,8 @@ def run(runarg, return_dict):
         cassandra_session = cluster.connect()
         cassandra_session.set_keyspace('lasair')
     except Exception as e:
-        print("Cassandra connection not made")
+        print("ERROR in ingest/ingestBatch: Cannot connect to Cassandra")
+        sys.stdout.flush()
         cassandra_session = None
         print(e)
 
@@ -290,7 +292,8 @@ def run(runarg, return_dict):
         streamReader = alertConsumer.AlertConsumer(runarg['args'].topic, **runarg['conf'])
         streamReader.__enter__()
     except alertConsumer.EopError as e:
-        print('INGEST Cannot start reader: %d: %s\n' % (processID, e.message))
+        print('ERROR in ingest/ingestBatch: Cannot connect to Kafka')
+        sys.stdout.flush()
         return
 
     # if we are doing a kafka output
@@ -324,10 +327,12 @@ def run(runarg, return_dict):
             msg = streamReader.poll(decode=True, timeout=settings.KAFKA_TIMEOUT)
         except alertConsumer.EopError as e:
             print('eop end of messages')
+            sys.stdout.flush()
             break
 
         if msg is None:
             print('null message end of messages')
+            sys.stdout.flush()
             break
         else:
             for alert in msg:
@@ -340,6 +345,7 @@ def run(runarg, return_dict):
 
                 if nalert%5000 == 0:
                     print('process %d nalert %d time %.1f' % \
+                    sys.stdout.flush()
                             ((processID, nalert, time.time()-startt)))
                     # if this is not flushed, it will run out of memory
                     if producer is not None:
@@ -350,6 +356,7 @@ def run(runarg, return_dict):
 
     print('INGEST %d finished with %d alerts %d candidates' \
             % (processID, nalert, ncandidate))
+    sys.stdout.flush()
     streamReader.__exit__(0,0,0)
 
     # shut down the cassandra cluster
@@ -378,13 +385,15 @@ def main():
     if args.objectdir and len(args.objectdir) > 0:
         json_store = objectStore.objectStore(suffix='json', fileroot=args.objectdir)
     else:
-        print('No object directory found for file storage')
+        print('ERROR in ingest/ingestBatch: No object directory found for file storage')
+        sys.stdout.flush()
         json_store = None
 
     if args.fitsdir and len(args.fitsdir) > 0:
         image_store  = objectStore.objectStore(suffix='fits', fileroot=args.fitsdir)
     else:
-        print('No image directory found for file storage')
+        print('ERROR in ingest/ingestBatch: No image directory found for file storage')
+        sys.stdout.flush()
         image_store = None
 
     print('Configuration = %s' % str(conf))
@@ -394,6 +403,7 @@ def main():
     else:
         nprocess = 1
     print('Processes = %d' % nprocess)
+    sys.stdout.flush()
 
     runargs = []
     process_list = []
@@ -421,6 +431,7 @@ def main():
         nalert     += r[t]['nalert']
         ncandidate += r[t]['ncandidate']
     print('%d alerts and %d candidates' % (nalert, ncandidate))
+    sts.stdout.flush()
 
     os.system('date')
     ms = manage_status('nid', settings.SYSTEM_STATUS)
