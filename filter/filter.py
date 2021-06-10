@@ -51,7 +51,7 @@ cmd =  'python3 ingestStreamThreaded.py '
 cmd += '--maxalert %d ' % settings.KAFKA_MAXALERTS
 cmd += '--nprocess %d ' % settings.KAFKA_PROCESSES
 cmd += '--group %s '    % settings.KAFKA_GROUPID
-cmd += '--host %s '     % settings.KAFKA_PRODUCER
+cmd += '--host %s '     % settings.KAFKA_HOST
 cmd += '--topic ' + topic
 
 print(cmd)
@@ -111,12 +111,11 @@ if os.system(cmd) > 0:
 tablelist = ['objects', 'sherlock_classifications', 'watchlist_hits', 'area_hits']
 
 ##### send CSV file to central database
+t = time.time()
 for table in tablelist:
-    t = time.time()
     outfile = '/var/lib/mysql-files/%s.txt' % table
     if os.path.exists(outfile) and os.stat(outfile).st_size == 0:
         print('SEND %s file is empty' % table)
-        print('SEND %.1f seconds' % (time.time() - t))
         sys.stdout.flush()
     else:
         vm = gethostname()
@@ -126,13 +125,12 @@ for table in tablelist:
             print('ERROR in filter/filter: cannot copy CSV to master database node')
             sys.stdout.flush()
 
-t = time.time()
 ##### ingest CSV file to central database
         cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s__%s"' % (settings.DB_HOST_REMOTE, vm, table)
         if os.system(cmd) > 0:
             print('ERROR in filter/filter: cannot ingest CSV on master database node')
             sys.stdout.flush()
-print('Ingest at master %.1f seconds' % (time.time() - t))
+print('Transfer to master %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 
 ms = manage_status('nid', settings.SYSTEM_STATUS)

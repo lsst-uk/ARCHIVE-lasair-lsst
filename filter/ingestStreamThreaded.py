@@ -201,7 +201,7 @@ def main():
 
     # Configure consumer connection to Kafka broker
     conf = {
-        'bootstrap.servers': '%s:9092' % args.host,
+        'bootstrap.servers': '%s' % args.host,
         'default.topic.config': {
              'auto.offset.reset': 'smallest'
         }}

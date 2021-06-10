@@ -22,6 +22,7 @@ while 1:
     if os.path.isfile(settings.LOCKFILE):
         args = ['python3', 'filter.py']
         if arg: args.append(arg)
+        print('------', now())
         process = Popen(args, stdout=PIPE, stderr=PIPE)
 
         while 1:
@@ -38,10 +39,11 @@ while 1:
 #            if rtxt.startswith('ERROR'):
 #                slack_webhook.send(rtxt)
 
+        process.wait()
         rc = process.returncode
 
         # if we timed out of kafka, wait a while and ask again
-        if rc == 0:  # no more to get
+        if rc > 0:  # no more to get
             log.write("END waiting %d seconds ...\n\n" % settings.WAIT_TIME)
             time.sleep(settings.WAIT_TIME)
         # else just go ahead immediately
