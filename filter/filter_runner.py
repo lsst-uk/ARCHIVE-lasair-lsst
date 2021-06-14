@@ -4,6 +4,9 @@ import os, sys, time
 import settings
 from datetime import datetime
 from subprocess import Popen, PIPE
+sys.path.append('../utility/')
+import slack_webhook
+
 def now():
     # current UTC as string
     return datetime.utcnow().strftime("%Y/%m/%dT%H:%M:%S")
@@ -36,13 +39,25 @@ while 1:
             print(rtxt)
 
             # scream to the humans if ERROR
-#            if rtxt.startswith('ERROR'):
-#                slack_webhook.send(rtxt)
+            if rtxt.startswith('ERROR'):
+                slack_webhook.send(rtxt)
+
+        while 1:
+            # same with stderr
+            rbin = process.stderr.readline()
+            if len(rbin) == 0: break
+
+            # if the worher uses 'print', there will be at least the newline
+            rtxt = 'stderr:' + rbin.decode('ascii').rstrip()
+            log.write(rtxt + '\n')
+            print(rtxt)
+
 
         process.wait()
         rc = process.returncode
 
         # if we timed out of kafka, wait a while and ask again
+        log.write(now() + '\n')
         if rc > 0:  # no more to get
             log.write("END waiting %d seconds ...\n\n" % settings.WAIT_TIME)
             time.sleep(settings.WAIT_TIME)

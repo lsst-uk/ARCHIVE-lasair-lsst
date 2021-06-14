@@ -120,7 +120,14 @@ def run_query(query, msl):
                 last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
 
         if active == 2:
-            conf = { 'bootstrap.servers': settings.KAFKA_PRODUCER }
+            conf = {
+                'bootstrap.servers': settings.KAFKA_PRODUCER,
+                'security.protocol': 'SASL_PLAINTEXT',
+                'sasl.mechanisms': 'SCRAM-SHA-256',
+                'sasl.username': 'admin',
+                'sasl.password': settings.KAFKA_PASSWORD
+            }
+
             try:
                 p = Producer(conf)
                 for out in recent: 
