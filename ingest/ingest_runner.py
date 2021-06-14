@@ -4,7 +4,7 @@ from subprocess import Popen, PIPE
 import settings
 sys.path.append('../utility/')
 import date_nid
-#import slack_webhook
+import slack_webhook
 
 """ Fire up the the ingestion and keep the results in a log file
     the start it again afte a minute or so
@@ -37,8 +37,18 @@ while 1:
             log.write(rtxt + '\n')
 
             # scream to the humans if ERROR
-#            if rtxt.startswith('ERROR'):
-#                slack_webhook.send(rtxt)
+            if rtxt.startswith('ERROR'):
+                slack_webhook.send(rtxt)
+
+        while 1:
+            # same with stderr
+            rbin = process.stderr.readline()
+            if len(rbin) == 0: break
+
+            # if the worher uses 'print', there will be at least the newline
+            rtxt = 'stderr:' + rbin.decode('ascii').rstrip()
+            log.write(rtxt + '\n')
+            print(rtxt)
 
         process.wait()
         rc = process.returncode

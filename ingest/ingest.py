@@ -223,10 +223,10 @@ def handle_alert(alert, json_store, image_store, producer, topicout, cassandra_s
 
     if json_store:
         # fetch the stored version of the object
-        jold = json_store.getObject(objectId)
-        if jold:
+        try:
+            jold = json_store.getObject(objectId)
             old = json.loads(jold)
-        else:
+        except:
             old = None
         new = join_old_and_new(alert_noimages, old)
 
@@ -278,21 +278,17 @@ def run(runarg, return_dict):
         sys.stdout.flush()
         return
 
-    # if we are doing a kafka output
-    if runarg['topicout']:
-        conf = {
-            'bootstrap.servers': '%s' % settings.KAFKA_OUTPUT,
-            'group.id': 'copy-topic',
-            'client.id': 'client-1',
-            'enable.auto.commit': True,
-            'session.timeout.ms': 6000,
-            'default.topic.config': {'auto.offset.reset': 'smallest'}
-        }
-        producer = Producer(conf)
+    topicout = runarg['topicout']
+    conf = {
+        'bootstrap.servers': '%s' % settings.KAFKA_OUTPUT,
+        'group.id': 'copy-topic',
+        'client.id': 'client-1',
+        'enable.auto.commit': True,
+        'session.timeout.ms': 6000,
+        'default.topic.config': {'auto.offset.reset': 'smallest'}
+    }
+    producer = Producer(conf)
 #        print('Producing Kafka to %s with topic %s' % (settings.KAFKA_OUTPUT, topicout))
-    else:
-        producer = None
-        topicout = None
 
     if runarg['maxalert']:
         maxalert = runarg['maxalert']
@@ -324,10 +320,10 @@ def run(runarg, return_dict):
                 nalert += 1
                 ncandidate += icandidate
 
-                if nalert%5000 == 0:
+                if nalert%1000 == 0:
                     print('process %d nalert %d time %.1f' % \
-                    sys.stdout.flush()
                             ((processID, nalert, time.time()-startt)))
+                    sys.stdout.flush()
                     # if this is not flushed, it will run out of memory
                     if producer is not None:
                         producer.flush()
