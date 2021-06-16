@@ -13,6 +13,8 @@ RUN pip3 install \
   qub-sherlock==2.1.8
 
 COPY wrapper.py /
+COPY wrapper_runner.py /
+COPY slack_webhook.py /
 
-CMD python3 /wrapper.py --config=$WRAPPER_CONFIG
+CMD python3 /wrapper_runner.py python3 /wrapper.py --config=$WRAPPER_CONFIG
 
