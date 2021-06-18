@@ -6,7 +6,7 @@
   vars:
     image: "gpfrancis/sherlock-wrapper:0.5.13"
     brokers: "192.41.108.36:9092,192.41.108.24:9092,192.41.108.36:9092"
-    group_id: "sherlock_wrapper_0"
+    group_id: "sherlock_wrapper_1"
     input_topic: "ztf_ingest"
     output_topic: "ztf_sherlock"
     vault: "{{ lookup('hashi_vault', 'secret=secret/lasair/sherlock')}}"
@@ -48,4 +48,6 @@
           - 'sherlock_wrapper'
         state:
           present
+        scale:
+          sherlock_wrapper: 3
 
