@@ -5,13 +5,15 @@ import subprocess
 import sys
 import re
 import time
+import json
 import slack_webhook
-sys.path.append('/opt/lasair/')
-import settings
 
 delay = 60
 max_delay = 21600
 sys.argv.pop(0)
+
+with open("/opt/lasair/wrapper_runner.json") as file:
+    settings = json.load(file)
 
 print ("Starting Sherlock wrapper.")
 sys.stdout.flush()
@@ -25,7 +27,7 @@ while True:
         print (line)
         sys.stdout.flush()
         if re.search("(ERROR:)|(CRITICAL:)", line):
-            slack_webhook.send(settings.SLACK_URL, line)
+            slack_webhook.send(settings['slack_url'], line)
     proc.wait()
     time.sleep(delay)
     delay = delay * 2
