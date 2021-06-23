@@ -1,0 +1,15 @@
+DB_HOST         = '{{ test.master_db_ip }}'
+DB_USER_WRITE   = '{{ test.master_db_username }}'
+DB_PASS_WRITE   = '{{ test.master_db_password }}'
+DB_DATABASE     = 'ztf'
+
+TNS_SEARCH_URL   = 'http://wis-tns.weizmann.ac.il/search'
+TNS_SEARCH_URL   = 'https://www.wis-tns.org/search'
+TNS_WATCHLIST_ID = 141
+TNS_REPEAT_TIME  = 7200
+
+WATCHLIST_MOCS      = '/mnt/cephfs/roy/watchlists'
+WATCHLIST_CHUNK     = 50000
+WATCHLIST_MAX_DEPTH = 13
+AREA_MOCS           = '/mnt/cephfs/roy/areas'
+AREA_MAX_DEPTH      = 13

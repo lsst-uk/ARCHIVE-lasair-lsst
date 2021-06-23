@@ -42,27 +42,42 @@
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
 
-    - name: run mysql setup
-      shell:
-          cmd: mysql --user=root --password=root123password < mysql_setup.sql
-          chdir: /home/ubuntu/lasair-lsst/utility
+    - name: Copy settings.py
+      copy:
+        src: /home/ubuntu/lasair-lsst/lasair-db/settings.py
+        dest: /home/ubuntu/lasair-lsst/lasair-db/settings.py
 
-    - name: create object table
-      shell:
-          cmd: mysql --user=ztf --password=123password < objects.sql
-          chdir: /home/ubuntu/lasair-lsst/utility/schema
+    - name: Copy mysqlbackup.sh
+      copy:
+        src: /home/ubuntu/lasair-lsst/lasair-db/mysqlbackup.sh
+        dest: /home/ubuntu/lasair-lsst/lasair-db/mysqlbackup.sh
 
-    - name: create sherlock_classifications table
-      shell:
-          cmd: mysql --user=ztf --password=123password < sherlock_classifications.sql
-          chdir: /home/ubuntu/lasair-lsst/utility/schema
+    - name: Copy crossmatch_tns_dump.sh
+      copy:
+        src: /home/ubuntu/lasair-lsst/lasair-db/crossmatch_tns_dump.sh
+        dest: /home/ubuntu/lasair-lsst/lasair-db/crossmatch_tns_dump.sh
 
-    - name: create area_hits table
-      shell:
-          cmd: mysql --user=ztf --password=123password < area_hits.sql
-          chdir: /home/ubuntu/lasair-lsst/utility/schema
+        #    - name: run mysql setup
+        #      shell:
+        #          cmd: mysql --user=root --password=root123password < mysql_setup.sql
+          #          chdir: /home/ubuntu/lasair-lsst/utility
+          #
+          #    - name: create object table
+          #      shell:
+              #          cmd: mysql --user=ztf --password=123password < objects.sql
+              #          chdir: /home/ubuntu/lasair-lsst/utility/schema
 
-    - name: create watchlist_hits table
-      shell:
-          cmd: mysql --user=ztf --password=123password < watchlist_hits.sql
-          chdir: /home/ubuntu/lasair-lsst/utility/schema
+        #    - name: create sherlock_classifications table
+        #      shell:
+        #          cmd: mysql --user=ztf --password=123password < sherlock_classifications.sql
+        #          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+        #    - name: create area_hits table
+        #      shell:
+        #          cmd: mysql --user=ztf --password=123password < area_hits.sql
+        #          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+        #    - name: create watchlist_hits table
+        #      shell:
+        #          cmd: mysql --user=ztf --password=123password < watchlist_hits.sql
+        #          chdir: /home/ubuntu/lasair-lsst/utility/schema

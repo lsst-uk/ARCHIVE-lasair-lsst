@@ -57,3 +57,8 @@
       git: 
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
+
+    - name: Copy settings.py
+      copy:
+        src: /home/ubuntu/lasair-lsst/ingest/settings.py
+        dest: /home/ubuntu/lasair-lsst/ingest/settings.py

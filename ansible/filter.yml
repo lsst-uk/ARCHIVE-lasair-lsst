@@ -15,6 +15,8 @@
 ---
 - hosts: filter_nodes
   gather_facts: no
+  vars:
+      test: "{{ lookup('hashi_vault', 'secret=secret/lasair/test')}}"
   tasks:
     - name: install swig
       apt: 
@@ -97,6 +99,11 @@
       git: 
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
+
+    - name: Copy settings.py
+      copy:
+        src: /home/ubuntu/lasair-lsst/filter/settings.py
+        dest: /home/ubuntu/lasair-lsst/filter/settings.py
 
     - name: run mysql setup
       shell:
