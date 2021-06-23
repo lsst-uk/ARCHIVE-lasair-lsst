@@ -40,7 +40,7 @@ while 1:
 
             # scream to the humans if ERROR
             if rtxt.startswith('ERROR'):
-                slack_webhook.send(rtxt)
+                slack_webhook.send(settings.SLACK_URL, rtxt)
 
         while 1:
             # same with stderr

@@ -21,17 +21,19 @@ output_topic: {{ output_topic }}
 #####################################################################
 
 # Kafka client group id
-##group: dev-sherlock-1
 group: {{ group_id }}
 
 # Kafka consumer timeout in s
-timeout: 15
+poll_timeout: 20
+
+# Maximum poll interval in ms
+max_poll_interval: 900000
 
 # stop when end of topic reached
 ##stop_at_end: false
 
 # number of messages to process per batch
-batch_size: 500
+batch_size: 790
 
 # maximum number of batches to process
 ##max_batches: -1
@@ -40,7 +42,7 @@ batch_size: 500
 ## max_errors: -1
 
 # location of cache database
-cache_db: {{ cache_db }}
+#cache_db: 
 
 # location of sherlock settings file
 ##sherlock_settings: sherlock.yaml
@@ -49,8 +51,7 @@ cache_db: {{ cache_db }}
 ##quiet: false
 
 # log info messages and above
-##verbose: false
-verbose: true
+#verbose: true
 
 # log debug messages and above
 ##debug: false

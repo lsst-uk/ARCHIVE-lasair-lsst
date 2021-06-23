@@ -5,6 +5,8 @@ adds the Sherlock classification and crossmatches back into the alert and
 republishes on the output topic.
 """
 
+__version__ = "0.5.13"
+
 import warnings
 import json
 import yaml
@@ -13,46 +15,31 @@ import logging
 import sys
 from urllib.parse import urlparse
 import pymysql.cursors
-from confluent_kafka import Consumer, Producer, KafkaError
+from confluent_kafka import Consumer, Producer, KafkaError, KafkaException
 #from mock_sherlock import transient_classifier
 from sherlock import transient_classifier
 
-# TODO replace with a proper queue(s) for multi-threading?
-#alerts = {}
+# use custom info_ log level so we can print info messages for wrapper without having to do so for sherlock
+logging.INFO_ = 25
+logging.addLevelName(logging.INFO_, "INFO_")
 
-def consume(conf, log, alerts, consumer=None):
+def consume(conf, log, alerts, consumer):
     "fetch a batch of alerts from kafka, return number of alerts consumed"
 
     #global alerts
 
     log.debug('called consume with config: ' + str(conf))
     
-    # if we haven't been given a consumer then create one
-    if consumer == None:
-        # Kafka settings
-        settings = {
-            'bootstrap.servers': conf['broker'],
-            'group.id': conf['group'],
-            'session.timeout.ms': 30000,
-            'max.poll.interval.ms': 300000,
-            'default.topic.config': {'auto.offset.reset': 'smallest'},
-            'enable.auto.commit': False
-        }
-        c = Consumer(settings, logger=log)
-        c.subscribe([conf['input_topic']])
-    else:
-        c = consumer
-
+    c = consumer
 
     n = 0
     n_error = 0
     try:
         while n < conf['batch_size']:
             # Poll for messages
-            msg = c.poll(conf['timeout'])
+            msg = c.poll(conf['poll_timeout'])
             if msg is None:
                 # stop when we get to the end of the topic
-                # TODO make this optional?
                 log.info('reached end of topic')
                 break
             elif not msg.error():
@@ -64,10 +51,11 @@ def consume(conf, log, alerts, consumer=None):
                 n += 1
             else:
                 n_error += 1
-                log.warning(str(msg.error()))
                 try:
                     if msg.error().fatal():
+                        log.error(str(msg.error()))
                         break
+                    log.warning(str(msg.error()))
                 except:
                     pass
                 if conf['max_errors'] < 0:
@@ -77,7 +65,7 @@ def consume(conf, log, alerts, consumer=None):
                     break
                 else:
                     continue
-        log.info("consumed {:d} alerts".format(n))
+        log.log(logging.INFO_, "consumed {:d} alerts".format(n))
         if n > 0:
             n_classified = classify(conf, log, alerts)
             if n_classified != n:
@@ -86,13 +74,15 @@ def consume(conf, log, alerts, consumer=None):
             if n_produced != n:
                 raise Exception("Failed to produce all alerts in batch: expected {}, got {}".format(n, n_produced))
             c.commit(asynchronous=False)
-    except KafkaError as e:
-        # TODO handle this properly
-        log.warning(str(e))
+    except KafkaException as e:
+        # try to ensure we log something useful
+        log.error("Kafka Exception:"+str(e))
+        msg = c.poll(10)
+        if msg is not None and msg.error():
+            log.error("Kafka Error:"+str(msg.error()))
+        raise Exception("Unrecoverable Kafka error.")
     finally:
-        # if we created our own consumer then close it
-        if consumer == None:
-            c.close()
+        pass
     return n
 
 
@@ -177,10 +167,10 @@ def classify(conf, log, alerts):
     # run sherlock
     cm_by_name = {}
     if len(names) > 0:
-        log.info("running Sherlock classifier on {:d} objects".format(len(names)))
+        log.log(logging.INFO_, "running Sherlock classifier on {:d} objects".format(len(names)))
         classifications, crossmatches = classifier.classify()
-        log.info("got {:d} classifications".format(len(classifications)))
-        log.info("got {:d} crossmatches".format(len(crossmatches)))
+        log.log(logging.INFO_, "got {:d} classifications".format(len(classifications)))
+        log.log(logging.INFO_, "got {:d} crossmatches".format(len(crossmatches)))
         # process classfications
         for name in names:
             if name in classifications:
@@ -204,7 +194,7 @@ def classify(conf, log, alerts):
                         if key != 'rank':
                             annotations[name][key] = value
     else:
-        log.info("not running Sherlock as no remaining alerts to process")
+        log.log(logging.INFO_, "not running Sherlock as no remaining alerts to process")
 
     # update cache database
     if conf['cache_db'] and len(names)>0:
@@ -256,8 +246,6 @@ def classify(conf, log, alerts):
 def produce(conf, log, alerts):
     "produce a batch of alerts on the kafka output topic, return number of alerts produced"
 
-    #global alerts
-
     log.debug('called produce with config: ' + str(conf))
 
     # set up Kafka
@@ -265,9 +253,6 @@ def produce(conf, log, alerts):
         'bootstrap.servers': conf['broker'],
         'session.timeout.ms': 6000
     }
-    # TODO add a separate flag for this?
-    #if conf['debug']:
-    #    settings['debug'] = 'all'
     p = Producer(settings, logger=log)
 
     # produce alerts
@@ -278,12 +263,9 @@ def produce(conf, log, alerts):
             p.produce(conf['output_topic'], value=json.dumps(alert))
             log.debug("produced output:\n{}".format(json.dumps(alert, indent=2)))
             n += 1
-    #    for name,alert in alerts.items():
-    #        p.produce(conf['output_topic'], value=json.dumps(alert))
-    #        n += 1
     finally:
         p.flush()
-    log.info("produced {:d} alerts".format(n))
+    log.log(logging.INFO_, "produced {:d} alerts".format(n))
     return n
 
 def run(conf, log):
@@ -291,27 +273,29 @@ def run(conf, log):
         'bootstrap.servers': conf['broker'],
         'group.id': conf['group'],
         'session.timeout.ms': 30000,
-        'max.poll.interval.ms': 300000,
+        'max.poll.interval.ms': conf['max_poll_interval'],
         'default.topic.config': {'auto.offset.reset': 'smallest'},
         'enable.auto.commit': False
     }
-    consumer = Consumer(settings, logger=log)
-    consumer.subscribe([conf['input_topic']])
 
-    batches = conf['max_batches']
-    while batches != 0:
-        batches -= 1
-        alerts = []
-        n = consume(conf, log, alerts, consumer)
-#        if n > 0:
-#            classify(conf, log, alerts)
-#            produce(conf, log, alerts)
-#        elif conf['stop_at_end']:
-#            break
-        if n==0 and conf['stop_at_end']:
-            consumer.close()
-            break
-         
+    try:
+        consumer = Consumer(settings, logger=log)
+        log.log(logging.INFO_, "subscribing to topic {}".format(conf['input_topic']))
+        consumer.subscribe([conf['input_topic']])
+
+        batch = 0
+        while True:
+            if conf['max_batches'] > 0 and batch == conf['max_batches']:
+                break
+            batch += 1
+            alerts = []
+            n = consume(conf, log, alerts, consumer)
+            if n==0 and conf['stop_at_end']:
+                consumer.close()
+                break
+    except Exception as e:
+        log.critical(str(e))
+
 
 
 if __name__ == '__main__':
@@ -320,18 +304,20 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--config', default=None, type=str, help='location of config file')
     parser.add_argument('-b', '--broker', type=str, help='address:port of Kafka broker(s)')
     parser.add_argument('-g', '--group', type=str, default='sherlock-dev-1', help='group id to use for Kafka')
-    parser.add_argument('-t', '--timeout', type=int, default=30, help='kafka consumer timeout in s') # 10s is probably a sensible minimum
     parser.add_argument('-e', '--stop_at_end', action='store_true', default=False, help='stop when no more messages to consume')
     parser.add_argument('-i', '--input_topic', type=str, help='name of input topic')
     parser.add_argument('-o', '--output_topic', type=str, help='name of output topic')
     parser.add_argument('-n', '--batch_size', type=int, default=1000, help='number of messages to process per batch')
-    parser.add_argument('-l', '--max_batches', type=int, default=-1, help='max number of batches to process')
-    parser.add_argument('-m', '--max_errors', type=int, default=-1, help='maximum number of non-fatal errors before aborting') # negative=no limit
+    parser.add_argument('-m', '--max_batches', type=int, default=-1, help='max number of batches to process')
+    parser.add_argument('--max_errors', type=int, default=-1, help='maximum number of non-fatal errors before aborting') # negative = no limit
     parser.add_argument('-d', '--cache_db', type=str, default='', help='cache database (e.g. mysql://user:pw@host:3306/database)') # empty = don't use cache
     parser.add_argument('-s', '--sherlock_settings', type=str, default='sherlock.yaml', help='location of Sherlock settings file (default sherlock.yaml)')
     parser.add_argument('-q', '--quiet', action="store_true", default=None, help='minimal output')
     parser.add_argument('-v', '--verbose', action="store_true", default=None, help='verbose output')
     parser.add_argument('--debug', action="store_true", default=None, help='debugging output')
+    parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
+    parser.add_argument('--poll_timeout', type=int, default=30, help='kafka consumer poll timeout in s') # see https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html
+    parser.add_argument('--max_poll_interval', type=int, default=300000, help='kafka max poll interval in ms') # see https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     conf = vars(parser.parse_args())
 
     # use config file if set
@@ -346,13 +332,17 @@ if __name__ == '__main__':
 
     # set up a logger
     if conf['quiet']:
-        logging.basicConfig(level=logging.ERROR)
+        logformat = '%(asctime)s:%(levelname)s:%(message)s'
+        logging.basicConfig(format=logformat, level=logging.ERROR)
     elif conf['verbose']:
-        logging.basicConfig(level=logging.INFO)
+        logformat = '%(asctime)s:%(levelname)s:%(filename)s:%(funcName)s:%(message)s'
+        logging.basicConfig(format=logformat, level=logging.INFO)
     elif conf['debug']:
-        logging.basicConfig(level=logging.DEBUG)
+        logformat = '%(asctime)s:%(levelname)s:%(pathname)s:%(funcName)s:%(lineno)d:%(message)s'
+        logging.basicConfig(format=logformat, level=logging.DEBUG)
     else:
-        logging.basicConfig(level=logging.WARNING)
+        logformat = '%(asctime)s:%(levelname)s:%(filename)s:%(message)s'
+        logging.basicConfig(format=logformat, level=logging.INFO_)
     log = logging.getLogger("sherlock_wrapper") 
 
     # print options on debug

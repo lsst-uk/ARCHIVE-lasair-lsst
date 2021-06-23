@@ -33,6 +33,8 @@ conf = {
         'stop_at_end': False,
         'cache_db': '',
         'sherlock_settings': 'sherlock_test.yaml',
+        'poll_timeout': 30,
+        'max_poll_interval': 120000
         }
 
 settings = {

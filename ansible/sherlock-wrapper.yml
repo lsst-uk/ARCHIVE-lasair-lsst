@@ -4,16 +4,18 @@
   become: true
 
   vars:
-    image: "gpfrancis/sherlock-wrapper:0.5"
-    brokers: "host:9092,host:9092"
-    group_id: "sherlock_wrapper_0"
+    image: "gpfrancis/sherlock-wrapper:0.5.14"
+    brokers: "192.41.108.36:9092,192.41.108.24:9092,192.41.108.36:9092"
+    group_id: "sherlock_wrapper_1"
     input_topic: "ztf_ingest"
     output_topic: "ztf_sherlock"
+    vault: "{{ lookup('hashi_vault', 'secret=secret/lasair/sherlock')}}"
     cache_db: "mysql://user:pass@127.0.0.1/cache"
     sherlock_db: "crossmatch_catalogues"
-    sherlock_db_host: "host"
-    sherlock_user: "username"
-    sherlock_password: "password"
+    sherlock_db_host: "192.168.0.43"
+    sherlock_user: "{{ vault.data.user }}"
+    sherlock_password: "{{ vault.data.password }}"
+    slack_url: "{{ vault.data.slack_url }}"
 
   tasks:
     - name: "Create /opt/lasair directory"
@@ -31,6 +33,11 @@
         src:  sherlock_wrapper_config.yaml.j2
         dest: /opt/lasair/config.yaml
 
+    - name: "Deploy Sherlock wrapper runner config"
+      template:
+        src:  sherlock_wrapper_runner.json.j2
+        dest: /opt/lasair/wrapper_runner.json
+
     - name: "Deploy Docker compose file"
       template:
         src:  sherlock-wrapper-compose.yml.j2
@@ -47,4 +54,6 @@
           - 'sherlock_wrapper'
         state:
           present
+        scale:
+          sherlock_wrapper: 3
 

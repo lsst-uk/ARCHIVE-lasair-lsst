@@ -10,7 +10,7 @@ RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-insta
   python3-pip 
 RUN pip3 install \
   confluent-kafka==1.4.2 \
-  qub-sherlock==2.1.7
+  qub-sherlock==2.1.8
 
 # Required for tests
 RUN pip3 install \
@@ -23,7 +23,7 @@ RUN apt-get update && apt-get -yq dist-upgrade && apt-get install -yq --no-insta
   wget \
   sudo
 RUN cd /opt && \
-  wget -q https://www.mirrorservice.org/sites/ftp.apache.org/kafka/2.5.0/kafka_2.12-2.5.0.tgz && \
+  wget -q https://archive.apache.org/dist/kafka/2.5.0/kafka_2.12-2.5.0.tgz && \
   tar -zxf kafka_2.12-2.5.0.tgz && \
   ln -s kafka_2.12-2.5.0 kafka && \
   rm kafka_2.12-2.5.0.tgz 
