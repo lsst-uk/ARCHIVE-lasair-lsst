@@ -5,7 +5,7 @@ adds the Sherlock classification and crossmatches back into the alert and
 republishes on the output topic.
 """
 
-__version__ = "0.5.13"
+__version__ = "0.5.14"
 
 import warnings
 import json
