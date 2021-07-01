@@ -11,6 +11,8 @@ services:
             - /opt/lasair/:/opt/lasair/
         command: [
              "/usr/bin/python3",
+             "/wrapper_runner.py",
+             "/usr/bin/python3",
              "/wrapper.py",
              "--config",
              "/opt/lasair/config.yaml",

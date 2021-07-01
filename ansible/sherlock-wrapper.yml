@@ -4,7 +4,7 @@
   become: true
 
   vars:
-    image: "gpfrancis/sherlock-wrapper:0.5.15"
+    image: "gpfrancis/sherlock-wrapper:0.5.16"
     brokers: "192.41.108.36:9092,192.41.108.24:9092,192.41.108.36:9092"
     group_id: "sherlock_wrapper_1"
     input_topic: "ztf_ingest"
@@ -12,7 +12,7 @@
     vault: "{{ lookup('hashi_vault', 'secret=secret/lasair/sherlock')}}"
     cache_db: "mysql://user:pass@127.0.0.1/cache"
     sherlock_db: "crossmatch_catalogues"
-    sherlock_db_host: "192.168.0.43"
+    sherlock_db_host: "192.168.0.14"
     sherlock_user: "{{ vault.user }}"
     sherlock_password: "{{ vault.password }}"
     slack_url: "{{ vault.slack_url }}"

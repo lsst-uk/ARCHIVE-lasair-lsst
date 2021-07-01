@@ -5,7 +5,7 @@ adds the Sherlock classification and crossmatches back into the alert and
 republishes on the output topic.
 """
 
-__version__ = "0.5.15"
+__version__ = "0.5.16"
 
 import warnings
 import json
@@ -69,7 +69,9 @@ def consume(conf, log, alerts, consumer):
         if n > 0:
             n_classified = classify(conf, log, alerts)
             if n_classified != n:
-                raise Exception("Failed to classify all alerts in batch: expected {}, got {}".format(n, n_classified))
+                # may be different due to SS alerts
+                #raise Exception("Failed to classify all alerts in batch: expected {}, got {}".format(n, n_classified))
+                logging.info("Classified {} of {} alerts".format(n_classified, n))
             n_produced = produce(conf, log, alerts)
             if n_produced != n:
                 raise Exception("Failed to produce all alerts in batch: expected {}, got {}".format(n, n_produced))
