@@ -1,16 +1,16 @@
 DB_HOST_LOCAL    = 'localhost'
 DB_USER_LOCAL    = 'ztf'
-DB_PASS_LOCAL    = '{{ test.local_db_password }}'
+DB_PASS_LOCAL    = '{{ settings.local_db_password }}'
 
-DB_HOST_REMOTE   = '{{ test.master_db_ip }}'
-DB_USER_REMOTE   = '{{ test.master_db_readonly_username }}'
-DB_PASS_REMOTE   = '{{ test.master_db_readonly_password }}'
+DB_HOST_REMOTE   = '{{ settings.master_db_ip }}'
+DB_USER_REMOTE   = '{{ settings.master_db_readonly_username }}'
+DB_PASS_REMOTE   = '{{ settings.master_db_readonly_password }}'
 
 DB_DATABASE      = 'ztf'
 
-SLACK_URL = 'https://hooks.slack.com/services/{{ test.slack_url_urlhook }}'
+SLACK_URL = 'https://hooks.slack.com/services/{{ settings.slack_url_urlhook }}'
 
-KAFKA_HOST       = '{{ test.kafka_producer }}:9092'
+KAFKA_HOST       = '{{ settings.kafka_producer }}:9092'
 
 KAFKA_TOPIC_IN   = 'ztf_sherlock'
 
@@ -23,7 +23,7 @@ WAIT_TIME        = 180
 LOCKFILE         = '/home/ubuntu/lockfile'
 
 KAFKA_PRODUCER   = 'kafka-pub:29092'
-KAFKA_PASSWORD   = '{{ test.kafka_password }}'
+KAFKA_PASSWORD   = '{{ settings.kafka_password }}'
 
 WATCHLIST_MOCS      = '/mnt/cephfs/roy/watchlists'
 WATCHLIST_CHUNK     = 50000
@@ -32,5 +32,5 @@ AREA_MOCS           = '/mnt/cephfs/roy/areas'
 AREA_MAX_DEPTH      = 13
 
 GRAFANA_USERNAME = 'ztf'
-GRAFANA_PASSWORD = '{{ test.grafana_password }}'
+GRAFANA_PASSWORD = '{{ settings.grafana_password }}'
 SYSTEM_STATUS       = '/mnt/cephfs/roy/system_status.json'

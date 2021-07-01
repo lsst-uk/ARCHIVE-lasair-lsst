@@ -1,6 +1,10 @@
 ---
 - hosts: ingest_nodes
   gather_facts: no
+
+  vars:
+          settings: "{{ lookup('hashi_vault', 'secret=secret/lasair/settings')}}"
+
   tasks:
     - name: install pip3
       apt: 
@@ -59,6 +63,6 @@
           dest: /home/ubuntu/lasair-lsst
 
     - name: Copy settings.py
-      copy:
-        src: /home/ubuntu/lasair-lsst/ingest/settings.py
-        dest: /home/ubuntu/lasair-lsst/ingest/settings.py
+      template:
+          src:  /home/ubuntu/lasair-lsst/filter/settings.py.j2
+          dest: /home/ubuntu/lasair-lsst/filter/settings.py

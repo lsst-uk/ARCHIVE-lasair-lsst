@@ -1,22 +1,29 @@
-# change hosts.yml to new filter_nodes and new cephfs_nodes
+# how to deploy the filter nodes
+#
+# (1) run ken's ansible to set up the mysql
 # cd ~
 # git clone https://github.com/genghisken/gkansible.git
 # cd ~/gkansible/gkansible
 # cp ansible_example.cfg ansible.cfg
-# cp hosts_example.yml file hosts.yml
+# cp hosts_example.yml file hosts.yml and edit with IPs
 # set mysql_root_password in roles/install-mysql/defaults/main.yml 
-# edit hosts for correct IP
 # ansible-playbook install-mysql.yml
 #
+# (2) run marks cephfs
 # cd ~/lasair-lsst/ansible
+# change hosts.yml to new cephfs_nodes
 # ansible-playbook --inventory-file=hosts.yml mount_cephfs.yml
 #
+# (3) run roy's filter deploy
+# change hosts.yml to new filter_nodes 
 # ansible-playbook --inventory-file=hosts.yml filter.yml
 ---
 - hosts: filter_nodes
   gather_facts: no
+
   vars:
-      test: "{{ lookup('hashi_vault', 'secret=secret/lasair/test')}}"
+      settings: "{{ lookup('hashi_vault', 'secret=secret/lasair/settings')}}"
+
   tasks:
     - name: install swig
       apt: 
@@ -35,6 +42,13 @@
     - name: install pip3
       apt: 
           name: python3-pip
+          state: present
+          update_cache: true
+      become: yes
+
+    - name: install postfix email
+      apt:
+          name: postfix
           state: present
           update_cache: true
       become: yes
@@ -100,10 +114,10 @@
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
 
-    - name: Copy settings.py
-      copy:
-        src: /home/ubuntu/lasair-lsst/filter/settings.py
-        dest: /home/ubuntu/lasair-lsst/filter/settings.py
+    - name: settings.py for filter module
+      template:
+        src:  /home/ubuntu/lasair-lsst/filter/settings.py.j2
+        dest: /home/ubuntu/lasair-lsst/filter/settings.py 
 
     - name: run mysql setup
       shell:
