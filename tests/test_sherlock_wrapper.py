@@ -18,6 +18,12 @@ with open("example_ingested.json", 'r') as f:
     example_alert = data[0]
     example_input_data = json.dumps(data[0])
 
+with open("example_ingested_ss.json", 'r') as f:
+    data = json.load(f)
+    example_alert_ss = data[0]
+    example_alert_no_ss = data[1]
+    example_input_ss_data = json.dumps(data[0])
+
 # mock kafka message class for use by mock poll
 class MockMessage:
     def __init__(self,err=None):
@@ -209,6 +215,64 @@ class TestClassifier(unittest.TestCase):
                     self.assertEqual(alerts[0]['annotations']['sherlock'][0][key], value)
             # classify should have been called once 
             mock_classifier.return_value.classify.assert_called_once()
+
+    # check that a missing ssnamenr field is treated as null
+    def test_classify_no_ss_alert(self):
+        conf = {
+            'broker':'',
+            'group':'',
+            'input_topic':'',
+            'output_topic':'',
+            'batch_size':5,
+            'timeout':1,
+            'max_errors':-1,
+            'cache_db':'',
+            'sherlock_settings': 'sherlock_test.yaml'
+            }
+        with unittest.mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
+            alerts = [ example_alert_no_ss.copy() ]
+            classifications = { "ZTF18aapubnx": "Q" }
+            crossmatches = TestClassifier.crossmatches
+            mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
+            # should report classifying 1 alert
+            self.assertEqual(wrapper.classify(conf, log, alerts), 1)
+            # length of alerts shouls still be 1
+            self.assertEqual(len(alerts), 1)
+            # content of alerts should be as expected
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/object/ZTF18aapubnx")
+            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
+            for key, value in crossmatches[0].items():
+                if key != 'rank':
+                    self.assertEqual(alerts[0]['annotations']['sherlock'][0][key], value)
+            # classify should have been called once
+            mock_classifier.return_value.classify.assert_called_once()
+
+    def test_classify_ss_alert(self):
+        conf = {
+            'broker':'',
+            'group':'',
+            'input_topic':'',
+            'output_topic':'',
+            'batch_size':5,
+            'timeout':1,
+            'max_errors':-1,
+            'cache_db':'',
+            'sherlock_settings': 'sherlock_test.yaml'
+            }
+        with unittest.mock.patch('sherlock_wrapper.wrapper.transient_classifier') as mock_classifier:
+            alerts = [ example_alert_ss.copy() ]
+            classifications = { "ZTF18aapubnx": "Q" }
+            crossmatches = TestClassifier.crossmatches
+            mock_classifier.return_value.classify.return_value = (classifications, crossmatches)
+            # should report classifying 0 alerts
+            self.assertEqual(wrapper.classify(conf, log, alerts), 0)
+            # length of alerts shouls still be 1
+            self.assertEqual(len(alerts), 1)
+            # alert should not have been classified
+            self.assertNotIn('annotations', alerts[0])
+            # classify should not have been called 
+            mock_classifier.return_value.classify.assert_not_called()
    
     def test_classify_description(self):
         conf = {
