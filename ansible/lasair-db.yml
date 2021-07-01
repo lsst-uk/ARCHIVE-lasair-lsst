@@ -1,18 +1,24 @@
-# change hosts.yml to new rdbms
+# how to deploy the MySQL on the lasair-db nodes
+#
+# (1) run ken's ansible to set up the mysql
 # cd ~
 # git clone https://github.com/genghisken/gkansible.git
 # cd ~/gkansible/gkansible
 # cp ansible_example.cfg ansible.cfg
-# cp hosts_example.yml file hosts.yml
-# set mysql_root_password in roles/install-mysql/defaults/main.yml
-# edit hosts for correct IP
+# cp hosts_example.yml file hosts.yml and edit with IPs
+# set mysql_root_password in roles/install-mysql/defaults/main.yml 
 # ansible-playbook install-mysql.yml
 #
-# cd ~/lasair-lsst/ansible
+# (2) run roy's lasair-db deploy
+# change hosts.yml to new rdbms 
 # ansible-playbook --inventory-file=hosts.yml lasair-db.yml
 ---
 - hosts: rdbms
   gather_facts: no
+
+  vars:
+          settings: "{{ lookup('hashi_vault', 'secret=secret/lasair/settings')}}"
+
   tasks:
     - name: install pip3
       apt: 
@@ -42,27 +48,42 @@
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
 
+    - name: Copy settings.py
+      template:
+          src:  /home/ubuntu/lasair-lsst/lasair-db/settings.py.j2
+          dest: /home/ubuntu/lasair-lsst/lasair-db/settings.py
+
+    - name: Copy mysqlbackup.sh
+      template:
+          src:  /home/ubuntu/lasair-lsst/lasair-db/mysqlbackup.sh.j2
+          dest: /home/ubuntu/lasair-lsst/lasair-db/mysqlbackup.sh
+
+    - name: Copy crossmatch_tns_dump.sh
+      template:
+          src:  /home/ubuntu/lasair-lsst/lasair-db/crossmatch_tns_dump.sh.j2
+          dest: /home/ubuntu/lasair-lsst/lasair-db/crossmatch_tns_dump.sh
+
     - name: run mysql setup
       shell:
-          cmd: mysql --user=root --password=root123password < mysql_setup.sql
+          cmd: mysql --user=root --password={{ settings.master_db_root_password }} < mysql_setup.sql
           chdir: /home/ubuntu/lasair-lsst/utility
 
     - name: create object table
       shell:
-          cmd: mysql --user=ztf --password=123password < objects.sql
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < objects.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create sherlock_classifications table
       shell:
-          cmd: mysql --user=ztf --password=123password < sherlock_classifications.sql
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < sherlock_classifications.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create area_hits table
       shell:
-          cmd: mysql --user=ztf --password=123password < area_hits.sql
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < area_hits.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create watchlist_hits table
       shell:
-          cmd: mysql --user=ztf --password=123password < watchlist_hits.sql
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < watchlist_hits.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema

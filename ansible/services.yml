@@ -1,6 +1,11 @@
 ---
-- hosts: services
-  gather_facts: no
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+          settings: "{{ lookup('hashi_vault', 'secret=secret/lasair/settings')}}"
+
   tasks:
     - name: install swig
     apt:
@@ -58,3 +63,18 @@
       git: 
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
+
+    - name: settings.py TNS
+      template:
+        src:  /home/ubuntu/lasair-lsst/services/TNS/settings.py.j2
+        dest: /home/ubuntu/lasair-lsst/services/TNS/settings.py
+
+    - name: settings.py areas
+      template:
+        src:  /home/ubuntu/lasair-lsst/services/areas/settings.py.j2
+        dest: /home/ubuntu/lasair-lsst/services/areas/settings.py
+
+    - name: settings.py watchlists
+      template:
+        src:  /home/ubuntu/lasair-lsst/services/watchlists/settings.py.j2
+        dest: /home/ubuntu/lasair-lsst/services/watchlists/settings.py
