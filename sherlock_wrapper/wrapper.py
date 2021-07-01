@@ -146,6 +146,11 @@ def classify(conf, log, alerts):
     dec = []
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
+        # ignore SS alerts
+        ssnamenr = alert['candidate'].get('ssnamenr', "null")
+        if ssnamenr != "null":
+            log.debug("Skipping classification for solar system alert {}".format(name))
+            continue
         if not name in annotations:
             if not name in names:
                 names.append(name)
@@ -231,15 +236,16 @@ def classify(conf, log, alerts):
     n = 0
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
-        annotations[name]['annotator'] = "https://github.com/thespacedoctor/sherlock"
-        annotations[name]['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/object/" + name
-        # placeholders until sherlock returns these
-        #annotations[name]['summary']  = 'Placeholder'
-        if 'annotations' not in alert:
-            alert['annotations'] = {}
-        alert['annotations']['sherlock'] = []
-        alert['annotations']['sherlock'].append(annotations[name])
-        n += 1
+        if name in annotations:
+            annotations[name]['annotator'] = "https://github.com/thespacedoctor/sherlock"
+            annotations[name]['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/object/" + name
+            # placeholders until sherlock returns these
+            #annotations[name]['summary']  = 'Placeholder'
+            if 'annotations' not in alert:
+                alert['annotations'] = {}
+            alert['annotations']['sherlock'] = []
+            alert['annotations']['sherlock'].append(annotations[name])
+            n += 1
 
     return n
 
@@ -291,12 +297,11 @@ def run(conf, log):
             alerts = []
             n = consume(conf, log, alerts, consumer)
             if n==0 and conf['stop_at_end']:
-                consumer.close()
                 break
     except Exception as e:
         log.critical(str(e))
-
-
+    finally:
+        consumer.close()
 
 if __name__ == '__main__':
     # parse cmd line arguments
