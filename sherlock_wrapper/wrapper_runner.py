@@ -34,5 +34,5 @@ while True:
     if delay > max_delay:
         delay = max_delay
     print ("Attempting to restart Sherlock wrapper.")
-    slack_webhook.send(settings.SLACK_URL, "Attempting to restart Sherlock wrapper.")
+    slack_webhook.send(settings['slack_url'], "Attempting to restart Sherlock wrapper.")
 
