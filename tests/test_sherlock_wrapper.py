@@ -5,7 +5,7 @@ import json
 
 import context
 from sherlock_wrapper import wrapper
-from confluent_kafka import KafkaError
+from confluent_kafka import KafkaError, KafkaException
 
 log = logging.getLogger()
 log.level = logging.ERROR
@@ -159,6 +159,24 @@ class TestConsumer(unittest.TestCase):
             # poll should have been called once with timeout 1
             mock_kafka_consumer.poll.assert_called_once_with(1)
 
+    # test (non-fatal) failure on commit
+    def test_failed_commit(self):
+        with unittest.mock.patch('sherlock_wrapper.wrapper.classify') as mock_classify:
+            with unittest.mock.patch('sherlock_wrapper.wrapper.produce') as mock_produce:
+                with unittest.mock.MagicMock() as mock_kafka_consumer:
+                    mock_classify.return_value = 5
+                    mock_produce.return_value = 5
+                    mock_kafka_consumer.poll.return_value.error.return_value = None
+                    mock_kafka_consumer.poll.return_value.value.return_value = example_input_data
+                    e = KafkaError(KafkaError._NO_OFFSET, 'test no offset', fatal=False)
+                    mock_kafka_consumer.commit.side_effect = KafkaException(e)
+                    alerts = []
+                    # consume should report consuming 5 alerts
+                    self.assertEqual(wrapper.consume(self.conf, log, alerts, mock_kafka_consumer), 5)
+                    # alerts should have len 5
+                    self.assertEqual(len(alerts), 5)
+                    # content of alerts should be as expected
+                    self.assertEqual(alerts[0]['candidate']['jd'], 2458943.9334606)
 
 class TestClassifier(unittest.TestCase):
     crossmatches = [ {
