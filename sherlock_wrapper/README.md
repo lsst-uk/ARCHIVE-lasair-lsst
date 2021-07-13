@@ -22,7 +22,7 @@ These notes apply to the current deployment as of 13/7/21.
 * The Ansible scripts in use are located at 192.168.0.9:~/lasair-lsst/ansible
 
 If anything goes wrong, start by running the Ansible script again.
-* Check that the sherlock database is set correctly for the host you are deploying to in sherlock-wrapper.yml (currently 192.168.0.14 for 0.9 and 0.43 for 0.21)
+* Check that the sherlock database is set correctly for the host you are deploying to in sherlock-wrapper.yml (currently 192.168.0.43 for 0.9 and 0.14 for 0.21)
 * Limit to the specific host you want to using the -l flag
 
 Example:
