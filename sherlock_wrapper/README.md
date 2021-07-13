@@ -90,4 +90,4 @@ Starting Sherlock wrapper.
 2021-07-13 10:18:37,084:INFO_:wrapper.py:running Sherlock classifier on 715 objects
 ```
 
-The wrapper itself (wrapper.py) is run by a launcher (wrapper_runner.py) that will send alerts to Slack and attempt to restart it on failure so restarting containers should not normally be necessary. However, if a container does stop for some reason then you can try restarting it with `docker container start <ID>`. If the container is running, but it seems like a restart might help then the command is `docker container restart <ID>`.
+The wrapper itself (wrapper.py) is run by a launcher (wrapper_runner.py) that will send alerts to Slack and attempt to restart it on failure so restarting containers should not normally be necessary. However, if a container does stop for some reason then you can try restarting it with `docker container start <ID>`. If the container is running, but it seems like a restart might help then the command is `docker container restart <ID>`. The most likely reason for wanting to force a restart is an external error (e.g. database being down) that is now fixed and you don't want to wait for the next auto restart attempt.
