@@ -263,7 +263,6 @@ def produce(conf, log, alerts):
     # set up Kafka
     settings = {
         'bootstrap.servers': conf['broker'],
-        'session.timeout.ms': 6000
     }
     p = Producer(settings, logger=log)
 
