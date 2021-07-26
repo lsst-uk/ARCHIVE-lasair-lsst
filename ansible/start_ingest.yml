@@ -1,8 +1,0 @@
----
-- hosts: ingest_nodes
-  tasks:
-  - name: start up ingestion in parallel
-    command: python3 ingest.py test >> /home/ubuntu/logs.txt
-    chdir: /home/ubuntu/lasair-lsst/ingest
-    async: 6000
-    poll: 0

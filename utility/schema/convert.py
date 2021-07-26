@@ -20,6 +20,7 @@ def create_table(schema):
         elif primtype == 'double':   s += ' double'
         elif primtype == 'int':      s += ' int'
         elif primtype == 'long':     s += ' int(11)'
+        elif primtype == 'date':     s += ' datetime(6)'
         elif primtype == 'bigint':   s += ' bigint(20)'
         elif primtype == 'string':   s += ' varchar(16)'
         elif primtype == 'bigstring':s += ' varchar(80)'
