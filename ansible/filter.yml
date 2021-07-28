@@ -17,6 +17,13 @@
 # (3) run roy's filter deploy
 # change hosts.yml to new filter_nodes 
 # ansible-playbook --inventory-file=hosts.yml filter.yml
+# 
+# need to add line 
+#     /home/ubuntu/csvfiles/** rwk,
+# to
+#     /etc/apparmor.d/usr.sbin.mysqld
+# then
+#     sudo /etc/init.d/apparmor reload
 ---
 - hosts: filter_nodes
   gather_facts: no
@@ -93,9 +100,10 @@
           executable: pip3 
           name: mocpy
 
-    - name: permissions on mysql-files
+    - name: csvfiles directory
       file:
-          path: /var/lib/mysql-files
+          path: /home/ubuntu/csvfiles/
+          state: directory
           mode: '777'
       become: yes
 

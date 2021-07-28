@@ -101,7 +101,7 @@ sys.stdout.flush()
 t = time.time()
 print('SEND to ARCHIVE')
 sys.stdout.flush()
-cmd = 'rm /var/lib/mysql-files/*'
+cmd = 'rm /home/ubuntu/csvfiles/*'
 os.system(cmd)
 cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_LOCAL
 if os.system(cmd) > 0:
@@ -113,13 +113,13 @@ tablelist = ['objects', 'sherlock_classifications', 'watchlist_hits', 'area_hits
 ##### send CSV file to central database
 t = time.time()
 for table in tablelist:
-    outfile = '/var/lib/mysql-files/%s.txt' % table
+    outfile = '/home/ubuntu/csvfiles/%s.txt' % table
     if os.path.exists(outfile) and os.stat(outfile).st_size == 0:
         print('SEND %s file is empty' % table)
         sys.stdout.flush()
     else:
         vm = gethostname()
-        cmd = 'scp /var/lib/mysql-files/%s.txt %s:scratch/%s__%s' % (table, settings.DB_HOST_REMOTE, vm, table)
+        cmd = 'scp /home/ubuntu/csvfiles/%s.txt %s:scratch/%s__%s' % (table, settings.DB_HOST_REMOTE, vm, table)
         os.system(cmd)
         if os.system(cmd) > 0:
             print('ERROR in filter/filter: cannot copy CSV to master database node')
