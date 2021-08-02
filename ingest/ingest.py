@@ -378,8 +378,6 @@ def main():
     if objectdir and len(objectdir) > 0:
         json_store = objectStore.objectStore(suffix='json', fileroot=objectdir)
     else:
-        print('ERROR in ingest/ingestBatch: No object directory found for file storage')
-        sys.stdout.flush()
         json_store = None
 
     if fitsdir and len(fitsdir) > 0:
