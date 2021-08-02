@@ -18,12 +18,6 @@
 # change hosts.yml to new filter_nodes 
 # ansible-playbook --inventory-file=hosts.yml filter.yml
 # 
-# need to add line 
-#     /home/ubuntu/csvfiles/** rwk,
-# to
-#     /etc/apparmor.d/usr.sbin.mysqld
-# then
-#     sudo /etc/init.d/apparmor reload
 ---
 - hosts: filter_nodes
   gather_facts: no
@@ -106,6 +100,21 @@
           state: directory
           mode: '777'
       become: yes
+
+    - name: modify apparmor so MySQL can write
+      lineinfile:
+        dest: /etc/apparmor.d/usr.sbin.mysqld
+        line: /home/ubuntu/csvfiles/** rwk,
+        insertbefore: "}"
+        state: present
+      become: yes
+
+    - name: restart apparmor
+      service:
+        name: apparmor
+        state: restarted
+        enabled: yes
+      become: true
 
     - name: Copy git credentials
       copy:
