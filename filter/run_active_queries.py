@@ -137,8 +137,10 @@ def run_query(query, msl):
                 # last_entry not really used with kafka, just a record of last blast
                 last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
             except Exception as e:
-                print("ERROR in filter/run_active_queries: cannot produce to public kafka")
-                print(e)
+                rtxt = "ERROR in filter/run_active_queries: cannot produce to public kafka"
+                rtxt += str(e)
+#                slack_webhook.send(settings.SLACK_URL, rtxt)
+                print(rtxt)
                 sys.stdout.flush()
 
         digestdict = {'last_entry': last_entry_text, 'digest':allrecords}
