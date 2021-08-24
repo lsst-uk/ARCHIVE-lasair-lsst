@@ -5,7 +5,7 @@ adds the Sherlock classification and crossmatches back into the alert and
 republishes on the output topic.
 """
 
-__version__ = "0.5.16"
+__version__ = "0.6.0"
 
 import warnings
 import json
@@ -18,10 +18,13 @@ import pymysql.cursors
 from confluent_kafka import Consumer, Producer, KafkaError, KafkaException
 #from mock_sherlock import transient_classifier
 from sherlock import transient_classifier
+from pkg_resources import get_distribution
 
 # use custom info_ log level so we can print info messages for wrapper without having to do so for sherlock
 logging.INFO_ = 25
 logging.addLevelName(logging.INFO_, "INFO_")
+
+sherlock_version = get_distribution("qub-sherlock").version
 
 def consume(conf, log, alerts, consumer):
     "fetch a batch of alerts from kafka, return number of alerts consumed"
@@ -243,7 +246,7 @@ def classify(conf, log, alerts):
     for alert in alerts:
         name = alert.get('objectId', alert.get('candid'))
         if name in annotations:
-            annotations[name]['annotator'] = "https://github.com/thespacedoctor/sherlock"
+            annotations[name]['annotator'] = "https://github.com/thespacedoctor/sherlock/releases/tag/v{}".format(sherlock_version)
             annotations[name]['additional_output'] = "http://lasair.lsst.ac.uk/api/sherlock/object/" + name
             # placeholders until sherlock returns these
             #annotations[name]['summary']  = 'Placeholder'
