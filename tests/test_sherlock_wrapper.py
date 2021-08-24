@@ -225,7 +225,7 @@ class TestClassifier(unittest.TestCase):
             # length of alerts shouls still be 1
             self.assertEqual(len(alerts), 1)
             # content of alerts should be as expected
-            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+            self.assertRegexpMatches(alerts[0]['annotations']['sherlock'][0]['annotator'], "^https://github.com/thespacedoctor/sherlock")
             self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/object/ZTF18aapubnx")
             self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
             for key, value in crossmatches[0].items():
@@ -257,7 +257,7 @@ class TestClassifier(unittest.TestCase):
             # length of alerts shouls still be 1
             self.assertEqual(len(alerts), 1)
             # content of alerts should be as expected
-            self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+            self.assertRegexpMatches(alerts[0]['annotations']['sherlock'][0]['annotator'], "^https://github.com/thespacedoctor/sherlock")
             self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/object/ZTF18aapubnx")
             self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
             for key, value in crossmatches[0].items():
@@ -340,7 +340,7 @@ class TestClassifier(unittest.TestCase):
                 self.assertEqual(len(alerts), 1)
                 # content of alerts should be as expected - from cache
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'T')
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+                self.assertRegexpMatches(alerts[0]['annotations']['sherlock'][0]['annotator'], "^https://github.com/thespacedoctor/sherlock")
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/object/ZTF18aapubnx")
                 for key, value in TestClassifier.crossmatches[0].items():
                     if key != 'rank':
@@ -401,7 +401,7 @@ class TestClassifier(unittest.TestCase):
                 self.assertEqual(len(alerts), 1)
                 # content of alerts should be as expected - from sherlock
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['classification'], 'Q')
-                self.assertEqual(alerts[0]['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+                self.assertRegexpMatches(alerts[0]['annotations']['sherlock'][0]['annotator'], "^https://github.com/thespacedoctor/sherlock")
                 self.assertEqual(alerts[0]['annotations']['sherlock'][0]['additional_output'], "http://lasair.lsst.ac.uk/api/sherlock/object/ZTF18aapubnx")
                 for key, value in TestClassifier.crossmatches[0].items():
                     if key != 'rank':
