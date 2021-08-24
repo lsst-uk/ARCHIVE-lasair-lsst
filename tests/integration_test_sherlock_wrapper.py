@@ -129,7 +129,7 @@ class IntegrationTest(TestCase):
         for alert in alerts:
             self.assertEqual(len(alert['annotations']['sherlock']), 1)
             self.assertEqual(alert['annotations']['sherlock'][0]['classification'], "ORPHAN") 
-            self.assertEqual(alert['annotations']['sherlock'][0]['annotator'], "https://github.com/thespacedoctor/sherlock")
+            self.assertRegexpMatches(alert['annotations']['sherlock'][0]['annotator'], "^https://github.com/thespacedoctor/sherlock")
             self.assertIn('additional_output',alert['annotations']['sherlock'][0])
             # These should not be populated for orphan objects
             self.assertNotIn('catalogue_object_type', alert['annotations']['sherlock'][0])
