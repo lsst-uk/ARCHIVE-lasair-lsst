@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS sherlock_classifications(
 `MagFilter` varchar(16),
 `MagErr` float,
 `classificationReliability` int,
+`major_axis_arcsec` float,
 `annotator` varchar(80),
 `additional_output` varchar(80),
 `description` text,
