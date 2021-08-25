@@ -109,6 +109,11 @@
       "doc": "Reliability of classification"
     },
     {
+      "name": "major_axis_arcsec",
+      "type": "float",
+      "doc": "Size of associated galaxy in arcsec"
+    },
+    {
       "name": "annotator",
       "type": "bigstring",
       "doc": "Information about this annotation"

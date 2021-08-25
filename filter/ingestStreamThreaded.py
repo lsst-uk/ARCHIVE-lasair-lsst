@@ -36,6 +36,7 @@ sherlock_attributes = [
     "MagFilter",
     "MagErr",
     "classificationReliability",
+    "major_axis_arcsec",
     "annotator",
     "additional_output",
     "description",
