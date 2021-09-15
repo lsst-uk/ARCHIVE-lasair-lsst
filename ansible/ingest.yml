@@ -64,5 +64,5 @@
 
     - name: Copy settings.py
       template:
-          src:  /home/ubuntu/lasair-lsst/filter/settings.py.j2
-          dest: /home/ubuntu/lasair-lsst/filter/settings.py
+          src:  /home/ubuntu/lasair-lsst/ingest/settings.py.j2
+          dest: /home/ubuntu/lasair-lsst/ingest/settings.py
