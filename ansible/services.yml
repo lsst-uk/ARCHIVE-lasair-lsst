@@ -8,11 +8,11 @@
 
   tasks:
     - name: install swig
-    apt:
-        name: swig
-        state: present
-        update_cache: true
-    become: yes
+      apt:
+          name: swig
+          state: present
+          update_cache: true
+      become: yes
 
     - name: install python-dev
       apt:
