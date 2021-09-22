@@ -32,6 +32,8 @@ sys.path.append('/home/ubuntu/lasair-lsst/utility')
 import date_nid
 import settings
 
+global logfile
+
 def getTNSRow(conn, tnsName):
    """
    Has the TNS row been updated compared with what's in the database?
@@ -69,7 +71,7 @@ def deleteTNSRow(conn, tnsName):
             """, (tnsName,))
 
     except MySQLdb.Error as e:
-        logile.write("Error %d: %s\n" % (e.args[0], e.args[1]))
+        logfile.write("Error %d: %s\n" % (e.args[0], e.args[1]))
 
     cursor.close ()
     conn.commit()
@@ -298,18 +300,18 @@ def getTNSData(opts):
                 # The entry has been updated on TNS - classified! Otherwise do nothing!
                 deleteTNSRow(conn, suffix)
                 insertTNS(conn, row)
-                print("Object %s has been updated\n" % row['suffix'])
+                logfile.write("Object %s has been updated\n" % row['suffix'])
                 rowsChanged += 1
         else:
             insertTNS(conn, row)
-            print("Object %s has been added\n" % row['suffix'])
+            logfile.write("Object %s has been added\n" % row['suffix'])
             run_tns_crossmatch.tns_name_crossmatch(\
                     conn, row['suffix'], ra, dec, radius)
 
             rowsAdded += 1
         #print prefix, suffix, ra, dec, htm16, row['Discovery Date (UT)']
 
-    print("Total rows added = %d, modified = %d\n" % (rowsAdded, rowsChanged))
+    logfile.write("Total rows added = %d, modified = %d\n" % (rowsAdded, rowsChanged))
 
     conn.commit()
     conn.close()
@@ -325,6 +327,7 @@ def main():
 
 
 if __name__ == '__main__':
+    global logfile
     nid  = date_nid.nid_now()
     date = date_nid.nid_to_date(nid)
     logfile = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
