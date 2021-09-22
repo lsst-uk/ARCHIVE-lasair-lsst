@@ -1,5 +1,5 @@
 ---
-- hosts: daskworkers
+- hosts: dask
   gather_facts: no
   tasks:
     - name: python3-pip
@@ -21,13 +21,28 @@
           name: dask[distributed]
       become: yes
 
-#for scheduler node
-#sudo apt update
-#sudo apt install python3-pip
-#pip3 install dask[bag]
-#pip3 install dask[distributed]
-#pip3 install jupyter
-#pip3 install bokeh
+    - name: install jupyter
+      pip: 
+          executable: pip3 
+          name: jupyter
+      become: yes
+
+    - name: install bokeh
+      pip: 
+          executable: pip3 
+          name: bokeh
+      become: yes
+
+    - name: install cassandra client
+      pip:
+          executable: pip3
+          name: cassandra-driver
+      become: yes
+
+    - name: Make sure the repo is up to date
+      git:
+          repo: https://github.com/lsst-uk/lasair-lsst.git
+          dest: /home/ubuntu/lasair-lsst
 
 #$ jupyter notebook password
 #$ jupyter notebook --generate-config
