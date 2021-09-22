@@ -1,6 +1,10 @@
 ---
 - hosts: dask
   gather_facts: no
+
+  vars:
+      settings: "{{ lookup('hashi_vault', 'secret=secret/lasair/settings')}}"
+
   tasks:
     - name: python3-pip
       apt: 
@@ -8,6 +12,11 @@
           state: present
           update_cache: true
       become: yes
+
+    - name: install mysql.connector
+      pip:
+          executable: pip3
+          name: mysql-connector-python
 
     - name: install dask[bag]
       pip: 
@@ -43,6 +52,12 @@
       git:
           repo: https://github.com/lsst-uk/lasair-lsst.git
           dest: /home/ubuntu/lasair-lsst
+
+    - name: settings.py for tests
+      template:
+          src:  /home/ubuntu/lasair-lsst/dask/tests/settings.py.j2
+          dest: /home/ubuntu/lasair-lsst/dask/tests/settings.py
+
 
 #$ jupyter notebook password
 #$ jupyter notebook --generate-config
