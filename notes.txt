@@ -1,0 +1,17 @@
+
+-- jupyter notebook on dask-head
+$ jupyter notebook password
+$ jupyter notebook --generate-config
+then edit ~/.jupyter/jupyter_notebook_config.py
+c.NotebookApp.ip = '*'
+c.NotebookApp.port = 8080
+c.NotebookApp.open_browser = False
+
+-- start scheduler w diagnostics on port 8082
+dask-scheduler --dashboard-address :8082
+
+-- on each worker node
+(use IP address of dask head)
+dask-worker tcp://192.168.0.33:8786
+
+
