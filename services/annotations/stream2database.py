@@ -105,6 +105,9 @@ def process_annotations(maxalert):
             'classification', 'explanation', 'classdict', 'url']
         attrs = []
         values = []
+        if not 'classification' in alert:
+            print("Classification must be non trivial string")
+            continue
         for a in allattrs:
             if not a in alert or not alert[a]:
                 continue
@@ -113,17 +116,19 @@ def process_annotations(maxalert):
                 v = json.dumps(v)
             if a == 'classification' and (not v or len(v)==0):
                 print("Classification must be non trivial string")
-
                 continue
             attrs.append(a)
             values.append("'" + v + "'")
         query = 'REPLACE INTO annotations (' + ', '.join(attrs) 
         query += ') VALUES (' + ', '.join(values) + ')'
-        cursor.execute(query)
-        nquery += 1
+        try:
+            cursor.execute(query)
+            nquery += 1
+        except:
+            print('Query did not run: ' + query)
     consumer.close()
     return nquery
 
 if __name__ == "__main__":
-    nquery = process_annotations(10)
+    nquery = process_annotations(100)
     print(nquery, ' annotations inserted')
