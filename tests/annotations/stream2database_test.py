@@ -3,8 +3,7 @@ import unittest
 sys.path.append('/home/ubuntu/lasair-lsst/services/annotations')
 from stream2database import process_annotations
 
-class TestStringMethods(unittest.TestCase):
-
+class TestAnnotations(unittest.TestCase):
     def test_process_annotations(self):
         f = open('sample_annotations.json')
         annotations = json.loads(f.read())
