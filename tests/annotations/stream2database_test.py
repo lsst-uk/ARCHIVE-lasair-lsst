@@ -1,13 +1,22 @@
 import sys, json
+import unittest
 sys.path.append('/home/ubuntu/lasair-lsst/services/annotations')
 from stream2database import process_annotations
 
-annotations = json.loads(open('sample_annotations.json').read())
+class TestStringMethods(unittest.TestCase):
 
-queries_from_code = process_annotations(annotations)
+    def test_process_annotations(self):
+        f = open('sample_annotations.json')
+        annotations = json.loads(f.read())
+        f.close()
 
-queries_from_file = json.loads(open('sample_queries.json').read())
+        f = open('sample_queries.json')
+        queries_from_file = json.loads(f.read())
+        f.close()
 
-for i in range(len(queries_from_file)):
-    if queries_from_code[i] != queries_from_file[i]:
-        print('different', queries_from_code[i], queries_from_file[i])
+        queries_from_code = process_annotations(annotations)
+        for i in range(len(queries_from_file)):
+            self.assertEqual(queries_from_code[i], queries_from_file[i])
+
+if __name__ == '__main__':
+    unittest.main()
