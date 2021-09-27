@@ -10,6 +10,12 @@ from lasair import lasair_client, lasair_consumer, lasair_producer
 import random
 import settings
 
+try:
+    nannotation = int(sys.argv[1])
+except:
+    nannotation = 10
+print('Trying %d annotations' % nannotation)
+
 # The API token for the user who is running this
 token = settings.API_TOKEN
 L = lasair_client(token)
@@ -28,7 +34,7 @@ C = lasair_consumer(group_id, topic_in)
 P = lasair_producer(settings.KAFKA_USERNAME, settings.KAFKA_PASSWORD, settings.KAFKA_OUT)
 
 # Get 100 messages from the pre-query and send back a trivial annotation for each one
-for i in range(100):
+for i in range(nannotation):
     msg = C.poll()
     if msg is None:
         break

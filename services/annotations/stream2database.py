@@ -1,56 +1,8 @@
 import json
+import sys
 from confluent_kafka import Consumer
 import mysql.connector as MySQLdb
 import settings
-
-def make_consumer(group_id, topics):
-    """ Creates a Kafka consumer on the public net, logged in as admin
-        args:
-            group_id: group_id (string) -- where to start the consuming
-            topics: list of topics to consume, one per annotator
-    """
-    conf = {
-        'bootstrap.servers': settings.KAFKA_HOST,
-        'sasl.username':     settings.KAFKA_USERNAME,
-        'sasl.password':     settings.KAFKA_PASSWORD,
-        'security.protocol': 'SASL_PLAINTEXT',
-        'sasl.mechanisms':   'SCRAM-SHA-256',
-        'group.id':          group_id,
-        'default.topic.config': {
-             'auto.offset.reset': 'smallest'
-        }
-    }
-
-    try:
-        consumer = Consumer(conf)
-    except Exception as e:
-        print('ERROR cannot connect to kafka', e)
-        return None
-
-    consumer.subscribe(topics)
-    return consumer
-
-def get_messages(consumer, maxalert):
-    """ Gets some messages from the Kafka topics
-    args:
-        maxalert: max number of messages to fetch
-    """
-    alerts = []
-    while len(alerts) < maxalert:
-        msg = consumer.poll(timeout=settings.KAFKA_TIMEOUT)
-        if msg is None:
-            break
-        if msg.error():
-            continue
-        if msg.value() is None:
-            continue
-        else:
-            try:
-                alert = json.loads(msg.value())
-                alerts.append(alert)
-            except:
-                print('ERROR not json', msg.value())
-    return alerts
 
 def db_connector():
     """ Make a connection to the master database
@@ -79,39 +31,71 @@ def get_topics(conn):
             topics.append('anno_' + row['topic'])
         cursor.close ()
     except MySQLdb.Error as e:
-        print("ERROR in services/TNS: cannot connect to master database, Error %d: %s\n" % (e.args[0], e.args[1]))
+        print("ERROR in services/annotator: cannot connect to master database, Error %d: %s\n" % (e.args[0], e.args[1]))
     return topics
 
-def process_annotations(maxalert):
+def get_annotations(topics, maxannotation):
+    """ Creates a Kafka consumer on the public net, logged in as admin
+        args:
+            topics: list of topics to consume, one per annotator
+            maxannotation: max number of messages to fetch
+    """
+    conf = {
+        'bootstrap.servers': settings.KAFKA_HOST,
+        'sasl.username':     settings.KAFKA_USERNAME,
+        'sasl.password':     settings.KAFKA_PASSWORD,
+        'security.protocol': 'SASL_PLAINTEXT',
+        'sasl.mechanisms':   'SCRAM-SHA-256',
+        'group.id':          settings.GROUP_ID,
+        'default.topic.config': {
+             'auto.offset.reset': 'smallest'
+        }
+    }
+
+    try:
+        consumer = Consumer(conf)
+    except Exception as e:
+        print('ERROR cannot connect to kafka', e)
+        return None
+    consumer.subscribe(topics)
+
+    annotations = []
+    while len(annotations) < maxannotation:
+        msg = consumer.poll(timeout=settings.KAFKA_TIMEOUT)
+        if msg is None:
+            break
+        if msg.error():
+            continue
+        if msg.value() is None:
+            continue
+        else:
+            try:
+                annotation = json.loads(msg.value())
+                annotations.append(annotation)
+            except:
+                print('ERROR not json', msg.value())
+    consumer.close()
+    return annotations
+
+def process_annotations(annotations):
     """ Get all the topics of all the annotators; read all annotations on those
         then push each into the master database
     args:
-        maxalert: max number of messages to fetch
+        maxannotation: max number of messages to fetch
     """
-    conn = db_connector()
-    if not conn:
-        print("ERROR in services/annotator: Cannot connect to the database\n")
-    topics = get_topics(conn)
-    print('Using topics', topics)
-
-    consumer = make_consumer(settings.GROUP_ID, topics)
-
-    alerts = get_messages(consumer, maxalert)
-    
-    cursor = conn.cursor (dictionary=True)
-    nquery = 0
-    for alert in alerts:
+    queries = []
+    for annotation in annotations:
         allattrs = ['objectId', 'topic', 'version', 
             'classification', 'explanation', 'classdict', 'url']
         attrs = []
         values = []
-        if not 'classification' in alert:
+        if not 'classification' in annotation:
             print("Classification must be non trivial string")
             continue
         for a in allattrs:
-            if not a in alert or not alert[a]:
+            if not a in annotation or not annotation[a]:
                 continue
-            v = alert[a]
+            v = annotation[a]
             if a == 'classdict':
                 v = json.dumps(v)
             if a == 'classification' and (not v or len(v)==0):
@@ -121,14 +105,43 @@ def process_annotations(maxalert):
             values.append("'" + v + "'")
         query = 'REPLACE INTO annotations (' + ', '.join(attrs) 
         query += ') VALUES (' + ', '.join(values) + ')'
+        queries.append(query)
+    return queries
+
+def execute_queries(conn, queries):
+    nsuccess = 0
+    cursor = conn.cursor (dictionary=True)
+    for query in queries:
         try:
             cursor.execute(query)
-            nquery += 1
+            nsuccess += 1
         except:
             print('Query did not run: ' + query)
-    consumer.close()
-    return nquery
+    return nsuccess
 
+##################################
 if __name__ == "__main__":
-    nquery = process_annotations(100)
-    print(nquery, ' annotations inserted')
+    # connect to master database
+    conn = db_connector()
+
+    # get all the annotation topics
+    topics = get_topics(conn)
+    print(len(topics), 'topics found in database')
+
+    # how many to fetch
+    try:
+        maxannotation = int(sys.argv[1])
+    except:
+        maxannotation = 10
+
+    # fetch from kafka
+    annotations = get_annotations(topics, maxannotation)
+    print(len(annotations), 'annotations found')
+
+    # convert to queries
+    queries = process_annotations(annotations)
+    print(len(queries), 'queries built')
+
+    # executr queries on master database
+    nsuccess = execute_queries(conn, queries)
+    print(nsuccess, ' annotations inserted to database')
