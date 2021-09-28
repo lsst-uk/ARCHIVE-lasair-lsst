@@ -117,6 +117,7 @@ def execute_queries(conn, queries):
             nsuccess += 1
         except:
             print('Query did not run: ' + query)
+    conn.commit()
     return nsuccess
 
 ##################################
