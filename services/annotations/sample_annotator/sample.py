@@ -5,7 +5,6 @@
 """
 
 import json, sys
-sys.path.append('/home/ubuntu/lasair_api/lasair')
 from lasair import lasair_client, lasair_consumer, lasair_producer
 import random
 import settings
@@ -28,10 +27,10 @@ group_id = 'test123'
 print('Using topic=', topic_in, 'group_id=', group_id)
 
 # Make kafka consumer
-C = lasair_consumer(group_id, topic_in)
+C = lasair_consumer(settings.KAFKA_CONSUME, group_id, topic_in)
 
 # Make kafka producer. Each annotator gets the username, password, and outgoing topic from Lasair staff
-P = lasair_producer(settings.KAFKA_USERNAME, settings.KAFKA_PASSWORD, settings.KAFKA_OUT)
+P = lasair_producer(settings.KAFKA_PRODUCE, settings.KAFKA_USERNAME, settings.KAFKA_PASSWORD, settings.KAFKA_OUT)
 
 # Get 100 messages from the pre-query and send back a trivial annotation for each one
 for i in range(nannotation):
