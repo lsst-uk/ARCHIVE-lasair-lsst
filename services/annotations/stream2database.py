@@ -26,7 +26,7 @@ def get_topics(conn):
     topics = []
     try:
         cursor = conn.cursor (dictionary=True)
-        cursor.execute ('SELECT * from annotators')
+        cursor.execute ('SELECT * from annotators where active > 0')
         for row in cursor:
             topics.append('anno_' + row['topic'])
         cursor.close ()
