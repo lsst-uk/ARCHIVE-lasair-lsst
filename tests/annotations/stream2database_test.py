@@ -1,6 +1,7 @@
-import sys, json
+import os, sys, json
 import unittest
 sys.path.append('/home/ubuntu/lasair-lsst/services/annotations')
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from stream2database import process_annotations
 
 class TestAnnotations(unittest.TestCase):
