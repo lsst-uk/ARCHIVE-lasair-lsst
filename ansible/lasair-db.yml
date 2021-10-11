@@ -87,3 +87,8 @@
       shell:
           cmd: mysql --user=ztf --password={{ settings.master_db_password }} < watchlist_hits.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+    - name: create annotations table
+      shell:
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < annotations.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema

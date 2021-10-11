@@ -13,7 +13,7 @@ and areas just after midnight UTC, before observations begin in California.
 
 ```
 1  */4 * * * python3 /home/ubuntu/lasair-lsst/services/TNS/poll_tns.py --pageSize=500 --inLastNumberOfDays=180
-11 */4 * * * /home/ubuntu/lasair-lsst/services/localTNS/dumpTNS.sh 
+11 */4 * * * /home/ubuntu/lasair-lsst/services/TNS/dumpTNS.sh 
 10   0 * * * python3 /home/ubuntu/lasair-lsst/services/areas/make_area_files.py
 12   0 * * * python3 /home/ubuntu/lasair-lsst/services/watchlists/make_watchlist_files.py
 ```
@@ -63,3 +63,8 @@ The settings.py for this code uses the database connection (see above), as well 
 - `WATCHLIST_MOCS`  directory to put the MOC files.
 - `WATCHLIST_CHUNK` number of points for each MOC, typically 50,000, since building becomes excessively slow for large numbers of cones.
 - `WATCHLIST_MAX_DEPTH` the depth of each MOC, typically 13.
+
+## `stream2database.py`
+This program gets a list of all the annotators topic names from the database, 
+then pulls all the annotations that have accumulated in kafka, and
+for each one builds a query and puts it in the master database.

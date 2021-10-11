@@ -25,6 +25,8 @@ def create_table(schema):
         elif primtype == 'string':   s += ' varchar(16)'
         elif primtype == 'bigstring':s += ' varchar(80)'
         elif primtype == 'text':     s += ' text'
+        elif primtype == 'timestamp':s += ' timestamp'
+        elif primtype == 'JSON':     s += ' JSON'
         else: print('ERROR unknown type ', primtype)
     
         if 'default' in f:

@@ -8,6 +8,9 @@ pipeline {
           sh 'python3 integration_test_sherlock_wrapper.py'
           sh 'python3 watchlist_test.py'
         }
+        dir('tests/annotations') {
+          sh 'python3 stream2database_test.py'
+        }
       }
       post {
         always {
