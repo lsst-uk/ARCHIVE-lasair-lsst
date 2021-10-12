@@ -17,7 +17,6 @@
   {
     "name": "topic",
     "type": "string",
-    "extra": "REFERENCES annotators(topic)",
     "doc": "The topic name of the annotator -- acts as primary key"
   },
   {
