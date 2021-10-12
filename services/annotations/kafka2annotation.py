@@ -28,7 +28,7 @@ def get_topics(conn):
         cursor = conn.cursor (dictionary=True)
         cursor.execute ('SELECT * from annotators where active > 0')
         for row in cursor:
-            topics.append('anno_' + row['topic'])
+            topics.append(row['topic'])
         cursor.close ()
     except MySQLdb.Error as e:
         print("ERROR in services/annotator: cannot connect to master database, Error %d: %s\n" % (e.args[0], e.args[1]))
@@ -57,7 +57,8 @@ def get_annotations(topics, maxannotation):
     except Exception as e:
         print('ERROR cannot connect to kafka', e)
         return None
-    consumer.subscribe(topics)
+    anno_topics = ['anno_'+topic for topic in topics]
+    consumer.subscribe(anno_topics)
 
     annotations = []
     while len(annotations) < maxannotation:
