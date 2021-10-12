@@ -45,9 +45,16 @@ these are `poll_tns_periodic.sh` and `run_all_TNS.sh`
 ## `dumpTNS.sh`
 In order that streaming queries work properly on the filter nodes, the local database there must
 have the updated TNS database, the table called crossmatch_tns. Therefore we have this process
-running right after the updata of TNS that runs on the database node, and does mysqldump for that
+running every 4 hours that runs on the database node, and does mysqldump for that
 table, putting the result in the CephFS. Each filter node should also have a crontab to fetch 
 that file and build it into the local database, that is the script get_crossmatch_tns.sh.
+
+## `dumpannotations.sh`
+In order that streaming queries work properly on the filter nodes, the local database there must
+have the updated annotations database, the table called annotations. Therefore we have this process
+running every 4 hours, and does mysqldump for that
+table, putting the result in the CephFS. Each filter node should also have a crontab to fetch 
+that file and build it into the local database, that is the script get_annotations.sh.
 
 ## `make_area_files.py`
 This code checks for new or updated area files uploaded to the database, and
@@ -64,7 +71,7 @@ The settings.py for this code uses the database connection (see above), as well 
 - `WATCHLIST_CHUNK` number of points for each MOC, typically 50,000, since building becomes excessively slow for large numbers of cones.
 - `WATCHLIST_MAX_DEPTH` the depth of each MOC, typically 13.
 
-## `stream2database.py`
+## `kafka2database.py`
 This program gets a list of all the annotators topic names from the database, 
 then pulls all the annotations that have accumulated in kafka, and
 for each one builds a query and puts it in the master database.
