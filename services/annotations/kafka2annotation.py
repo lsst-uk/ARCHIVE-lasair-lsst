@@ -2,7 +2,10 @@ import json
 import sys
 from confluent_kafka import Consumer
 import mysql.connector as MySQLdb
-import settings
+try:
+    import settings
+except:
+    print('settings file not imported')
 
 def db_connector():
     """ Make a connection to the master database
