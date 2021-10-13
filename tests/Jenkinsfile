@@ -9,7 +9,7 @@ pipeline {
           sh 'python3 watchlist_test.py'
         }
         dir('tests/annotations') {
-          sh 'python3 kafka2annotation.py'
+          sh 'python3 kafka_test.py'
         }
       }
       post {
