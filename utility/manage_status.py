@@ -117,32 +117,3 @@ class manage_status():
             else:             status[key]  = value
 
         self.write_unlock(status, file_id)
-
-if __name__ == '__main__':
-    import os
-    os.system('mkdir play')
-
-    ms = manage_status('play/status')
-    ms.set({'banana':5, 'orange':6}, 6)
-    ms.add({'apple':12, 'pear':7}, 6)
-    ms.add({'apple':12, 'pear':1}, 6)
-
-    ms.add({'apple':1, 'pear':7}, 7)
-    ms.add({'apple':1, 'pear':7}, 7)
-    ms.set({'banana':5, 'orange':6}, 7)
-    ms.set({'banana':4, 'orange':7}, 7)
-    ms.set({'banana':3, 'orange':8}, 7)
-
-    status = ms.read(6)
-    assert(status['banana'] == 5)
-    assert(status['orange'] == 6)
-    assert(status['apple']  == 24)
-    assert(status['pear']   == 8)
-
-    status = ms.read(7)
-    assert(status['banana'] == 3)
-    assert(status['orange'] == 8)
-    assert(status['apple']  == 2)
-    assert(status['pear']  == 14)
-
-    os.system('rm -r play')
