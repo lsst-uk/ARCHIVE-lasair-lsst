@@ -1,6 +1,6 @@
 import os, sys, json
 import unittest
-python_path = '../../utility/'
+python_path = '../utility/'
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), python_path)))
 from manage_status import manage_status
 
