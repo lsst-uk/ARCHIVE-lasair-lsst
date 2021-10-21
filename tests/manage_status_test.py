@@ -4,7 +4,7 @@ python_path = '../utility/'
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), python_path)))
 from manage_status import manage_status
 
-class TestAnnotations(unittest.TestCase):
+class TestManageStatus(unittest.TestCase):
     def test_manage_status(self):
         # put the status files in here
         os.system('mkdir play')
