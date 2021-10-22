@@ -423,7 +423,7 @@ def main():
     sys.stdout.flush()
 
     os.system('date')
-    ms = manage_status('nid', settings.SYSTEM_STATUS)
+    ms = manage_status(settings.SYSTEM_STATUS)
     nid  = date_nid.nid_now()
     ms.add({'today_alert':nalert, 'today_candidate':ncandidate}, nid)
 

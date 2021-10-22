@@ -19,6 +19,7 @@ from check_alerts_watchlists import get_watchlist_hits, insert_watchlist_hits
 from check_alerts_areas import get_area_hits, insert_area_hits
 from counts import since_midnight, grafana_today
 import mysql.connector
+import date_nid
 
 def db_connect():
     """db_connect.
@@ -133,13 +134,16 @@ for table in tablelist:
 print('Transfer to master %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 
-ms = manage_status('nid', settings.SYSTEM_STATUS)
+ms = manage_status(settings.SYSTEM_STATUS)
+nid = date_nid.nid_now()
 d = since_midnight()
 ms.set({
     'today_ztf':grafana_today(), 
     'today_database':d['count'], 
     'min_delay':d['delay'], 
-    'total_count': d['total_count']})
+    'total_count': d['total_count'],
+    'nid': nid}, 
+    nid)
 print('Exit status', rc)
 sys.stdout.flush()
 if rc > 0: sys.exit(1)
