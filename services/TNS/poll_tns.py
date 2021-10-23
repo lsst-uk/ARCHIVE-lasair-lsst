@@ -31,6 +31,7 @@ from gkhtm import _gkhtm as htmCircle
 sys.path.append('/home/ubuntu/lasair-lsst/utility')
 import date_nid
 import settings
+from manage_status import manage_status
 
 global logfile
 
@@ -59,6 +60,18 @@ def getTNSRow(conn, tnsName):
 
    return resultSet
 
+def countTNSRow(conn):
+    try:
+        cursor = conn.cursor (dictionary=True)
+        cursor.execute ("select count(*) as nrow from crossmatch_tns")
+        for row in cursor:
+            nrow = row['nrow']
+        cursor.close ()
+        return nrow
+
+    except MySQLdb.Error as e:
+        logfile.write("Error %d: %s\n" % (e.args[0], e.args[1]))
+        return -1
 
 def deleteTNSRow(conn, tnsName):
     try:
@@ -74,7 +87,6 @@ def deleteTNSRow(conn, tnsName):
         logfile.write("Error %d: %s\n" % (e.args[0], e.args[1]))
 
     cursor.close ()
-    conn.commit()
     return
 
 
@@ -145,7 +157,6 @@ def insertTNS(conn, tnsEntry):
         sys.stdout.flush()
 
     #insertId = conn.insert_id()
-    conn.commit()
     return insertId
 
 
@@ -220,7 +231,7 @@ def pollTNS(page=0, resultSize=50, inLastNumberDays=None):
 
     return status_code, content
 
-def getTNSData(opts):
+def getTNSData(opts, conn):
     if type(opts) is dict:
         options = Struct(**opts)
     else:
@@ -229,22 +240,6 @@ def getTNSData(opts):
 #    import yaml
 #    with open(options.configFile) as yaml_file:
 #        config = yaml.load(yaml_file)
-
-    username = settings.DB_USER_WRITE
-    password = settings.DB_PASS_WRITE
-    hostname = settings.DB_HOST
-    database = 'ztf'
-#    database = settings.DB
-
-#    username = config['databases']['local']['username']
-#    password = config['databases']['local']['password']
-#    database = config['databases']['local']['database']
-#    hostname = config['databases']['local']['hostname']
-
-    conn = dbConnect(hostname, username, password, database)
-    if not conn:
-        print("ERROR in services/TNS/poll_tns: Cannot connect to the database\n")
-        return 1
 
     radius = 3.0 # arcseconds from crossmatch
     if options.radius:
@@ -313,18 +308,33 @@ def getTNSData(opts):
 
     logfile.write("Total rows added = %d, modified = %d\n" % (rowsAdded, rowsChanged))
 
-    conn.commit()
-    conn.close()
 
+def get_db():
+    username = settings.DB_USER_WRITE
+    password = settings.DB_PASS_WRITE
+    hostname = settings.DB_HOST
+    database = 'ztf'
+    conn = dbConnect(hostname, username, password, database)
+    if not conn:
+        print("ERROR in services/TNS/poll_tns: Cannot connect to the database\n")
+        return 1
+    return conn
 
 def main():
     opts = docopt(__doc__, version='0.1')
     opts = cleanOptions(opts)
+    conn = get_db()
 
     # Use utils.Struct to convert the dict into an object for compatibility with old optparse code.
     options = Struct(**opts)
-    getTNSData(options)
+    getTNSData(options, conn)
+    countTNS = countTNSRow(conn)
+    conn.commit()
+    conn.close()
 
+    ms = manage_status(settings.SYSTEM_STATUS)
+    nid = date_nid.nid_now()
+    ms.set({'countTNS':countTNS}, nid)
 
 if __name__ == '__main__':
     global logfile
