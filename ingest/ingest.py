@@ -358,8 +358,15 @@ def main():
     maxalert = settings.KAFKA_MAXALERTS
     nprocess = settings.KAFKA_PROCESSES
 
-    objectdir = settings.OBJECTJSON
-    fitsdir = settings.IMAGEFITS
+    try:
+        objectdir = settings.OBJECTJSON
+    except:
+        objectdir = None
+
+    try:
+        fitsdir = settings.IMAGEFITS
+    except:
+        fitsdir = None
 
     group_id = settings.KAFKA_GROUPID
     topicout = settings.KAFKA_TOPIC_OUT
