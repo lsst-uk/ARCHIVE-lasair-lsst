@@ -90,7 +90,7 @@ if __name__ == "__main__":
     import settings
     nid  = date_nid.nid_now()
     date = date_nid.nid_to_date(nid)
-    logfile = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
+    logfile = open('/mnt/cephfs/lasair/services_log/' + date + '.log', 'a')
     now = datetime.now()
     logfile.write('\n-- make_area_files at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
 
