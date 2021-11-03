@@ -19,7 +19,7 @@ Options:
 import sys
 __doc__ = __doc__ % (sys.argv[0], sys.argv[0], sys.argv[0])
 from docopt import docopt
-import os
+import os, sys
 import mysql.connector as MySQLdb
 from gkutils import Struct, cleanOptions, dbConnect, coords_sex_to_dec, floatValue, intValue, nullValue
 import requests
@@ -344,3 +344,4 @@ if __name__ == '__main__':
     now = datetime.now()
     logfile.write('\n-- poll_tns at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
     main()
+    sys.exit(0)
