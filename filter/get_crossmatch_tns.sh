@@ -1,1 +1,1 @@
-mysql -u ztf -p ztf -p123password < /mnt/cephfs/roy/crossmatch_tns/crossmatch_tns.sql
+mysql -u ztf -p ztf -p123password < /mnt/cephfs/lasair/crossmatch_tns/crossmatch_tns.sql

@@ -12,7 +12,7 @@ def now():
 while 1:
     nid  = date_nid.nid_now()
     date = date_nid.nid_to_date(nid)
-    log = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
+    log = open('/mnt/cephfs/lasair/services_log/' + date + '.log', 'a')
 
     # compute the starting conditions
     worker_args = ['--pageSize=500', '--inLastNumberOfDays=180']

@@ -10,9 +10,12 @@ from confluent_kafka import Producer, KafkaError
 import datetime
 import mysql.connector
 import smtplib
-from email.message import EmailMessage
+#from email.message import EmailMessage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-def send_email(email, topic, message):
+
+def send_email(email, topic, message, message_html):
     """send_email.
 
     Args:
@@ -20,15 +23,35 @@ def send_email(email, topic, message):
         topic:
         message:
     """
-    msg = EmailMessage()
-    msg.set_content(message)
+    msg = MIMEMultipart('alternative')
 
     msg['Subject'] = 'Lasair query ' + topic
     msg['From']    = 'donotreply@lasair.roe.ac.uk'
     msg['To']      = email
+
+    msg.attach(MIMEText(message, 'plain'))
+    msg.attach(MIMEText(message_html, 'html'))
     s = smtplib.SMTP('localhost')
-    s.send_message(msg)
+    s.sendmail('donotreply@lasair.roe.ac.uk', email, msg.as_string())
     s.quit()
+
+#def send_email(email, topic, message):
+#    """send_email.
+#
+#    Args:
+#        email:
+#        topic:
+#        message:
+#    """
+#    msg = EmailMessage()
+#    msg.set_content(message)
+#
+#    msg['Subject'] = 'Lasair query ' + topic
+#    msg['From']    = 'donotreply@lasair.roe.ac.uk'
+#    msg['To']      = email
+#    s = smtplib.SMTP('localhost')
+#    s.send_message(msg)
+#    s.quit()
 
 def datetime_converter(o):
     """datetime_converter.
@@ -39,6 +62,10 @@ def datetime_converter(o):
 # used by json encoder when it gets a type it doesn't understand
     if isinstance(o, datetime.datetime):
         return o.__str__()
+
+def kafka_ack(err, msg):
+    if err is not None:
+        print("Failed to deliver message: %s: %s" % (str(msg), str(err)))
 
 def run_query(query, msl):
     """run_query.
@@ -103,15 +130,21 @@ def run_query(query, msl):
             if delta > 1.0:
                 print('   --- send email to %s' % email)
                 sys.stdout.flush()
-                message = 'Your active query with Lasair on topic ' + topic + '\n'
+                message      = 'Your active query with Lasair on topic ' + topic + '\n'
+                message_html = 'Your active query with Lasair on topic ' + topic + '<br/>'
                 for out in allrecords: 
                     out_number = datetime.datetime.strptime(out['UTC'], "%Y-%m-%d %H:%M:%S")
                     # gather all records that have accumulated since last email
                     if out_number > last_entry_number:
-                        jsonout = json.dumps(out, default=datetime_converter)
-                        message += jsonout + '\n'
+                        if 'objectId' in out:
+                            objectId = out['objectId']
+                            message      += objectId + '\n'
+                            message_html += '<a href="http://lasair-iris.roe.ac.uk/object/%s/">%s</a><br/>' % (objectId, objectId)
+                        else:
+                            jsonout = json.dumps(out, default=datetime_converter)
+                            message += jsonout + '\n'
                 try:
-                    send_email(email, topic, message)
+                    send_email(email, topic, message, message_html)
                 except Exception as e:
                     print('ERROR in filter/run_active_queries: Cannot send email!')
                     print(e)
@@ -132,14 +165,14 @@ def run_query(query, msl):
                 p = Producer(conf)
                 for out in recent: 
                     jsonout = json.dumps(out, default=datetime_converter)
-                    p.produce(topic, jsonout)
+                    p.produce(topic, value=jsonout, callback=kafka_ack)
                 p.flush(10.0)   # 10 second timeout
                 # last_entry not really used with kafka, just a record of last blast
                 last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
             except Exception as e:
                 rtxt = "ERROR in filter/run_active_queries: cannot produce to public kafka"
                 rtxt += str(e)
-#                slack_webhook.send(settings.SLACK_URL, rtxt)
+                slack_webhook.send(settings.SLACK_URL, rtxt)
                 print(rtxt)
                 sys.stdout.flush()
 

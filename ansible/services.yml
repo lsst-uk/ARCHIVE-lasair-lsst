@@ -78,3 +78,8 @@
       template:
         src:  /home/ubuntu/lasair-lsst/services/watchlists/settings.py.j2
         dest: /home/ubuntu/lasair-lsst/services/watchlists/settings.py
+
+    - name: settings.py annotations
+      template:
+        src:  /home/ubuntu/lasair-lsst/services/annotations/settings.py.j2
+        dest: /home/ubuntu/lasair-lsst/services/annotations/settings.py
