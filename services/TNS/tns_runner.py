@@ -31,7 +31,7 @@ while 1:
         if len(rbin) == 0: break
 
         # if the worher uses 'print', there will be at least the newline
-        rtxt = rbin.decode('ascii').rstrip()
+        rtxt = rbin.decode('utf-8').rstrip()
         log.write(rtxt + '\n')
         print(rtxt)
 
