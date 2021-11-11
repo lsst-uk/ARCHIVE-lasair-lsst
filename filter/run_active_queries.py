@@ -130,8 +130,9 @@ def run_query(query, msl):
             if delta > 1.0:
                 print('   --- send email to %s' % email)
                 sys.stdout.flush()
-                message      = 'Your active query with Lasair on topic ' + topic + '\n'
-                message_html = 'Your active query with Lasair on topic ' + topic + '<br/>'
+                query_url = '%s/query/%d/' % (settings.LASAIR_URL, query['mq_id'])
+                message      = 'Your active query with Lasair on topic %s\n' % topic
+                message_html = 'Your active query with Lasair on <a href=%s>%s</a><br/>' % (query_url, topic)
                 for out in allrecords: 
                     out_number = datetime.datetime.strptime(out['UTC'], "%Y-%m-%d %H:%M:%S")
                     # gather all records that have accumulated since last email
@@ -139,7 +140,7 @@ def run_query(query, msl):
                         if 'objectId' in out:
                             objectId = out['objectId']
                             message      += objectId + '\n'
-                            message_html += '<a href="http://lasair-iris.roe.ac.uk/object/%s/">%s</a><br/>' % (objectId, objectId)
+                            message_html += '<a href="%s/object/%s/">%s</a><br/>' % (settings.LASAIR_URL, objectId, objectId)
                         else:
                             jsonout = json.dumps(out, default=datetime_converter)
                             message += jsonout + '\n'
@@ -198,13 +199,14 @@ def run_queries():
     msl_remote = mysql.connector.connect(**config)
 
     cursor   = msl_remote.cursor(buffered=True, dictionary=True)
-    query = 'SELECT user, name, email, active, real_sql, topic_name '
+    query = 'SELECT mq_id, user, name, email, active, real_sql, topic_name '
     query += 'FROM myqueries, auth_user WHERE myqueries.user = auth_user.id AND active > 0'
     cursor.execute(query)
 
     query_list = []
     for query in cursor:
         query_dict = {
+            'mq_id':     query['mq_id'],
             'user':      query['user'],
             'name':      query['name'],
             'active':    query['active'],
