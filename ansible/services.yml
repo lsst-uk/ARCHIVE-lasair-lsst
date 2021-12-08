@@ -68,6 +68,21 @@
       template:
         src:  /home/ubuntu/lasair-lsst/services/TNS/settings.py.j2
         dest: /home/ubuntu/lasair-lsst/services/TNS/settings.py
+        
+    - name: settings.py fink
+      template:
+        src:  /home/ubuntu/lasair-lsst/services/fink/settings.py.j2
+        dest: /home/ubuntu/lasair-lsst/services/fink/settings.py
+
+    - name: fink_client_conf.py fink
+      template:
+        src:  /home/ubuntu/lasair-lsst/services/fink/fink_client_conf.py.j2
+        dest: /home/ubuntu/lasair-lsst/services/fink/fink_client_conf.py
+
+    - name: settings.py alerce
+      template:
+        src:  /home/ubuntu/lasair-lsst/services/alerce/settings.py.j2
+        dest: /home/ubuntu/lasair-lsst/services/alerce/settings.py
 
     - name: settings.py areas
       template:
