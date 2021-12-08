@@ -24,6 +24,7 @@
 
   vars:
       settings: "{{ lookup('hashi_vault', 'secret=secret/lasair/settings')}}"
+      ansible_python_interpreter: "/usr/bin/python3"
 
   tasks:
     - name: install swig
@@ -33,7 +34,7 @@
           update_cache: true
       become: yes
 
-    - name: install python-dev
+    - name: install python3-dev
       apt: 
           name: python-dev
           state: present
