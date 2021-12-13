@@ -21,8 +21,8 @@ from counts import since_midnight, grafana_today
 import mysql.connector
 import date_nid
 
-def db_connect():
-    """db_connect.
+def db_connect_local():
+    """db_connect_local.
     """
     config = {
         'user'    : settings.DB_USER_LOCAL,
@@ -32,6 +32,19 @@ def db_connect():
     }
     msl_local = mysql.connector.connect(**config)
     return msl_local
+
+def db_connect_master():
+    """db_connect_master.
+    """
+    config = {
+        'user'    : settings.DB_USER_REMOTE,
+        'password': settings.DB_PASS_REMOTE,
+        'host'    : settings.DB_HOST_REMOTE,
+        'port'    : settings.DB_PORT_REMOTE,
+        'database': 'ztf'
+    }
+    msl_master = mysql.connector.connect(**config)
+    return msl_master
 
 topic = settings.KAFKA_TOPIC_IN
 
@@ -48,7 +61,7 @@ print('INGEST start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 print("Topic is %s" % topic)
 t = time.time()
 
-cmd =  'python3 ingestStreamThreaded.py '
+cmd =  'python3 consume_alerts.py '
 cmd += '--maxalert %d ' % settings.KAFKA_MAXALERTS
 cmd += '--nprocess %d ' % settings.KAFKA_PROCESSES
 cmd += '--group %s '    % settings.KAFKA_GROUPID
@@ -61,7 +74,7 @@ rc = os.system(cmd)
 print('INGEST duration %.1f seconds' % (time.time() - t))
 
 try:
-    msl = db_connect()
+    msl_local = db_connect_local()
 except:
     print('ERROR in filter/filter: cannot connect to local database')
     sys.stdout.flush()
@@ -70,11 +83,11 @@ except:
 print('WATCHLIST start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 sys.stdout.flush()
 t = time.time()
-hits = get_watchlist_hits(msl, settings.WATCHLIST_MOCS, settings.WATCHLIST_CHUNK)
+hits = get_watchlist_hits(msl_local, settings.WATCHLIST_MOCS, settings.WATCHLIST_CHUNK)
 print('got %d watchlist hits' % len(hits))
 sys.stdout.flush()
 if len(hits) > 0:
-    insert_watchlist_hits(msl, hits)
+    insert_watchlist_hits(msl_local, hits)
 print('WATCHLIST %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 
@@ -82,11 +95,11 @@ sys.stdout.flush()
 print('AREA start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 sys.stdout.flush()
 t = time.time()
-hits = get_area_hits(msl, settings.AREA_MOCS)
+hits = get_area_hits(msl_local, settings.AREA_MOCS)
 print('got %d area hits' % len(hits))
 sys.stdout.flush()
 if len(hits) > 0:
-    insert_area_hits(msl, hits)
+    insert_area_hits(msl_local, hits)
 print('AREA %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 

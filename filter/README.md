@@ -12,7 +12,7 @@ The master script that does the following things in order
   * refresh.py
 First clean out the local database.
 
-  * ingestStreamThreaded.py
+  * consume_alerts.py
 Runs the Kafka consumer, can be multi-process. For each alert, 
 it pushes the objects and sherlock_crossmaxtches to the local database
 

@@ -87,7 +87,7 @@ def execute_query(query, msl):
         cursor.close()
         msl.commit()
     except mysql.connector.Error as err:
-        print('ERROR filter/ingestStream: object Database insert candidate failed: %s' % str(err))
+        print('ERROR filter/consume_alerts: object Database insert candidate failed: %s' % str(err))
         print(query)
         sys.stdout.flush()
 
