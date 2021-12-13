@@ -151,6 +151,11 @@
           cmd: mysql --user=ztf --password=123password < sherlock_classifications.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
+    - name: create crossmatch_tns table
+      shell:
+          cmd: mysql --user=ztf --password=123password < crossmatch_tns.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
     - name: create area_hits table
       shell:
           cmd: mysql --user=ztf --password=123password < area_hits.sql

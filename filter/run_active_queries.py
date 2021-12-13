@@ -6,7 +6,7 @@ import os, sys
 import time
 import json
 import settings
-from confluent_kafka import Producer, KafkaError
+from confluent_kafka import Consumer, Producer, KafkaError
 import datetime
 import mysql.connector
 import smtplib
@@ -35,24 +35,6 @@ def send_email(email, topic, message, message_html):
     s.sendmail('donotreply@lasair.roe.ac.uk', email, msg.as_string())
     s.quit()
 
-#def send_email(email, topic, message):
-#    """send_email.
-#
-#    Args:
-#        email:
-#        topic:
-#        message:
-#    """
-#    msg = EmailMessage()
-#    msg.set_content(message)
-#
-#    msg['Subject'] = 'Lasair query ' + topic
-#    msg['From']    = 'donotreply@lasair.roe.ac.uk'
-#    msg['To']      = email
-#    s = smtplib.SMTP('localhost')
-#    s.send_message(msg)
-#    s.quit()
-
 def datetime_converter(o):
     """datetime_converter.
 
@@ -67,29 +49,37 @@ def kafka_ack(err, msg):
     if err is not None:
         print("Failed to deliver message: %s: %s" % (str(msg), str(err)))
 
-def run_query(query, msl):
-    """run_query.
+def run_query(query, msl, annotator=None, objectId=None):
+    """run_query. Two cases here: 
+    if annotator=None, runs the query against the local database
+    if annotator and objectId, checks if the query involves the annotator, 
+        and if so, runs the query for the given object
 
     Args:
         query:
         msl:
-        topic:
+        annotation_list:
     """
     active = query['active']
     email = query['email']
     topic = query['topic_name']
     limit = 1000
 
-    sqlquery_real = query['real_sql'] + (' LIMIT %d' % limit)
+    sqlquery_real = query['real_sql']
+    if annotator:
+        # if the annotator does not appear in the query tables, then we don't need to run it
+        if not annotator in query['tables']:
+            return 0
+        # run the query against master for this specific object that has been annotated
+        sqlquery_real += query['real_sql'] + (' AND objects.objectId="%s" ' % objectId) 
+#        print('\n' + sqlquery_real)
+    sqlquery_real += (' LIMIT %d' % limit)
 
     cursor = msl.cursor(buffered=True, dictionary=True)
     n = 0
     recent = []
     try:
         cursor.execute(sqlquery_real)
-
-        #  debug message
-        #print('\n%d %f %f\n%s\n' % (active, days_ago_candidates, days_ago_objects, sqlquery_real))
 
         for record in cursor:
             recorddict = dict(record)
@@ -186,20 +176,24 @@ def run_query(query, msl):
         file.close()
     return n
 
-def run_queries():
+def run_queries(annotation_list = None):
     """run_queries.
+    When annotation_list is None, it runs all the queries against the local database
+    When not None, runs some queires agains a specific object, using the master database
     """
     # first get the user queries from the database that the webserver uses
     config = {
         'user'    : settings.DB_USER_REMOTE,
         'password': settings.DB_PASS_REMOTE,
         'host'    : settings.DB_HOST_REMOTE,
+        'port'    : settings.DB_PORT_REMOTE,
         'database': 'ztf'
     }
     msl_remote = mysql.connector.connect(**config)
 
+    # Fetch all the stored queries from the master database
     cursor   = msl_remote.cursor(buffered=True, dictionary=True)
-    query = 'SELECT mq_id, user, name, email, active, real_sql, topic_name '
+    query = 'SELECT mq_id, user, name, email, tables, active, real_sql, topic_name '
     query += 'FROM myqueries, auth_user WHERE myqueries.user = auth_user.id AND active > 0'
     cursor.execute(query)
 
@@ -211,6 +205,7 @@ def run_queries():
             'name':      query['name'],
             'active':    query['active'],
             'email':     query['email'],
+            'tables':    query['tables'],
             'real_sql':  query['real_sql'],
             'topic_name':query['topic_name'],
         }
@@ -230,11 +225,45 @@ def run_queries():
         sys.stdout.flush()
 
     for query in query_list:
+        n = 0
         t = time.time()
-        n = run_query(query, msl_local)
+
+        # normal case of streaming queries
+        if not annotation_list:  
+            n += run_query(query, msl_local)
+
+        # immediate response to active=2 annotators
+        else:
+            for ann in annotation_list:  
+                n += run_query(query, msl_remote, ann['annotator'], ann['objectId'])
+
         t = time.time() - t
-        print('   %s got %d in %.1f seconds' % (query['topic_name'], n, t))
-        sys.stdout.flush()
+        if n > 0:
+            print('   %s got %d in %.1f seconds' % (query['topic_name'], n, t))
+            sys.stdout.flush()
+
+def run_annotation_queries():
+    """run_annotation_queries.
+    Pulls the recent content from the kafka topic 'ztf_annotations' 
+    Each message has an annotator/topic name, and the objectId that was annotated.
+    Queries that have that annotator should run against that object
+    """
+    annotation_list = []
+    conf = {
+        'bootstrap.servers':   settings.KAFKA_HOST,
+        'group.id':            settings.ANNOTATION_GROUP_ID,
+        'default.topic.config': {'auto.offset.reset': 'smallest'}
+    }
+    streamReader = Consumer(conf)
+    topic = 'ztf_annotations'
+    streamReader.subscribe([topic])
+    while 1:
+        msg = streamReader.poll(timeout=5)
+        if msg == None: break
+        ann = json.loads(msg.value())
+        annotation_list.append(ann)
+    streamReader.close()
+    run_queries(annotation_list)
 
 if __name__ == "__main__":
     print('--------- RUN ACTIVE QUERIES -----------')

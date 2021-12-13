@@ -111,6 +111,13 @@ run_active_queries.run_queries()
 print('QUERIES %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 
+##### run the annotation queries
+print('ANNOTATION QUERIES start %s' % datetime.utcnow().strftime("%H:%M:%S"))
+sys.stdout.flush()
+t = time.time()
+run_active_queries.run_annotation_queries()
+print('ANNOTATION QUERIES %.1f seconds' % (time.time() - t))
+
 ##### build CSV file with local database
 t = time.time()
 print('SEND to ARCHIVE')
