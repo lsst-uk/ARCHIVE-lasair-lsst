@@ -71,8 +71,11 @@ def run_query(query, msl, annotator=None, objectId=None):
         if not annotator in query['tables']:
             return 0
         # run the query against master for this specific object that has been annotated
-        sqlquery_real += query['real_sql'] + (' AND objects.objectId="%s" ' % objectId) 
-#        print('\n' + sqlquery_real)
+        tok = sqlquery_real.split(' ORDER BY ')
+        sqlquery_real = tok[0] + (' AND objects.objectId="%s" ' % objectId)
+        if len(tok) == 2: # has order clause, add it back
+            sqlquery_real += ' ORDER BY ' + tok[1]
+        #print('\n' + sqlquery_real)
     sqlquery_real += (' LIMIT %d' % limit)
 
     cursor = msl.cursor(buffered=True, dictionary=True)
@@ -263,6 +266,7 @@ def run_annotation_queries():
         ann = json.loads(msg.value())
         annotation_list.append(ann)
     streamReader.close()
+    #print('got ', annotation_list)
     run_queries(annotation_list)
 
 if __name__ == "__main__":
