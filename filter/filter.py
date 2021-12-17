@@ -107,7 +107,8 @@ sys.stdout.flush()
 print('QUERIES start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 sys.stdout.flush()
 t = time.time()
-run_active_queries.run_queries()
+query_list = run_active_queries.fetch_queries()
+run_active_queries.run_queries(query_list)
 print('QUERIES %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 
@@ -115,7 +116,7 @@ sys.stdout.flush()
 print('ANNOTATION QUERIES start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 sys.stdout.flush()
 t = time.time()
-run_active_queries.run_annotation_queries()
+run_active_queries.run_annotation_queries(query_list)
 print('ANNOTATION QUERIES %.1f seconds' % (time.time() - t))
 
 ##### build CSV file with local database

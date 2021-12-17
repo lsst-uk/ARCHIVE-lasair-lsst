@@ -14,6 +14,24 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+def db_connect_remote():
+    config = {
+        'user'    : settings.DB_USER_REMOTE,
+        'password': settings.DB_PASS_REMOTE,
+        'host'    : settings.DB_HOST_REMOTE,
+        'port'    : settings.DB_PORT_REMOTE,
+        'database': 'ztf'
+    }
+    return mysql.connector.connect(**config)
+
+def db_connect_local():
+    config = {
+        'user'    : settings.DB_USER_LOCAL,
+        'password': settings.DB_PASS_LOCAL,
+        'host'    : settings.DB_HOST_LOCAL,
+        'database': 'ztf'
+    }
+    return mysql.connector.connect(**config)
 
 def send_email(email, topic, message, message_html):
     """send_email.
@@ -49,11 +67,27 @@ def kafka_ack(err, msg):
     if err is not None:
         print("Failed to deliver message: %s: %s" % (str(msg), str(err)))
 
+def query_for_object(query, objectId):
+    """ modifies an existing query to add a new constraint for a specific object.
+    We already know this query comes from multiple tables: objects and annotators,
+    so we know there is an existing WHERE clause. Can add the new constraint to the end,
+    unless there is an ORDER BY, in which case it comes before that.
+
+    Args:
+        query: the original query, as generated from the Lasair query builder
+        objectId: the object that is the new constraint
+    """
+    tok = query.replace('order by', 'ORDER BY').split('ORDER BY')
+    query = tok[0] + (' AND objects.objectId="%s" ' % objectId)
+    if len(tok) == 2: # has order clause, add it back
+        query += ' ORDER BY ' + tok[1]
+    return query
+
 def run_query(query, msl, annotator=None, objectId=None):
     """run_query. Two cases here: 
     if annotator=None, runs the query against the local database
     if annotator and objectId, checks if the query involves the annotator, 
-        and if so, runs the query for the given object
+        and if so, runs the query for the given object on master database
 
     Args:
         query:
@@ -71,11 +105,9 @@ def run_query(query, msl, annotator=None, objectId=None):
         if not annotator in query['tables']:
             return 0
         # run the query against master for this specific object that has been annotated
-        tok = sqlquery_real.split(' ORDER BY ')
-        sqlquery_real = tok[0] + (' AND objects.objectId="%s" ' % objectId)
-        if len(tok) == 2: # has order clause, add it back
-            sqlquery_real += ' ORDER BY ' + tok[1]
-        #print('\n' + sqlquery_real)
+        sqlquery_real = query_for_object(sqlquery_real, objectId)
+
+    # in any case, limit the output
     sqlquery_real += (' LIMIT %d' % limit)
 
     cursor = msl.cursor(buffered=True, dictionary=True)
@@ -99,77 +131,84 @@ def run_query(query, msl, annotator=None, objectId=None):
         return 0
 
     #print(recent)
-    if len(recent) > 0:
-        filename = settings.KAFKA_LASAIR_LOGS + topic
-        try:
-            file = open(filename, 'r')
-            digestdict = json.loads(file.read())
-            digest     = digestdict['digest']
-            last_entry_text = digestdict['last_entry']
-            file.close()
-        except:
-            digest = []
-            last_entry_text = "2017-01-01 00:00:00"
+    if len(recent) == 0:
+        return 0
 
-        last_entry_number = datetime.datetime.strptime(last_entry_text, "%Y-%m-%d %H:%M:%S")
-        now_number = datetime.datetime.utcnow()
+    filename = settings.KAFKA_STREAMS + topic
+    try:
+        file = open(filename, 'r')
+        digestdict = json.loads(file.read())
+        digest     = digestdict['digest']
+        last_entry_text = digestdict['last_entry']
+        file.close()
+    except:
+        digest = []
+        last_entry_text = "2017-01-01 00:00:00"
+
+    last_entry_number = datetime.datetime.strptime(last_entry_text, "%Y-%m-%d %H:%M:%S")
+    now_number = datetime.datetime.utcnow()
+ 
+    allrecords = (recent + digest)[:10000]
+
+    # send results by email
+    if active == 1:
         delta = (now_number - last_entry_number)
         delta = delta.days + delta.seconds/86400.0
-            
-        allrecords = (recent + digest)[:10000]
-
-        if active == 1:
-            # send a message at most every 24 hours
-            if delta > 1.0:
-                print('   --- send email to %s' % email)
-                sys.stdout.flush()
-                query_url = '%s/query/%d/' % (settings.LASAIR_URL, query['mq_id'])
-                message      = 'Your active query with Lasair on topic %s\n' % topic
-                message_html = 'Your active query with Lasair on <a href=%s>%s</a><br/>' % (query_url, topic)
-                for out in allrecords: 
-                    out_number = datetime.datetime.strptime(out['UTC'], "%Y-%m-%d %H:%M:%S")
-                    # gather all records that have accumulated since last email
-                    if out_number > last_entry_number:
-                        if 'objectId' in out:
-                            objectId = out['objectId']
-                            message      += objectId + '\n'
-                            message_html += '<a href="%s/object/%s/">%s</a><br/>' % (settings.LASAIR_URL, objectId, objectId)
-                        else:
-                            jsonout = json.dumps(out, default=datetime_converter)
-                            message += jsonout + '\n'
-                try:
-                    send_email(email, topic, message, message_html)
-                except Exception as e:
-                    print('ERROR in filter/run_active_queries: Cannot send email!')
-                    print(e)
-                    sys.stdout.flush()
-
-                last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
-
-        if active == 2:
-            conf = {
-                'bootstrap.servers': settings.KAFKA_PRODUCER,
-                'security.protocol': 'SASL_PLAINTEXT',
-                'sasl.mechanisms': 'SCRAM-SHA-256',
-                'sasl.username': 'admin',
-                'sasl.password': settings.KAFKA_PASSWORD
-            }
-
+        # send a message at most every 24 hours
+        # delta is number of days since last email went out
+        if delta > 1.0:
+            print('   --- send email to %s' % email)
+            sys.stdout.flush()
+            query_url = '%s/query/%d/' % (settings.LASAIR_URL, query['mq_id'])
+            message      = 'Your active query with Lasair on topic %s\n' % topic
+            message_html = 'Your active query with Lasair on <a href=%s>%s</a><br/>' % (query_url, topic)
+            for out in allrecords: 
+                out_number = datetime.datetime.strptime(out['UTC'], "%Y-%m-%d %H:%M:%S")
+                # gather all records that have accumulated since last email
+                if out_number > last_entry_number:
+                    if 'objectId' in out:
+                        objectId = out['objectId']
+                        message      += objectId + '\n'
+                        message_html += '<a href="%s/object/%s/">%s</a><br/>' % (settings.LASAIR_URL, objectId, objectId)
+                    else:
+                        jsonout = json.dumps(out, default=datetime_converter)
+                        message += jsonout + '\n'
             try:
-                p = Producer(conf)
-                for out in recent: 
-                    jsonout = json.dumps(out, default=datetime_converter)
-                    p.produce(topic, value=jsonout, callback=kafka_ack)
-                p.flush(10.0)   # 10 second timeout
-                # last_entry not really used with kafka, just a record of last blast
-                last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
+                send_email(email, topic, message, message_html)
             except Exception as e:
-                rtxt = "ERROR in filter/run_active_queries: cannot produce to public kafka"
-                rtxt += str(e)
-                slack_webhook.send(settings.SLACK_URL, rtxt)
-                print(rtxt)
+                print('ERROR in filter/run_active_queries: Cannot send email!')
+                print(e)
                 sys.stdout.flush()
 
+            last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
+
+    # send results by kafka
+    if active == 2:
+        conf = {
+            'bootstrap.servers': settings.KAFKA_PRODUCER,
+            'security.protocol': 'SASL_PLAINTEXT',
+            'sasl.mechanisms': 'SCRAM-SHA-256',
+            'sasl.username': 'admin',
+            'sasl.password': settings.KAFKA_PASSWORD
+        }
+
+        try:
+            p = Producer(conf)
+            for out in recent: 
+                jsonout = json.dumps(out, default=datetime_converter)
+                p.produce(topic, value=jsonout, callback=kafka_ack)
+            p.flush(10.0)   # 10 second timeout
+            # last_entry not really used with kafka, just a record of last blast
+            now_number = datetime.datetime.utcnow()
+            last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
+        except Exception as e:
+            rtxt = "ERROR in filter/run_active_queries: cannot produce to public kafka"
+            rtxt += str(e)
+            slack_webhook.send(settings.SLACK_URL, rtxt)
+            print(rtxt)
+            sys.stdout.flush()
+
+        # update the digest file
         digestdict = {'last_entry': last_entry_text, 'digest':allrecords}
         digestdict_text = json.dumps(digestdict, indent=2, default=datetime_converter)
 
@@ -179,20 +218,12 @@ def run_query(query, msl, annotator=None, objectId=None):
         file.close()
     return n
 
-def run_queries(annotation_list = None):
-    """run_queries.
-    When annotation_list is None, it runs all the queries against the local database
-    When not None, runs some queires agains a specific object, using the master database
+def fetch_queries():
+    """fetch_queries.
+    Get all the stored queries from the master database
     """
     # first get the user queries from the database that the webserver uses
-    config = {
-        'user'    : settings.DB_USER_REMOTE,
-        'password': settings.DB_PASS_REMOTE,
-        'host'    : settings.DB_HOST_REMOTE,
-        'port'    : settings.DB_PORT_REMOTE,
-        'database': 'ztf'
-    }
-    msl_remote = mysql.connector.connect(**config)
+    msl_remote = db_connect_remote()
 
     # Fetch all the stored queries from the master database
     cursor   = msl_remote.cursor(buffered=True, dictionary=True)
@@ -213,18 +244,17 @@ def run_queries(annotation_list = None):
             'topic_name':query['topic_name'],
         }
         query_list.append(query_dict)
+    return query_list
 
-    # now run those queries on the local objects we have just made
-    config = {
-        'user'    : settings.DB_USER_LOCAL,
-        'password': settings.DB_PASS_LOCAL,
-        'host'    : settings.DB_HOST_LOCAL,
-        'database': 'ztf'
-    }
+def run_queries(query_list, annotation_list=None):
+    """
+    When annotation_list is None, it runs all the queries against the local database
+    When not None, runs some queires agains a specific object, using the master database
+    """
     try:
-        msl_local = mysql.connector.connect(**config)
+        msl_local = db_connect_local()
     except:
-        print('ERROR in filter/run_active_queries: cannot connecto to local database')
+        print('ERROR in filter/run_active_queries: cannot connect to local database')
         sys.stdout.flush()
 
     for query in query_list:
@@ -238,6 +268,7 @@ def run_queries(annotation_list = None):
         # immediate response to active=2 annotators
         else:
             for ann in annotation_list:  
+                msl_remote = db_connect_remote()
                 n += run_query(query, msl_remote, ann['annotator'], ann['objectId'])
 
         t = time.time() - t
@@ -245,7 +276,7 @@ def run_queries(annotation_list = None):
             print('   %s got %d in %.1f seconds' % (query['topic_name'], n, t))
             sys.stdout.flush()
 
-def run_annotation_queries():
+def run_annotation_queries(query_list):
     """run_annotation_queries.
     Pulls the recent content from the kafka topic 'ztf_annotations' 
     Each message has an annotator/topic name, and the objectId that was annotated.
@@ -267,12 +298,13 @@ def run_annotation_queries():
         annotation_list.append(ann)
     streamReader.close()
     #print('got ', annotation_list)
-    run_queries(annotation_list)
+    run_queries(query_list, annotation_list)
 
 if __name__ == "__main__":
     print('--------- RUN ACTIVE QUERIES -----------')
     sys.stdout.flush()
     t = time.time()
-    run_queries()
+    query_list = fetch_queries()
+    run_queries(query_list)
     print('Active queries done in %.1f seconds' % (time.time() - t))
     sys.stdout.flush()
