@@ -103,7 +103,7 @@ def run_query(query, msl, annotator=None, objectId=None):
     if annotator:
         # if the annotator does not appear in the query tables, then we don't need to run it
         if not annotator in query['tables']:
-            return 0
+            return []
         # run the query against master for this specific object that has been annotated
         sqlquery_real = query_for_object(sqlquery_real, objectId)
 
@@ -112,111 +112,135 @@ def run_query(query, msl, annotator=None, objectId=None):
 
     cursor = msl.cursor(buffered=True, dictionary=True)
     n = 0
-    recent = []
+    query_results = []
     try:
         cursor.execute(sqlquery_real)
-
         for record in cursor:
             recorddict = dict(record)
-            now_number = datetime.datetime.utcnow()
-            recorddict['UTC'] = now_number.strftime("%Y-%m-%d %H:%M:%S")
+            utcnow = datetime.datetime.utcnow()
+            recorddict['UTC'] = utcnow.strftime("%Y-%m-%d %H:%M:%S")
             #print(recorddict)
-            recent.append(recorddict)
+            query_results.append(recorddict)
             n += 1
     except Exception as e:
         print("SQL error for %s" % topic)
         print(e)
         print(sqlquery_real)
         sys.stdout.flush()
-        return 0
+        return []
 
-    #print(recent)
-    if len(recent) == 0:
-        return 0
+    return query_results
 
-    filename = settings.KAFKA_STREAMS + topic
+def fetch_digest(topic_name):
+    filename = settings.KAFKA_STREAMS + topic_name
     try:
-        file = open(filename, 'r')
-        digestdict = json.loads(file.read())
-        digest     = digestdict['digest']
-        last_entry_text = digestdict['last_entry']
+        digest_file = open(filename, 'r')
+        digest_dict = json.loads(digest_file.read())
+        digest      = digest_dict['digest']
+        last_entry_text = digest_dict['last_entry']
+        last_email_text = digest_dict['last_email']
         file.close()
     except:
         digest = []
         last_entry_text = "2017-01-01 00:00:00"
+        last_email_text = "2017-01-01 00:00:00"
+    last_entry = datetime.datetime.strptime(last_entry_text, "%Y-%m-%d %H:%M:%S")
+    last_email = datetime.datetime.strptime(last_email_text, "%Y-%m-%d %H:%M:%S")
+    return digest,last_entry,last_email
 
-    last_entry_number = datetime.datetime.strptime(last_entry_text, "%Y-%m-%d %H:%M:%S")
-    now_number = datetime.datetime.utcnow()
- 
-    allrecords = (recent + digest)[:10000]
-
-    # send results by email
-    if active == 1:
-        delta = (now_number - last_entry_number)
-        delta = delta.days + delta.seconds/86400.0
-        # send a message at most every 24 hours
-        # delta is number of days since last email went out
-        if delta > 1.0:
-            print('   --- send email to %s' % email)
-            sys.stdout.flush()
-            query_url = '%s/query/%d/' % (settings.LASAIR_URL, query['mq_id'])
-            message      = 'Your active query with Lasair on topic %s\n' % topic
-            message_html = 'Your active query with Lasair on <a href=%s>%s</a><br/>' % (query_url, topic)
-            for out in allrecords: 
-                out_number = datetime.datetime.strptime(out['UTC'], "%Y-%m-%d %H:%M:%S")
-                # gather all records that have accumulated since last email
-                if out_number > last_entry_number:
-                    if 'objectId' in out:
-                        objectId = out['objectId']
-                        message      += objectId + '\n'
-                        message_html += '<a href="%s/object/%s/">%s</a><br/>' % (settings.LASAIR_URL, objectId, objectId)
-                    else:
-                        jsonout = json.dumps(out, default=datetime_converter)
-                        message += jsonout + '\n'
-            try:
-                send_email(email, topic, message, message_html)
-            except Exception as e:
-                print('ERROR in filter/run_active_queries: Cannot send email!')
-                print(e)
-                sys.stdout.flush()
-
-            last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
-
-    # send results by kafka
-    if active == 2:
-        conf = {
-            'bootstrap.servers': settings.KAFKA_PRODUCER,
-            'security.protocol': 'SASL_PLAINTEXT',
-            'sasl.mechanisms': 'SCRAM-SHA-256',
-            'sasl.username': 'admin',
-            'sasl.password': settings.KAFKA_PASSWORD
-        }
-
-        try:
-            p = Producer(conf)
-            for out in recent: 
+def dispose_email(allrecords, last_email):
+    """ Send out email notifications
+    """
+    utcnow = datetime.datetime.utcnow()
+    delta = (utcnow - last_email)
+    delta = delta.days + delta.seconds/86400.0
+    # send a message at most every 24 hours
+    # delta is number of days since last email went out
+    if delta < 1.0:
+        return last_email
+    print('   --- send email to %s' % email)
+    sys.stdout.flush()
+    query_url = '%s/query/%d/' % (settings.LASAIR_URL, query['mq_id'])
+    message      = 'Your active query with Lasair on topic %s\n' % topic
+    message_html = 'Your active query with Lasair on <a href=%s>%s</a><br/>' % (query_url, topic)
+    for out in allrecords: 
+        out_time = datetime.datetime.strptime(out['UTC'], "%Y-%m-%d %H:%M:%S")
+        # gather all records that have accumulated since last email
+        if out_time > last_email_time:
+            if 'objectId' in out:
+                objectId = out['objectId']
+                message      += objectId + '\n'
+                message_html += '<a href="%s/object/%s/">%s</a><br/>' % (settings.LASAIR_URL, objectId, objectId)
+            else:
                 jsonout = json.dumps(out, default=datetime_converter)
-                p.produce(topic, value=jsonout, callback=kafka_ack)
-            p.flush(10.0)   # 10 second timeout
-            # last_entry not really used with kafka, just a record of last blast
-            now_number = datetime.datetime.utcnow()
-            last_entry_text = now_number.strftime("%Y-%m-%d %H:%M:%S")
-        except Exception as e:
-            rtxt = "ERROR in filter/run_active_queries: cannot produce to public kafka"
-            rtxt += str(e)
-            slack_webhook.send(settings.SLACK_URL, rtxt)
-            print(rtxt)
-            sys.stdout.flush()
+                message += jsonout + '\n'
+    try:
+        send_email(email, topic, message, message_html)
+        return utcnow
+    except Exception as e:
+        print('ERROR in filter/run_active_queries: Cannot send email!')
+        print(e)
+        sys.stdout.flush()
+        return last_email
 
-        # update the digest file
-        digestdict = {'last_entry': last_entry_text, 'digest':allrecords}
-        digestdict_text = json.dumps(digestdict, indent=2, default=datetime_converter)
+def dispose_kafka(query_results, topic):
+    """ Send out query results by kafka to the given topic.
+    """
+    conf = {
+        'bootstrap.servers': settings.KAFKA_PRODUCER,
+        'security.protocol': 'SASL_PLAINTEXT',
+        'sasl.mechanisms': 'SCRAM-SHA-256',
+        'sasl.username': 'admin',
+        'sasl.password': settings.KAFKA_PASSWORD
+    }
 
-        file = open(filename, 'w')
-        os.chmod(filename, 0O666)
-        file.write(digestdict_text)
-        file.close()
-    return n
+    try:
+        p = Producer(conf)
+        for out in query_results: 
+            jsonout = json.dumps(out, default=datetime_converter)
+            p.produce(topic, value=jsonout, callback=kafka_ack)
+        p.flush(10.0)   # 10 second timeout
+    except Exception as e:
+        rtxt = "ERROR in filter/run_active_queries: cannot produce to public kafka"
+        rtxt += str(e)
+        slack_webhook.send(settings.SLACK_URL, rtxt)
+        print(rtxt)
+        sys.stdout.flush()
+
+def dispose_query_results(query, query_results):
+    """ Send out the query results by email or kafka, and ipdate the digest file
+    """
+    if len(query_results) == 0:
+        return 0
+    active = query['active']
+    digest,last_entry,last_email = fetch_digest(query['topic_name'])
+    utcnow = datetime.datetime.utcnow()
+    allrecords = (query_results + digest)[:10000]
+
+    if active == 1:
+        # send results by email
+        last_email = dispose_email(allrecords, last_email)
+
+    if active == 2:
+        # send results by kafka
+        dispose_kafka(query_results, query['topic_name'])
+
+    # update the digest file
+    utcnow_text = utcnow.strftime("%Y-%m-%d %H:%M:%S")
+    last_email_text = last_email.strftime("%Y-%m-%d %H:%M:%S")
+    digest_dict = {
+            'last_entry': utcnow_text, 
+            'last_email':last_email_text, 
+            'digest':allrecords
+            }
+    digestdict_text = json.dumps(digest_dict, indent=2, default=datetime_converter)
+
+    filename = settings.KAFKA_STREAMS + query['topic_name']
+    f = open(filename, 'w')
+    os.chmod(filename, 0O666)
+    f.write(digestdict_text)
+    f.close()
+    return len(query_results)
 
 def fetch_queries():
     """fetch_queries.
@@ -263,13 +287,15 @@ def run_queries(query_list, annotation_list=None):
 
         # normal case of streaming queries
         if not annotation_list:  
-            n += run_query(query, msl_local)
+            query_results = run_query(query, msl_local)
+            n += dispose_query_results(query, query_results)
 
         # immediate response to active=2 annotators
         else:
             for ann in annotation_list:  
                 msl_remote = db_connect_remote()
-                n += run_query(query, msl_remote, ann['annotator'], ann['objectId'])
+                query_results = run_query(query, msl_remote, ann['annotator'], ann['objectId'])
+                n += dispose_query_results(query, query_results)
 
         t = time.time() - t
         if n > 0:
@@ -301,6 +327,8 @@ def run_annotation_queries(query_list):
     run_queries(query_list, annotation_list)
 
 if __name__ == "__main__":
+    sys.path.append('../utility/')
+    import slack_webhook
     print('--------- RUN ACTIVE QUERIES -----------')
     sys.stdout.flush()
     t = time.time()
