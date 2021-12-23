@@ -7,6 +7,7 @@ DB_PASS_LOCAL    = '{{ settings.local_db_password }}'
 DB_HOST_REMOTE   = '{{ settings.master_db_ip }}'
 DB_USER_REMOTE   = '{{ settings.master_db_readonly_username }}'
 DB_PASS_REMOTE   = '{{ settings.master_db_readonly_password }}'
+DB_PORT_REMOTE   =  {{ settings.master_db_port }}
 
 DB_DATABASE      = 'ztf'
 
@@ -19,13 +20,15 @@ KAFKA_TOPIC_IN   = 'ztf_sherlock'
 KAFKA_GROUPID    = 'LASAIR2'
 KAFKA_PROCESSES  = 2
 KAFKA_TIMEOUT    = 10
-KAFKA_LASAIR_LOGS = '/mnt/cephfs/lasair/streams/'
+KAFKA_STREAMS    = '/mnt/cephfs/lasair/streams/'
 KAFKA_MAXALERTS  = 10000
 WAIT_TIME        = 180
 LOCKFILE         = '/home/ubuntu/lockfile'
 
 KAFKA_PRODUCER   = 'kafka-pub:29092'
 KAFKA_PASSWORD   = '{{ settings.kafka_password }}'
+
+ANNOTATION_GROUP_ID   = 'test004'
 
 WATCHLIST_MOCS      = '/mnt/cephfs/lasair/watchlists'
 WATCHLIST_CHUNK     = 50000

@@ -15,5 +15,5 @@ f = open(tmpfile, 'w')
 f.write(sql)
 f.close()
 
-cmd =  "mysql --user=ztf --database=ztf --password=%s < %s" % (settings.DB_PASSWORD, tmpfile)
+cmd =  "mysql --user=ztf --database=ztf --password=%s --port=%d < %s" % (settings.DB_PASSWORD, settings.DB_PORT, tmpfile)
 os.system(cmd)
