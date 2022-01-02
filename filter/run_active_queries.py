@@ -30,6 +30,9 @@ Deal with the query results
 (6c) dispose_kafka(query_results, topic):
     Produce Kafka output to public stream
 
+(6d) write_digest(allrecords, topic_name, last_email):
+    Write the digest file for this topic
+
 """
 
 import os, sys
@@ -199,7 +202,6 @@ def dispose_query_results(query, query_results):
         return 0
     active = query['active']
     digest,last_entry,last_email = fetch_digest(query['topic_name'])
-    utcnow = datetime.datetime.utcnow()
     allrecords = (query_results + digest)[:10000]
 
     if active == 1:
@@ -210,7 +212,12 @@ def dispose_query_results(query, query_results):
         # send results by kafka on given topic
         dispose_kafka(query_results, query['topic_name'])
 
+    write_digest(allrecords, query['topic_name'], last_email)
+    return len(query_results)
+
+def write_digest(allrecords, topic_name, last_email):
     # update the digest file
+    utcnow = datetime.datetime.utcnow()
     utcnow_text = utcnow.strftime("%Y-%m-%d %H:%M:%S")
     last_email_text = last_email.strftime("%Y-%m-%d %H:%M:%S")
     digest_dict = {
@@ -220,12 +227,11 @@ def dispose_query_results(query, query_results):
             }
     digestdict_text = json.dumps(digest_dict, indent=2, default=datetime_converter)
 
-    filename = settings.KAFKA_STREAMS + query['topic_name']
+    filename = settings.KAFKA_STREAMS + topic_name
     f = open(filename, 'w')
     os.chmod(filename, 0O666)
     f.write(digestdict_text)
     f.close()
-    return len(query_results)
 
 def fetch_digest(topic_name):
     filename = settings.KAFKA_STREAMS + topic_name
@@ -235,7 +241,7 @@ def fetch_digest(topic_name):
         digest      = digest_dict['digest']
         last_entry_text = digest_dict['last_entry']
         last_email_text = digest_dict['last_email']
-        file.close()
+        digest_file.close()
     except:
         digest = []
         last_entry_text = "2017-01-01 00:00:00"
