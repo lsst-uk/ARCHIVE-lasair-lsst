@@ -212,17 +212,17 @@ def dispose_query_results(query, query_results):
         # send results by kafka on given topic
         dispose_kafka(query_results, query['topic_name'])
 
-    write_digest(allrecords, query['topic_name'], last_email)
+    utcnow = datetime.datetime.utcnow()
+    write_digest(allrecords, query['topic_name'], utcnow, last_email)
     return len(query_results)
 
-def write_digest(allrecords, topic_name, last_email):
+def write_digest(allrecords, topic_name, last_entry, last_email):
     # update the digest file
-    utcnow = datetime.datetime.utcnow()
-    utcnow_text = utcnow.strftime("%Y-%m-%d %H:%M:%S")
     last_email_text = last_email.strftime("%Y-%m-%d %H:%M:%S")
+    last_entry_text = last_entry.strftime("%Y-%m-%d %H:%M:%S")
     digest_dict = {
-            'last_entry': utcnow_text, 
-            'last_email':last_email_text, 
+            'last_entry': last_entry_text, 
+            'last_email': last_email_text, 
             'digest':allrecords
             }
     digestdict_text = json.dumps(digest_dict, indent=2, default=datetime_converter)
