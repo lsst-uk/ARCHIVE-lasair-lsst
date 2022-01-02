@@ -8,7 +8,6 @@ pipeline {
           sh 'python3 integration_test_sherlock_wrapper.py'
           sh 'python3 watchlist_test.py'
           sh 'python3 manage_status_test.py'
-          sh 'python3 digest_test.py'
         }
         dir('tests/annotations') {
           sh 'python3 kafka_test.py'
