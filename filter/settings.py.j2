@@ -1,3 +1,5 @@
+LASAIR_URL       = 'https://lasair-iris.roe.ac.uk'
+
 DB_HOST_LOCAL    = 'localhost'
 DB_USER_LOCAL    = 'ztf'
 DB_PASS_LOCAL    = '{{ settings.local_db_password }}'
@@ -5,6 +7,7 @@ DB_PASS_LOCAL    = '{{ settings.local_db_password }}'
 DB_HOST_REMOTE   = '{{ settings.master_db_ip }}'
 DB_USER_REMOTE   = '{{ settings.master_db_readonly_username }}'
 DB_PASS_REMOTE   = '{{ settings.master_db_readonly_password }}'
+DB_PORT_REMOTE   =  {{ settings.master_db_port }}
 
 DB_DATABASE      = 'ztf'
 
@@ -17,7 +20,7 @@ KAFKA_TOPIC_IN   = 'ztf_sherlock'
 KAFKA_GROUPID    = 'LASAIR2'
 KAFKA_PROCESSES  = 2
 KAFKA_TIMEOUT    = 10
-KAFKA_LASAIR_LOGS = '/mnt/cephfs/roy/streams/'
+KAFKA_STREAMS    = '/mnt/cephfs/lasair/streams/'
 KAFKA_MAXALERTS  = 10000
 WAIT_TIME        = 180
 LOCKFILE         = '/home/ubuntu/lockfile'
@@ -25,12 +28,14 @@ LOCKFILE         = '/home/ubuntu/lockfile'
 KAFKA_PRODUCER   = 'kafka-pub:29092'
 KAFKA_PASSWORD   = '{{ settings.kafka_password }}'
 
-WATCHLIST_MOCS      = '/mnt/cephfs/roy/watchlists'
+ANNOTATION_GROUP_ID   = 'test004'
+
+WATCHLIST_MOCS      = '/mnt/cephfs/lasair/watchlists'
 WATCHLIST_CHUNK     = 50000
 WATCHLIST_MAX_DEPTH = 13
-AREA_MOCS           = '/mnt/cephfs/roy/areas'
+AREA_MOCS           = '/mnt/cephfs/lasair/areas'
 AREA_MAX_DEPTH      = 13
 
 GRAFANA_USERNAME = 'ztf'
 GRAFANA_PASSWORD = '{{ settings.grafana_password }}'
-SYSTEM_STATUS       = '/mnt/cephfs/roy/system_status.json'
+SYSTEM_STATUS       = '/mnt/cephfs/lasair/system_status/status'

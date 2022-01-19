@@ -148,57 +148,13 @@ def extract(candidate):
             if c: newcan[ca] = c
     return newcan
 
-def join_old_and_new(alert, old):
-    """join_old_and_new.
-    Args:
-        alert:
-        old:
-    """
-    # here is the part of the alert that has no binary images
-    objectId = alert['objectId']
-
-    # this will be the new version of the object
-    new = {}
-    new['objectId'] = objectId
-    allcandidates = []
-
-    # put in the list what just came in
-    allcandidates.append(extract(alert['candidate']))
-    if 'prv_candidates' in alert and alert['prv_candidates']:
-        for p in alert['prv_candidates']:
-            allcandidates.append(extract(p))
-
-    if old:
-        allcandidates += old['candidates']
-        if 'prv_candidates' in old:
-            allcandidates += old['noncandidates']
-
-    # sort by jd
-    allcandidates = sorted(allcandidates, key=lambda c:c['jd'], reverse=True)
-    candidates = []
-    noncandidates = []
-    oldjd = 0
-    for c in allcandidates:
-        if oldjd == c['jd']:  # remove repeats
-            continue
-        if 'candid' in c and c['candid']:
-            candidates.append(c)
-        else:
-            noncandidates.append(c)
-        oldjd = c['jd']
-
-    new['candidates'] = candidates
-    new['noncandidates'] = noncandidates
-    return new
-
-def handle_alert(alert, json_store, image_store, producer, topicout, cassandra_session):
+def handle_alert(alert, image_store, producer, topicout, cassandra_session):
     """handle_alert.
     Filter to apply to each alert.
        See schemas: https://github.com/ZwickyTransientFacility/ztf-avro-alert
 
     Args:
         alert:
-        json_store:
         image_store:
         producer:
         topicout:
@@ -217,19 +173,6 @@ def handle_alert(alert, json_store, image_store, producer, topicout, cassandra_s
     # add to CephFS
     candid = alert_noimages['candidate']['candid']
     objectId = alert_noimages['objectId']
-
-    if json_store:
-        # fetch the stored version of the object
-        try:
-            jold = json_store.getObject(objectId)
-            old = json.loads(jold)
-        except:
-            old = None
-        new = join_old_and_new(alert_noimages, old)
-
-    # store the new version of the object
-        new_object_json = json.dumps(new, indent=2)
-        json_store.putObject(objectId, new_object_json)
 
     # store the fits images
     if image_store:
@@ -311,7 +254,7 @@ def run(runarg, return_dict):
         else:
             for alert in msg:
                 # Apply filter to each alert
-                icandidate = handle_alert(alert, runarg['json_store'], runarg['image_store'], \
+                icandidate = handle_alert(alert, runarg['image_store'], \
                         producer, topicout, cassandra_session)
 
                 nalert += 1
@@ -355,8 +298,10 @@ def main():
     maxalert = settings.KAFKA_MAXALERTS
     nprocess = settings.KAFKA_PROCESSES
 
-    objectdir = settings.OBJECTJSON
-    fitsdir = settings.IMAGEFITS
+    try:
+        fitsdir = settings.IMAGEFITS
+    except:
+        fitsdir = None
 
     group_id = settings.KAFKA_GROUPID
     topicout = settings.KAFKA_TOPIC_OUT
@@ -371,11 +316,6 @@ def main():
         'session.timeout.ms': 6000,
         'default.topic.config': {'auto.offset.reset': 'smallest'}
     }
-
-    if objectdir and len(objectdir) > 0:
-        json_store = objectStore.objectStore(suffix='json', fileroot=objectdir)
-    else:
-        json_store = None
 
     if fitsdir and len(fitsdir) > 0:
         image_store  = objectStore.objectStore(suffix='fits', fileroot=fitsdir)
@@ -400,7 +340,6 @@ def main():
             'topic'   : topic,
             'maxalert'   : maxalert,
             'topicout':topicout,
-            'json_store': json_store, 
             'image_store': image_store,
             'conf':conf,
         }
@@ -420,7 +359,7 @@ def main():
     sys.stdout.flush()
 
     os.system('date')
-    ms = manage_status('nid', settings.SYSTEM_STATUS)
+    ms = manage_status(settings.SYSTEM_STATUS)
     nid  = date_nid.nid_now()
     ms.add({'today_alert':nalert, 'today_candidate':ncandidate}, nid)
 

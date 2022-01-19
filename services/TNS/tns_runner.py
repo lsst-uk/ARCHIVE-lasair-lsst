@@ -12,7 +12,7 @@ def now():
 while 1:
     nid  = date_nid.nid_now()
     date = date_nid.nid_to_date(nid)
-    log = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
+    log = open('/mnt/cephfs/lasair/services_log/' + date + '.log', 'a')
 
     # compute the starting conditions
     worker_args = ['--pageSize=500', '--inLastNumberOfDays=180']
@@ -31,7 +31,7 @@ while 1:
         if len(rbin) == 0: break
 
         # if the worher uses 'print', there will be at least the newline
-        rtxt = rbin.decode('ascii').rstrip()
+        rtxt = rbin.decode('utf-8').rstrip()
         log.write(rtxt + '\n')
         print(rtxt)
 

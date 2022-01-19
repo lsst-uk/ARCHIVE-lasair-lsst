@@ -12,6 +12,14 @@ delay = 60
 max_delay = 21600
 sys.argv.pop(0)
 
+def send_msg(m):
+    try:
+        slack_webhook.send(settings['slack_url'], m)
+    except Exception as e:
+        print ("Error sending Slack message")
+        print (repr(e))
+
+
 with open("/opt/lasair/wrapper_runner.json") as file:
     settings = json.load(file)
 
@@ -27,12 +35,12 @@ while True:
         print (line)
         sys.stdout.flush()
         if re.search("(ERROR:)|(CRITICAL:)", line):
-            slack_webhook.send(settings['slack_url'], line)
+            send_msg(line)
     proc.wait()
     time.sleep(delay)
     delay = delay * 2
     if delay > max_delay:
         delay = max_delay
     print ("Attempting to restart Sherlock wrapper.")
-    slack_webhook.send(settings['slack_url'], "Attempting to restart Sherlock wrapper.")
+    send_msg("Attempting to restart Sherlock wrapper.")
 

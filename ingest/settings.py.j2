@@ -9,11 +9,10 @@ SLACK_URL = 'https://hooks.slack.com/services/{{ settings.slack_url_urlhook }}'
 CASSANDRA_CANDIDATES    = 'candidates'
 CASSANDRA_NONCANDIDATES = 'noncandidates'
 CASSANDRA_HEAD          = ['192.168.0.11']
-OBJECTJSON       = '/mnt/cephfs/roy/objectjson'
-IMAGEFITS        = '/mnt/cephfs/roy/fits'
+IMAGEFITS        = '/mnt/cephfs/lasair/fits'
 LOCKFILE         = '/home/ubuntu/lockfile'
 WAIT_TIME        = 180
 
 KAFKA_TOPIC_OUT  = 'ztf_ingest'
 KAFKA_OUTPUT     = '{{ settings.kafka_producer }}:9092'
-SYSTEM_STATUS    = '/mnt/cephfs/roy/system_status.json'
+SYSTEM_STATUS    = '/mnt/cephfs/lasair/system_status/status'

@@ -90,7 +90,7 @@ if __name__ == "__main__":
     import settings
     nid  = date_nid.nid_now()
     date = date_nid.nid_to_date(nid)
-    logfile = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
+    logfile = open('/mnt/cephfs/lasair/services_log/' + date + '.log', 'a')
     now = datetime.now()
     logfile.write('\n-- make_area_files at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
 
@@ -103,10 +103,16 @@ if __name__ == "__main__":
 
     cache_dir = settings.AREA_MOCS
     new_cache_dir = cache_dir + '_new'
-    os.system('mkdir %s' % new_cache_dir)
+    if os.system('mkdir %s' % new_cache_dir) > 0:
+        print('Cannot connect to shared file system')
+        sys.exit(256)
 
     # who needs to be recomputed
-    areas = fetch_active_areas(msl, cache_dir)
+    try:
+        areas = fetch_active_areas(msl, cache_dir)
+    except:
+        print('Cannot connect to database')
+        sys.exit(256)
 
     for ar_id in areas['keep']:
         os.system('mv %s/ar_%d.fits %s' % (cache_dir, ar_id, new_cache_dir))
@@ -114,3 +120,4 @@ if __name__ == "__main__":
         write_cache_file(msl, ar_id, new_cache_dir)
     os.system('rm -r %s'  % (cache_dir))
     os.system('mv %s %s' % (new_cache_dir, cache_dir))
+    sys.exit(0)

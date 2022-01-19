@@ -24,6 +24,7 @@
 
   vars:
       settings: "{{ lookup('hashi_vault', 'secret=secret/lasair/settings')}}"
+      ansible_python_interpreter: "/usr/bin/python3"
 
   tasks:
     - name: install swig
@@ -33,7 +34,7 @@
           update_cache: true
       become: yes
 
-    - name: install python-dev
+    - name: install python3-dev
       apt: 
           name: python-dev
           state: present
@@ -149,6 +150,11 @@
     - name: create sherlock_classifications table
       shell:
           cmd: mysql --user=ztf --password=123password < sherlock_classifications.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+    - name: create crossmatch_tns table
+      shell:
+          cmd: mysql --user=ztf --password=123password < crossmatch_tns.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create area_hits table

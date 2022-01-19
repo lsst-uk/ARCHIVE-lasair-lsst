@@ -183,9 +183,10 @@ if __name__ == "__main__":
     import date_nid
     nid  = date_nid.nid_now()
     date = date_nid.nid_to_date(nid)
-    logfile = open('/mnt/cephfs/roy/services_log/' + date + '.log', 'a')
+    logfile = open('/mnt/cephfs/lasair/services_log/' + date + '.log', 'a')
     now = datetime.now()
-    logfile.write('\n-- make_watchlist_files at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
+    message = '\n-- make_watchlist_files at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S")
+    logfile.write(message)
 
     msl = mysql.connector.connect(
         user    =settings.DB_USER_READ,
@@ -199,10 +200,16 @@ if __name__ == "__main__":
 
     cache_dir = settings.WATCHLIST_MOCS
     new_cache_dir = cache_dir + '_new'
-    os.system('mkdir %s' % new_cache_dir)
+    if os.system('mkdir %s' % new_cache_dir) > 0:
+        print('Cannot connect to shared file system')
+        sys.exit(256)
 
     # who needs to be recomputed
-    watchlists = fetch_active_watchlists(msl, cache_dir)
+    try:
+        watchlists = fetch_active_watchlists(msl, cache_dir)
+    except:
+        print('Cannot connect to database')
+        sys.exit(256)
 
     for watchlist in watchlists['keep']:
         wl_id = watchlist['wl_id']
@@ -216,3 +223,4 @@ if __name__ == "__main__":
 
     os.system('rm -r %s'  % (cache_dir))
     os.system('mv %s %s' % (new_cache_dir, cache_dir))
+    sys.exit(0)

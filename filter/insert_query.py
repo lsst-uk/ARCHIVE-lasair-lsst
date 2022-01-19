@@ -324,14 +324,3 @@ def create_insert_annotation(objectId, annClass, ann, attrs, table, replace):
     query += ',\n'.join(list)
     query = query.replace('None', 'NULL')
     return query
-
-import os
-if __name__ == '__main__':
-    root = '/mnt/cephfs/roy/lightcurve/'
-    for hex3 in os.listdir(root):
-        for jsonfile in os.listdir(root + hex3):
-            filename = root + hex3 + '/' + jsonfile
-            alert = json.loads(open(filename).read()) 
-            query = create_insert_query(alert)
-            if query:
-                print(query + ';\n')

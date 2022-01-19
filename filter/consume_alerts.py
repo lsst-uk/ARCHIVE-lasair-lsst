@@ -87,7 +87,7 @@ def execute_query(query, msl):
         cursor.close()
         msl.commit()
     except mysql.connector.Error as err:
-        print('ERROR filter/ingestStream: object Database insert candidate failed: %s' % str(err))
+        print('ERROR filter/consume_alerts: object Database insert candidate failed: %s' % str(err))
         print(query)
         sys.stdout.flush()
 
@@ -244,7 +244,7 @@ def main():
     print('INGEST finished %d in, %d out, %d solar system' % (nalert_in, nalert_out, nalert_ss))
     sys.stdout.flush()
 
-    ms = manage_status('nid', settings.SYSTEM_STATUS)
+    ms = manage_status(settings.SYSTEM_STATUS)
     nid  = date_nid.nid_now()
     ms.add({
         'today_filter':nalert_in, 
