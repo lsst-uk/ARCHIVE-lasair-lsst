@@ -93,6 +93,9 @@ def create_insert_query(alert):
             candlist.append(cand)
 
     if not candlist: return None
+    return create_insert_query_from_list(objectId, candlist)
+
+def create_insert_query_from_list(objectId, candlist):
     ema = make_ema(candlist)
 
     ncand = 0
