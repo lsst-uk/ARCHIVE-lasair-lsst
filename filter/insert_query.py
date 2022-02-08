@@ -113,6 +113,7 @@ def create_insert_query(alert):
     return {'ss':ss, 'query':query}
 
 def create_features(objectId, candlist):
+    # version 1.0
     ema = make_ema(candlist)
 
     ncand = 0

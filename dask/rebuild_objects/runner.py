@@ -21,6 +21,7 @@ def main():
         user    = settings.READONLY_USER,
         password= settings.READONLY_PASS,
         host    = settings.LASAIR_DB,
+        port    = settings.LASAIR_PORT,
         database='ztf')
     cursor = msl.cursor(buffered=True, dictionary=True)
     
