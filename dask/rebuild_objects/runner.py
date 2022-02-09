@@ -11,10 +11,12 @@ def main():
 
     jdmax_min   = 2459550.68
     jdmax_max   = 2459550.70
+    output      = 'csvfiles/output.csv'
 
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 3:
         jdmax_min = float(sys.argv[1])
         jdmax_max = float(sys.argv[2])
+        output = sys.argv[3]
     print('jdmax_min %.2f jdmax_max %.2f' % (jdmax_min, jdmax_max))
     
     msl = mysql.connector.connect(
@@ -50,13 +52,14 @@ def main():
     result = bag.map(rebuild_features).compute(scheduler='threads')
     csvlines = client.gather(result)
 
-    f = open('output.csv', 'w')
+    f = open(output, 'w')
     for line in csvlines:
-        f.write(line+'\n')
+        if line:
+            f.write(line+'\n')
     f.close()
     t = time.time() - t
 
-    print('%d files in %.1f msec each' % (nobject, t*1000.0/nobject))
+    print('%d objects in %.1f msec each' % (nobject, t*1000.0/nobject))
     cassandra_session.shutdown()
     client.shutdown()
 
