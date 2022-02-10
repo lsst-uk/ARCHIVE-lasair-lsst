@@ -95,6 +95,8 @@ def create_insert_query(alert):
     if not candlist: return None
 
     sets = create_features(objectId, candlist)
+    if not sets:
+        return None
 
     # Make the query
     list = []
@@ -108,8 +110,8 @@ def create_insert_query(alert):
             list.append(key + '=' + str(value))
     query += ',\n'.join(list)
 
-    if ssnamenr: ss = 1
-    else:        ss = 0
+    if sets['ssnamenr']: ss = 1
+    else:                ss = 0
     return {'ss':ss, 'query':query}
 
 def create_features(objectId, candlist):
