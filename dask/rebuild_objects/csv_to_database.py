@@ -13,10 +13,7 @@ def handle(filename):
 
     cmd =  "mysql --user=ztf --database=ztf --password=%s --host=%s --port=%d < tmp.sql" 
     cmd = cmd % (settings.GDB_PASSWORD, settings.GDB_HOST, settings.GDB_PORT)
-    t = time.time()
-    print(cmd)
     os.system(cmd)
-    print('%s imported in %.0f seconds' % (filename, (time.time() - t)))
 
 ################
 csvfiles = 'csvfiles'
@@ -26,11 +23,16 @@ try:
 except:
     pass
 
-for csvfile in os.listdir(csvfiles):
+filelist = os.listdir(csvfiles)
+filelist.sort()
+
+for csvfile in filelist:
+    t = time.time()
     cmd = 'cd %s; split -l 100000 %s; mv x* ../tmp' % (csvfiles, csvfile)
     print(cmd)
     os.system(cmd)
     for tmpfile in os.listdir('tmp'):
         handle('tmp/' + tmpfile)
     os.system('rm tmp/*')
+    print('%s imported in %.0f seconds' % (csvfile, (time.time() - t)))
 

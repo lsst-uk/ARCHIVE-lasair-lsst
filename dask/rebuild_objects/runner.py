@@ -45,21 +45,24 @@ def main():
     nobject = len(objectIdList)
     print('%d objects' % nobject)
 
-    from dask.distributed import Client
-    client = Client()
-    t = time.time()
-    bag = db.from_sequence(objectIdList, npartitions=4)
-    result = bag.map(rebuild_features).compute(scheduler='threads')
-    csvlines = client.gather(result)
+    if nobjects > 0:
+        from dask.distributed import Client
+        client = Client()
+        t = time.time()
+        bag = db.from_sequence(objectIdList, npartitions=4)
+        result = bag.map(rebuild_features).compute(scheduler='threads')
+        csvlines = client.gather(result)
 
-    f = open(output, 'w')
-    for line in csvlines:
-        if line:
-            f.write(line+'\n')
-    f.close()
-    t = time.time() - t
+        f = open(output, 'w')
+        for line in csvlines:
+            if line:
+                f.write(line+'\n')
+        f.close()
+        t = time.time() - t
+        print('%d objects in %.1f msec each' % (nobject, t*1000.0/nobject))
+    else:
+        print('no objects found')
 
-    print('%d objects in %.1f msec each' % (nobject, t*1000.0/nobject))
     cassandra_session.shutdown()
     client.shutdown()
 
