@@ -14,10 +14,14 @@ where cone_id is the id of the cone in the database, at the given position and r
 "Multi-Order Coverage maps", https://cds-astro.github.io/mocpy/. The union of all the
 files is the same as the list of cones associated with the watchlist.
 """
-import os
+import os, sys
 import math
 from mocpy import MOC
 import astropy.units as u
+import settings
+sys.path.append('../utility/')
+import slack_webhook
+
 
 def read_watchlist_cache_files(cache_dir):
     """read_watchlist_cache_files.
@@ -103,7 +107,12 @@ def check_alerts_against_moc(alertlist, wl_id, moc, cones):
     watchradius   = cones['radius']
 
     # here is the crossmatch
-    result = moc.contains(alertralist*u.deg, alertdelist*u.deg)
+    try:
+        result = moc.contains(alertralist*u.deg, alertdelist*u.deg)
+    except Exception as e:
+        rtxt = 'ERROR in filter/check_alerts_against_moc: ' + str(e)
+        slack_webhook.send(settings.SLACK_URL, rtxt)
+        return []
 
     hits = []
     # go through the boolean vector, looking for hits
