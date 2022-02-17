@@ -16,7 +16,7 @@ from confluent_kafka import Producer, KafkaError
 import date_nid
 from gkhtm import _gkhtm as htmCircle
 from cassandra.cluster import Cluster
-import cassandra_import
+from gkdbutils.ingesters.cassandra import executeLoad
 
 def now():
     # current UTC as string
@@ -103,13 +103,10 @@ def insert_cassandra(alert, cassandra_session):
         for i in range(len(detectionCandlist)):
             detectionCandlist[i]['htmid16'] = htm16s[i]
 
-        cassandra_import.loadGenericCassandraTable(cassandra_session, \
-                settings.CASSANDRA_CANDIDATES, detectionCandlist)
+        executeLoad(cassandra_session, settings.CASSANDRA_CANDIDATES, detectionCandlist)
 
     if len(nondetectionCandlist) > 0:
-        cassandra_import.loadGenericCassandraTable(cassandra_session, \
-                settings.CASSANDRA_NONCANDIDATES, nondetectionCandlist)
-
+        executeLoad(cassandra_session, settings.CASSANDRA_NONCANDIDATES, nondetectionCandlist)
 
     return len(detectionCandlist)
 
