@@ -14,6 +14,7 @@ from datetime import datetime
 import settings
 sys.path.append('../utility/')
 from manage_status import manage_status
+import slack_webhook
 import run_active_queries
 from check_alerts_watchlists import get_watchlist_hits, insert_watchlist_hits
 from check_alerts_areas import get_area_hits, insert_area_hits
@@ -54,7 +55,12 @@ os.system('date')
 print('clear local caches')
 sys.stdout.flush()
 cmd = 'python3 refresh.py'
-os.system(cmd)
+if os.system(cmd) != 0:
+    rtxt = "ERROR in filter/filter.py: refresh.py failed"
+    print(rtxt)
+    slack_webhook.send(settings.SLACK_URL, rtxt)
+    sys.stdout.flush()
+    sys.exit(-1)
 
 ##### fetch a batch of annotated alerts
 print('INGEST start %s' % datetime.utcnow().strftime("%H:%M:%S"))
@@ -71,6 +77,13 @@ cmd += '--topic ' + topic
 print(cmd)
 # rc is the return code from ingestion, number of alerts received
 rc = os.system(cmd)
+if rc < 0:
+    rtxt = "ERROR in filter/filter: consume_alerts failed"
+    slack_webhook.send(settings.SLACK_URL, rtxt)
+    print(rtxt)
+    sys.stdout.flush()
+    sys.exit(-1)
+
 print('INGEST duration %.1f seconds' % (time.time() - t))
 
 try:
@@ -78,16 +91,36 @@ try:
 except:
     print('ERROR in filter/filter: cannot connect to local database')
     sys.stdout.flush()
+    sys.exit(-1)
 
 ##### run the watchlists
 print('WATCHLIST start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 sys.stdout.flush()
 t = time.time()
-hits = get_watchlist_hits(msl_local, settings.WATCHLIST_MOCS, settings.WATCHLIST_CHUNK)
+try:
+    hits = get_watchlist_hits(msl_local, settings.WATCHLIST_MOCS, settings.WATCHLIST_CHUNK)
+except Exception as e:
+    rtxt = "ERROR in filter/get_watchlist_hits"
+    rtxt += str(e)
+    slack_webhook.send(settings.SLACK_URL, rtxt)
+    print(rtxt)
+    sys.stdout.flush()
+    sys.exit(-1)
+
 print('got %d watchlist hits' % len(hits))
 sys.stdout.flush()
+
 if len(hits) > 0:
-    insert_watchlist_hits(msl_local, hits)
+    try:
+        insert_watchlist_hits(msl_local, hits)
+    except Exception as e:
+        rtxt = "ERROR in filter/insert_watchlist_hits"
+        rtxt += str(e)
+        slack_webhook.send(settings.SLACK_URL, rtxt)
+        print(rtxt)
+        sys.stdout.flush()
+        sys.exit(-1)
+
 print('WATCHLIST %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 
@@ -95,11 +128,28 @@ sys.stdout.flush()
 print('AREA start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 sys.stdout.flush()
 t = time.time()
-hits = get_area_hits(msl_local, settings.AREA_MOCS)
+try:
+    hits = get_area_hits(msl_local, settings.AREA_MOCS)
+except Exception as e:
+    rtxt = "ERROR in filter/get_area_hits"
+    rtxt += str(e)
+    slack_webhook.send(settings.SLACK_URL, rtxt)
+    print(rtxt)
+    sys.stdout.flush()
+    sys.exit(-1)
+
 print('got %d area hits' % len(hits))
 sys.stdout.flush()
 if len(hits) > 0:
-    insert_area_hits(msl_local, hits)
+    try:
+        insert_area_hits(msl_local, hits)
+    except Exception as e:
+        rtxt = "ERROR in filter/insert_area_hits"
+        rtxt += str(e)
+        slack_webhook.send(settings.SLACK_URL, rtxt)
+        print(rtxt)
+        sys.stdout.flush()
+        sys.exit(-1)
 print('AREA %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 
@@ -107,8 +157,25 @@ sys.stdout.flush()
 print('QUERIES start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 sys.stdout.flush()
 t = time.time()
-query_list = run_active_queries.fetch_queries()
-run_active_queries.run_queries(query_list)
+try:
+    query_list = run_active_queries.fetch_queries()
+except Exception as e:
+    rtxt = "ERROR in filter/run_active_queries.fetch_queries"
+    rtxt += str(e)
+    slack_webhook.send(settings.SLACK_URL, rtxt)
+    print(rtxt)
+    sys.stdout.flush()
+    sys.exit(-1)
+
+try:
+    run_active_queries.run_queries(query_list)
+except Exception as e:
+    rtxt = "ERROR in filter/run_active_queries.run_queries"
+    rtxt += str(e)
+    slack_webhook.send(settings.SLACK_URL, rtxt)
+    print(rtxt)
+    sys.stdout.flush()
+    sys.exit(-1)
 print('QUERIES %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 
@@ -116,7 +183,15 @@ sys.stdout.flush()
 print('ANNOTATION QUERIES start %s' % datetime.utcnow().strftime("%H:%M:%S"))
 sys.stdout.flush()
 t = time.time()
-run_active_queries.run_annotation_queries(query_list)
+try:
+    run_active_queries.run_annotation_queries(query_list)
+except Exception as e:
+    rtxt = "ERROR in filter/run_active_queries.run_annotation_queries"
+    rtxt += str(e)
+    slack_webhook.send(settings.SLACK_URL, rtxt)
+    print(rtxt)
+    sys.stdout.flush()
+    sys.exit(-1)
 print('ANNOTATION QUERIES %.1f seconds' % (time.time() - t))
 
 ##### build CSV file with local database
@@ -124,11 +199,20 @@ t = time.time()
 print('SEND to ARCHIVE')
 sys.stdout.flush()
 cmd = 'rm /home/ubuntu/csvfiles/*'
-os.system(cmd)
-cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_LOCAL
-if os.system(cmd) > 0:
-    print('ERROR in filter/filter: cannot build CSV from local database')
+if os.system(cmd) != 0:
+    rtxt = "ERROR in filter/filter.py: refresh.py failed"
+    slack_webhook.send(settings.SLACK_URL, rtxt)
+    print(rtxt)
     sys.stdout.flush()
+    sys.exit(-1)
+
+cmd = 'mysql --user=ztf --database=ztf --password=%s < output_csv.sql' % settings.DB_PASS_LOCAL
+if os.system(cmd) != 0:
+    rtxt = 'ERROR in filter/filter: cannot build CSV from local database'
+    slack_webhook.send(settings.SLACK_URL, rtxt)
+    print(rtxt)
+    sys.stdout.flush()
+    sys.exit(-1)
 
 tablelist = ['objects', 'sherlock_classifications', 'watchlist_hits', 'area_hits']
 
@@ -143,15 +227,21 @@ for table in tablelist:
         vm = gethostname()
         cmd = 'scp /home/ubuntu/csvfiles/%s.txt %s:scratch/%s__%s' % (table, settings.DB_HOST_REMOTE, vm, table)
         os.system(cmd)
-        if os.system(cmd) > 0:
-            print('ERROR in filter/filter: cannot copy CSV to master database node')
+        if os.system(cmd) != 0:
+            rtxt = 'ERROR in filter/filter: cannot copy CSV to master database node'
+            slack_webhook.send(settings.SLACK_URL, rtxt)
+            print(rtxt)
             sys.stdout.flush()
+            sys.exit(-1)
 
 ##### ingest CSV file to central database
         cmd = 'ssh %s "python3 /home/ubuntu/lasair-lsst/lasair-db/archive_in.py %s__%s"' % (settings.DB_HOST_REMOTE, vm, table)
-        if os.system(cmd) > 0:
-            print('ERROR in filter/filter: cannot ingest CSV on master database node')
+        if os.system(cmd) != 0:
+            rtxt = 'ERROR in filter/filter: cannot ingest CSV on master database node'
+            slack_webhook.send(settings.SLACK_URL, rtxt)
+            print(rtxt)
             sys.stdout.flush()
+            sys.exit(-1)
 print('Transfer to master %.1f seconds' % (time.time() - t))
 sys.stdout.flush()
 

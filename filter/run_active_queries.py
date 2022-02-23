@@ -23,7 +23,7 @@ Deal with the query results
 (6a) fetch_digest(topic_name):
     Get the digest file from shared storage
 
-(6b) dispose_email(allrecords, last_email):
+(6b) dispose_email(allrecords, last_email, query):
     Deal with outgoing emails, it calls this to actually send
     send_email(email, topic, message, message_html):
 
@@ -206,7 +206,7 @@ def dispose_query_results(query, query_results):
 
     if active == 1:
         # send results by email if 24 hurs has passed, returns time of last email send
-        last_email = dispose_email(allrecords, last_email)
+        last_email = dispose_email(allrecords, last_email, query)
 
     if active == 2:
         # send results by kafka on given topic
@@ -250,7 +250,7 @@ def fetch_digest(topic_name):
     last_email = datetime.datetime.strptime(last_email_text, "%Y-%m-%d %H:%M:%S")
     return digest,last_entry,last_email
 
-def dispose_email(allrecords, last_email):
+def dispose_email(allrecords, last_email, query):
     """ Send out email notifications
     """
     utcnow = datetime.datetime.utcnow()
@@ -260,7 +260,8 @@ def dispose_email(allrecords, last_email):
     # delta is number of days since last email went out
     if delta < 1.0:
         return last_email
-    print('   --- send email to %s' % email)
+    print('   --- send email to %s' % query['email'])
+    topic = query['topic_name']
     sys.stdout.flush()
     query_url = '%s/query/%d/' % (settings.LASAIR_URL, query['mq_id'])
     message      = 'Your active query with Lasair on topic %s\n' % topic
@@ -268,7 +269,7 @@ def dispose_email(allrecords, last_email):
     for out in allrecords: 
         out_time = datetime.datetime.strptime(out['UTC'], "%Y-%m-%d %H:%M:%S")
         # gather all records that have accumulated since last email
-        if out_time > last_email_time:
+        if out_time > last_email:
             if 'objectId' in out:
                 objectId = out['objectId']
                 message      += objectId + '\n'
@@ -277,7 +278,7 @@ def dispose_email(allrecords, last_email):
                 jsonout = json.dumps(out, default=datetime_converter)
                 message += jsonout + '\n'
     try:
-        send_email(email, topic, message, message_html)
+        send_email(query['email'], topic, message, message_html)
         return utcnow
     except Exception as e:
         print('ERROR in filter/run_active_queries: Cannot send email!')
