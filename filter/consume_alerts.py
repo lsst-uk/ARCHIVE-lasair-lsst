@@ -256,5 +256,16 @@ def main():
     else:             return 0
 
 if __name__ == '__main__':
-    rc = main()
-    sys.exit(rc)
+    sys.path.append('../utility/')
+    import slack_webhook
+    try:
+        rc = main()
+        sys.exit(rc)
+    except Exception as e:
+        rtxt = "ERROR in filter/consume_alerts"
+        rtxt += str(e)
+        slack_webhook.send(settings.SLACK_URL, rtxt)
+        print(rtxt)
+        sys.stdout.flush()
+        sys.exit(-1)
+

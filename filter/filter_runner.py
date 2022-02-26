@@ -58,12 +58,16 @@ while 1:
 
         # if we timed out of kafka, wait a while and ask again
         log.write(now() + '\n')
-        if rc > 0:  # no more to get
+        if rc > 0:  # try again
+            log.write("END getting more ...\n\n")
+        # else just go ahead immediately
+        elif rc == 0:
             log.write("END waiting %d seconds ...\n\n" % settings.WAIT_TIME)
             time.sleep(settings.WAIT_TIME)
-        # else just go ahead immediately
-        else:
-            log.write("END getting more ...\n\n")
+        else:   # rc < 0
+            log.write("STOP on error!")
+            sys.exit(1)
+
         log.close()
     else:
         # wait until the lockfile reappears
