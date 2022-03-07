@@ -110,44 +110,6 @@ def insert_cassandra(alert, cassandra_session):
 
     return len(detectionCandlist)
 
-candidate_attributes = [
-'candid',
-'dec',
-'drb',
-'diffmaglim',
-'fid',
-'field',
-'isdiffpos',
-'jd',
-'magnr',
-'magpsf',
-'magzpsci',
-'neargaia',
-'neargaiabright',
-'nid',
-'objectidps1',
-'ra',
-'rb',
-'sgmag1',
-'srmag1',
-'sgscore1',
-'distpsnr1',
-'sigmagnr',
-'sigmapsf',
-'ssdistnr',
-'ssmagnr',
-'ssnamenr',
-]
-
-def extract(candidate):
-    # get just what we want 
-    newcan = {}
-    for ca in candidate_attributes:
-        if ca in candidate:
-            c = candidate[ca]
-            if c: newcan[ca] = c
-    return newcan
-
 def handle_alert(alert, image_store, producer, topicout, cassandra_session):
     """handle_alert.
     Filter to apply to each alert.
