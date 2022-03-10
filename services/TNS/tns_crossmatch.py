@@ -18,28 +18,6 @@ config = {
     'database': 'ztf'
 }
 
-def rebuild_tns_crossmatch(msl, radius):
-    """ Delete all the cones and hits and remake.
-    """
-    cursor  = msl.cursor(buffered=True, dictionary=True)
-    query = 'DELETE FROM watchlist_cones WHERE wl_id=%d' % settings.TNS_WATCHLIST_ID
-    cursor.execute(query)
-    query = 'DELETE FROM watchlist_hits WHERE wl_id=%d' % settings.TNS_WATCHLIST_ID
-    cursor.execute(query)
-    msl.commit()
-
-    n_tns = 0
-    n_hits = 0
-    n_newhits = 0
-    # get all the cones and run them
-    query = 'SELECT tns_name, ra,decl FROM crossmatch_tns'
-    cursor.execute(query)
-    for row in cursor:
-        n_tns += 1
-        n_hits += tns_name_crossmatch(msl, row['tns_name'], row['ra'], row['decl'], radius)
-    print("%d entries in TNS, %d hits in ZTF" % (n_tns, n_hits))
-    return
-
 def tns_name_crossmatch(msl, tns_name, myRA, myDecl, radius):
     cursor2 = msl.cursor(buffered=True, dictionary=True)
 # insert the new TNS entry into the watchlist
@@ -78,11 +56,6 @@ def tns_name_crossmatch(msl, tns_name, myRA, myDecl, radius):
             cursor3.execute(query3)
             msl.commit()
         except:
-            s = '     matches %s\n' % objectId
+            s = '     matches %s' % objectId
             print(s)
     return n_hits
-
-if __name__ == "__main__":
-    radius = 3  # arcseconds
-    msl = mysql.connector.connect(**config)
-    rebuild_tns_crossmatch(msl, radius)
