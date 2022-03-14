@@ -70,30 +70,35 @@
 
     - name: run mysql setup
       shell:
-          cmd: mysql --user=root --password={{ settings.master_db_root_password }} < mysql_setup.sql
+          cmd: mysql --user=root --password={{ settings.master_db_root_password }} --port={{ settings.master_db_port }} < mysql_setup.sql
           chdir: /home/ubuntu/lasair-lsst/utility
 
     - name: create object table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < objects.sql
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} --port={{ settings.master_db_port }} < objects.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create sherlock_classifications table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < sherlock_classifications.sql
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} --port={{ settings.master_db_port }} < sherlock_classifications.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+    - name: create crossmatch_TNS table
+      shell:
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} --port={{ settings.master_db_port }} < crossmatch_tns.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create area_hits table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < area_hits.sql
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} --port={{ settings.master_db_port }} < area_hits.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create watchlist_hits table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < watchlist_hits.sql
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} --port={{ settings.master_db_port }} < watchlist_hits.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create annotations table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < annotations.sql
+          cmd: mysql --user=ztf --password={{ settings.master_db_password }} --port={{ settings.master_db_port }} < annotations.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
