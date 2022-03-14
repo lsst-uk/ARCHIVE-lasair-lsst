@@ -28,6 +28,7 @@ from fetch_from_tns import fetch_csv
 import settings
 sys.path.append('/home/ubuntu/lasair-lsst/utility')
 from manage_status import manage_status
+import date_nid
 
 def getTNSRow(conn, tnsName):
    """
@@ -36,7 +37,7 @@ def getTNSRow(conn, tnsName):
    """
 
    try:
-      cursor = conn.cursor (dictionary=True)
+      cursor = conn.cursor (dictionary=True, buffered=True)
 
       cursor.execute ("""
            select tns_prefix, tns_name from crossmatch_tns
@@ -57,7 +58,7 @@ def countTNSRow(conn):
     Computes number of sources in our copy of the TNS database.
     """
     try:
-        cursor = conn.cursor (dictionary=True)
+        cursor = conn.cursor (dictionary=True, buffered=True)
         cursor.execute ("select count(*) as nrow from crossmatch_tns")
         for row in cursor:
             nrow = row['nrow']
@@ -67,23 +68,6 @@ def countTNSRow(conn):
     except MySQLdb.Error as e:
         print("Error %d: %s\n" % (e.args[0], e.args[1]))
         return -1
-
-def deleteTNSRow(conn, tnsName):
-    """
-    Deletes a row from our copy of the TNS database
-    """
-    try:
-        cursor = conn.cursor (dictionary=True)
-
-        cursor.execute ("""
-            delete from crossmatch_tns where tns_name = %s
-            """, (tnsName,))
-
-    except MySQLdb.Error as e:
-        print("Error %d: %s\n" % (e.args[0], e.args[1]))
-
-    cursor.close ()
-    return
 
 def insertTNS(conn, tnsEntry):
     """
@@ -122,7 +106,7 @@ def insertTNS(conn, tnsEntry):
             e[k] = "'" + str(v) + "'"
 
     try:
-        cursor = conn.cursor (dictionary=True)
+        cursor = conn.cursor (dictionary=True, buffered=True)
 
 # Can add these in when TNS provides them
 #       hostz,
@@ -248,7 +232,6 @@ def getTNSData(opts, conn):
         if tnsEntry:
             if tnsEntry['tns_prefix'] != prefix:
                 # The entry has been updated on TNS - classified! Otherwise do nothing!
-                deleteTNSRow(conn, name)
                 insertTNS(conn, row_dict)
                 print("Object %s has been updated" % row_dict['name'])
                 rowsChanged += 1
