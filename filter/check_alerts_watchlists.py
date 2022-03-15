@@ -18,9 +18,12 @@ import os, sys
 import math
 from mocpy import MOC
 import astropy.units as u
-import settings
-sys.path.append('../utility/')
-import slack_webhook
+try:
+    import settings
+    sys.path.append('../utility/')
+    import slack_webhook
+except:
+    pass
 
 
 def read_watchlist_cache_files(cache_dir):
