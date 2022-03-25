@@ -38,10 +38,10 @@
           path: /home/ubuntu/scratch
           state: directory
 
-    - name: Copy git credentials
-      copy:
-        src: /home/ubuntu/.git-credentials
-        dest: /home/ubuntu/.git-credentials
+#    - name: Copy git credentials
+#      copy:
+#        src: /home/ubuntu/.git-credentials
+#        dest: /home/ubuntu/.git-credentials
 
     - name: Make sure the repo is up to date
       git: 
@@ -50,22 +50,22 @@
 
     - name: Copy settings.py
       template:
-          src:  /home/ubuntu/lasair-lsst/lasair-db/settings.py.j2
+          src:  ../lasair-db/settings.py.j2
           dest: /home/ubuntu/lasair-lsst/lasair-db/settings.py
 
     - name: Copy mysqlbackup.sh
       template:
-          src:  /home/ubuntu/lasair-lsst/lasair-db/mysqlbackup.sh.j2
+          src:  ../lasair-db/mysqlbackup.sh.j2
           dest: /home/ubuntu/lasair-lsst/lasair-db/mysqlbackup.sh
 
     - name: Copy crossmatch_tns_dump.sh
       template:
-          src:  /home/ubuntu/lasair-lsst/lasair-db/crossmatch_tns_dump.sh.j2
+          src:  ../lasair-db/crossmatch_tns_dump.sh.j2
           dest: /home/ubuntu/lasair-lsst/lasair-db/crossmatch_tns_dump.sh
 
     - name: Copy annotations_dump.sh
       template:
-          src:  /home/ubuntu/lasair-lsst/lasair-db/annotations_dump.sh.j2
+          src:  ../lasair-db/annotations_dump.sh.j2
           dest: /home/ubuntu/lasair-lsst/lasair-db/annotations_dump.sh
 
     - name: run mysql setup
