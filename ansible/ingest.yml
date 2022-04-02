@@ -57,6 +57,12 @@
           name: gkutils
       become: yes
 
+    - name: install gkdbutils
+      pip:
+          executable: pip3 
+          name: gkdbutils
+      become: yes
+
     - name: Make sure the repo is up to date
       git: 
           repo: https://github.com/lsst-uk/lasair-lsst.git

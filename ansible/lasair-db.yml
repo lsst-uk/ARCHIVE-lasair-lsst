@@ -18,6 +18,13 @@
 
   vars:
           settings: "{{ lookup('hashi_vault', 'secret=secret/lasair/settings')}}"
+          mysql_db_name: "{{ settings.master_db_username }}"
+          mysql_db_user: "{{ settings.master_db_username }}"
+          mysql_db_password: "{{ settings.master_db_password }}"
+          msql_db_user_readonly: "{{ settings.master_db_readonly_username}}"
+          mysql_db_password_readonly: "{{ settings.master_db_readonly_password }}"
+          mysql_port: "{{ settings.master_db_port }}"
+
 
   tasks:
     - name: install pip3
@@ -27,73 +34,91 @@
           update_cache: true
       become: yes
 
-    - name: permissions on mysql-files
-      file:
-          path: /var/lib/mysql-files
-          mode: '777'
-      become: yes
+#    - name: permissions on mysql-files
+#      file:
+#          path: /var/lib/mysql-files
+#          mode: '777'
+#      become: yes
 
     - name: Creates directory
       file:
           path: /home/ubuntu/scratch
           state: directory
 
-    - name: Copy git credentials
-      copy:
-        src: /home/ubuntu/.git-credentials
-        dest: /home/ubuntu/.git-credentials
+#    - name: Copy git credentials
+#      copy:
+#        src: /home/ubuntu/.git-credentials
+#        dest: /home/ubuntu/.git-credentials
 
-    - name: Make sure the repo is up to date
-      git: 
-          repo: https://github.com/lsst-uk/lasair-lsst.git
-          dest: /home/ubuntu/lasair-lsst
+    - name: install git
+      apt: 
+          name: git
+          state: present
+          update_cache: true
+      become: yes
+
+#    - name: Make sure the repo is up to date
+#      git: 
+#          repo: https://github.com/lsst-uk/lasair-lsst.git
+#          dest: /home/ubuntu/lasair-lsst
 
     - name: Copy settings.py
       template:
-          src:  /home/ubuntu/lasair-lsst/lasair-db/settings.py.j2
+          src:  ../lasair-db/settings.py.j2
           dest: /home/ubuntu/lasair-lsst/lasair-db/settings.py
 
     - name: Copy mysqlbackup.sh
       template:
-          src:  /home/ubuntu/lasair-lsst/lasair-db/mysqlbackup.sh.j2
+          src:  ../lasair-db/mysqlbackup.sh.j2
           dest: /home/ubuntu/lasair-lsst/lasair-db/mysqlbackup.sh
 
     - name: Copy crossmatch_tns_dump.sh
       template:
-          src:  /home/ubuntu/lasair-lsst/lasair-db/crossmatch_tns_dump.sh.j2
+          src:  ../lasair-db/crossmatch_tns_dump.sh.j2
           dest: /home/ubuntu/lasair-lsst/lasair-db/crossmatch_tns_dump.sh
 
     - name: Copy annotations_dump.sh
       template:
-          src:  /home/ubuntu/lasair-lsst/lasair-db/annotations_dump.sh.j2
+          src:  ../lasair-db/annotations_dump.j2
           dest: /home/ubuntu/lasair-lsst/lasair-db/annotations_dump.sh
+
+    - name: Copy mysql_setup.sql
+      template:
+          src:  ../utility/mysql_setup.sql.j2
+          dest: /tmp/mysql_setup.sql
+
 
     - name: run mysql setup
       shell:
-          cmd: mysql --user=root --password={{ settings.master_db_root_password }} < mysql_setup.sql
+          cmd: mysql --user=root --password={{ settings.master_db_root_password }} --port={{ mysql_port }} < /tmp/mysql_setup.sql
           chdir: /home/ubuntu/lasair-lsst/utility
 
     - name: create object table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < objects.sql
+          cmd: mysql --user={{ mysql_db_user }} --password={{ mysql_db_password }} --port={{ mysql_port }} {{ mysql_db_name }} < objects.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create sherlock_classifications table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < sherlock_classifications.sql
+          cmd: mysql --user={{ mysql_db_user }} --password={{ mysql_db_password }} --port={{ mysql_port }} {{ mysql_db_name }} < sherlock_classifications.sql
+          chdir: /home/ubuntu/lasair-lsst/utility/schema
+
+    - name: create crossmatch_TNS table
+      shell:
+          cmd: mysql --user={{ mysql_db_user }} --password={{ mysql_db_password }} --port={{ mysql_port }} {{ mysql_db_name }} < crossmatch_tns.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create area_hits table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < area_hits.sql
+          cmd: mysql --user={{ mysql_db_user }} --password={{ mysql_db_password }} --port={{ mysql_port }} {{ mysql_db_name }} < area_hits.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create watchlist_hits table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < watchlist_hits.sql
+          cmd: mysql --user={{ mysql_db_user }} --password={{ mysql_db_password }} --port={{ mysql_port }} {{ mysql_db_name }} < watchlist_hits.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
 
     - name: create annotations table
       shell:
-          cmd: mysql --user=ztf --password={{ settings.master_db_password }} < annotations.sql
+          cmd: mysql --user={{ mysql_db_user }} --password={{ mysql_db_password }} --port={{ mysql_port }} {{ mysql_db_name }} < annotations.sql
           chdir: /home/ubuntu/lasair-lsst/utility/schema
