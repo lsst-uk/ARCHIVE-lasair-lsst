@@ -16,7 +16,7 @@ from confluent_kafka import Producer, KafkaError
 import date_nid
 from gkhtm import _gkhtm as htmCircle
 from cassandra.cluster import Cluster
-import cassandra_import
+from gkdbutils.ingesters.cassandra import executeLoad
 
 def now():
     # current UTC as string
@@ -103,53 +103,12 @@ def insert_cassandra(alert, cassandra_session):
         for i in range(len(detectionCandlist)):
             detectionCandlist[i]['htmid16'] = htm16s[i]
 
-        cassandra_import.loadGenericCassandraTable(cassandra_session, \
-                settings.CASSANDRA_CANDIDATES, detectionCandlist)
+        executeLoad(cassandra_session, settings.CASSANDRA_CANDIDATES, detectionCandlist)
 
     if len(nondetectionCandlist) > 0:
-        cassandra_import.loadGenericCassandraTable(cassandra_session, \
-                settings.CASSANDRA_NONCANDIDATES, nondetectionCandlist)
-
+        executeLoad(cassandra_session, settings.CASSANDRA_NONCANDIDATES, nondetectionCandlist)
 
     return len(detectionCandlist)
-
-candidate_attributes = [
-'candid',
-'dec',
-'drb',
-'diffmaglim',
-'fid',
-'field',
-'isdiffpos',
-'jd',
-'magnr',
-'magpsf',
-'magzpsci',
-'neargaia',
-'neargaiabright',
-'nid',
-'objectidps1',
-'ra',
-'rb',
-'sgmag1',
-'srmag1',
-'sgscore1',
-'distpsnr1',
-'sigmagnr',
-'sigmapsf',
-'ssdistnr',
-'ssmagnr',
-'ssnamenr',
-]
-
-def extract(candidate):
-    # get just what we want 
-    newcan = {}
-    for ca in candidate_attributes:
-        if ca in candidate:
-            c = candidate[ca]
-            if c: newcan[ca] = c
-    return newcan
 
 def handle_alert(alert, image_store, producer, topicout, cassandra_session):
     """handle_alert.

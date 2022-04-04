@@ -1,7 +1,7 @@
 import requests, json
 
 def send(url, message):
-    data = {'channel': '#monitoring-lasair-ztf', 'text': message}
+    data = {'channel': '#general', 'text': message}
 
     response = requests.post(url, data=json.dumps(data),
         headers={'Content-Type': 'application/json'})

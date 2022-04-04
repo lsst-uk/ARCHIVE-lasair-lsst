@@ -93,6 +93,29 @@ def create_insert_query(alert):
             candlist.append(cand)
 
     if not candlist: return None
+
+    sets = create_features(objectId, candlist)
+    if not sets:
+        return None
+
+    # Make the query
+    list = []
+    query = 'REPLACE INTO objects SET objectId="%s", ' % objectId
+    for key,value in sets.items():
+        if not value:
+            list.append(key + '= NULL')
+        elif isinstance(value, str):
+            list.append(key + '= "' + str(value) + '"')
+        else:
+            list.append(key + '=' + str(value))
+    query += ',\n'.join(list)
+
+    if sets['ssnamenr']: ss = 1
+    else:                ss = 0
+    return {'ss':ss, 'query':query}
+
+def create_features(objectId, candlist):
+    # version 1.0
     ema = make_ema(candlist)
 
     ncand = 0
@@ -272,24 +295,7 @@ def create_insert_query(alert):
     sets['mag_r02'] = ema['r02']
     sets['mag_r08'] = ema['r08']
     sets['mag_r28'] = ema['r28']
-
-    # Make the query
-    list = []
-    query = 'REPLACE INTO objects SET objectId="%s", ' % objectId
-    for key,value in sets.items():
-        if not value:
-            list.append(key + '= NULL')
-        elif isinstance(value, str):
-            list.append(key + '= "' + str(value) + '"')
-        else:
-            list.append(key + '=' + str(value))
-    query += ',\n'.join(list)
-
-#    if g_minus_r > 0.1 and g_minus_r < 0.9:
-#        print (query)
-    if ssnamenr: ss = 1
-    else:        ss = 0
-    return {'ss':ss, 'query':query}
+    return sets
 
 def create_insert_annotation(objectId, annClass, ann, attrs, table, replace):
     """create_insert_annotation.

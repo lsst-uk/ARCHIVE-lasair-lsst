@@ -1,10 +1,12 @@
 DB_HOST         = '{{ settings.master_db_ip }}'
 DB_USER_WRITE   = '{{ settings.master_db_username }}'
 DB_PASS_WRITE   = '{{ settings.master_db_password }}'
+DB_PORT         = '{{ settings.master_db_port }}'
 DB_DATABASE     = 'ztf'
 
-TNS_SEARCH_URL   = 'http://wis-tns.weizmann.ac.il/search'
-TNS_SEARCH_URL   = 'https://www.wis-tns.org/search'
+TNS_URL          = 'https://www.wis-tns.org/system/files/tns_public_objects/'
+TNS_API_KEY      = '{{ settings.tns_api_key }}'
+
 TNS_WATCHLIST_ID = 141
 TNS_REPEAT_TIME  = 7200
 

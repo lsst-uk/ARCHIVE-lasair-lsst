@@ -1,56 +1,49 @@
 #!/usr/bin/env python
-"""Get the TNS list.  Max size of request is 1000 rows.
+"""Get the TNS list, either each daily update or the whole thing.
 
 Usage:
-  %s [--pageSize=<n>] [--pageNumber=<n>] [--radius] [--inLastNumberOfDays=<n>]
+  %s [--daysAgo=<n>]
+  %s [--radius=3]
   %s (-h | --help)
-  %s --version
+  %s (-v | --version)
 
 Options:
-  -h --help                    Show this screen.
-  --version                    Show version.
-  --pageSize=<n>               Request page size [default: 50].
-  --pageNumber=<n>             Request page number [default: 0].
-  --radius                     Radius in arcseconds for crossmatch
-  --inLastNumberOfDays=<n>     Get everything in the specified number of days.
-
+  -h --help            Show this screen.
+  --daysAgo=<n>        Which nightly report to fetch. 1 day ago is default.
+                       If 'All', then the whole TNS database is scrubbed and rebuilt
+  --radius=<f>         Matching radius, arcseconds, default 3
 """
 
 import sys
-__doc__ = __doc__ % (sys.argv[0], sys.argv[0], sys.argv[0])
+__doc__ = __doc__ % (sys.argv[0], sys.argv[0], sys.argv[0], sys.argv[0])
 from docopt import docopt
 import os, sys
 import mysql.connector as MySQLdb
-from gkutils import Struct, cleanOptions, dbConnect, coords_sex_to_dec, floatValue, intValue, nullValue
-import requests
 import csv
 from datetime import datetime
-import run_tns_crossmatch
+from gkutils import Struct, dbConnect, cleanOptions
 from gkhtm import _gkhtm as htmCircle
-
-sys.path.append('/home/ubuntu/lasair-lsst/utility')
-import date_nid
+import tns_crossmatch
+from fetch_from_tns import fetch_csv
 import settings
+sys.path.append('/home/ubuntu/lasair-lsst/utility')
 from manage_status import manage_status
-
-global logfile
+import date_nid
 
 def getTNSRow(conn, tnsName):
    """
    Has the TNS row been updated compared with what's in the database?
+   If so, return the details.
    """
 
    try:
-      #cursor = conn.cursor (MySQLdb.cursors.DictCursor)
-      cursor = conn.cursor (dictionary=True)
+      cursor = conn.cursor (dictionary=True, buffered=True)
 
       cursor.execute ("""
-           select tns_prefix, tns_name
-             from crossmatch_tns
+           select tns_prefix, tns_name from crossmatch_tns
             where tns_name = %s
       """, (tnsName,))
       resultSet = cursor.fetchone ()
-
       cursor.close ()
 
    except MySQLdb.Error as e:
@@ -61,8 +54,11 @@ def getTNSRow(conn, tnsName):
    return resultSet
 
 def countTNSRow(conn):
+    """
+    Computes number of sources in our copy of the TNS database.
+    """
     try:
-        cursor = conn.cursor (dictionary=True)
+        cursor = conn.cursor (dictionary=True, buffered=True)
         cursor.execute ("select count(*) as nrow from crossmatch_tns")
         for row in cursor:
             nrow = row['nrow']
@@ -70,278 +66,230 @@ def countTNSRow(conn):
         return nrow
 
     except MySQLdb.Error as e:
-        logfile.write("Error %d: %s\n" % (e.args[0], e.args[1]))
+        print("Error %d: %s\n" % (e.args[0], e.args[1]))
         return -1
 
-def deleteTNSRow(conn, tnsName):
-    try:
-        #cursor = conn.cursor (MySQLdb.cursors.DictCursor)
-        cursor = conn.cursor (dictionary=True)
-
-        cursor.execute ("""
-            delete from crossmatch_tns
-            where tns_name = %s
-            """, (tnsName,))
-
-    except MySQLdb.Error as e:
-        logfile.write("Error %d: %s\n" % (e.args[0], e.args[1]))
-
-    cursor.close ()
-    return
-
-
 def insertTNS(conn, tnsEntry):
+    """
+    Inserts a single row into our copy of the TNS database
+    """
+    e = {}
+    for k,v in tnsEntry.items():
+        # if its null, want the word NULL instead of ''
+        if k == 'discoverymag'     and len(v) == 0:
+            e[k] = 'NULL'
 
-    insertId = 0
+        # if its null, want the word NULL instead of ''
+        elif k == 'redshift'       and len(v) == 0:
+            e[k] = 'NULL'
+
+        # just keep the first 75 characters of this,
+        # and convert the unicode to ???
+        elif k == 'internal_names' and len(v) > 75:
+            e[k] = "'" + v[:75].replace("'", '') + "...'"
+            e[k] = e[k].encode('ascii', 'replace').decode('ascii')
+
+        # keep it down to 16 characters
+        elif k == 'reporting_group':
+            if len(v) > 12: v = v[:12] + "..."
+            e[k] = "'" + v + "'"
+
+        # just keep the first 75 characters of this,
+        # and convert the unicode to ???
+        elif k == 'reporters':
+            v = v.encode('ascii', 'replace').decode('ascii').replace("'", '')
+            if len(v) > 75: v = v[:75] + "..."
+            e[k] = "'" + v + "'"
+
+        # anything else, enclose in quotes
+        else:
+            e[k] = "'" + str(v) + "'"
+
     try:
-        #cursor = conn.cursor(MySQLdb.cursors.DictCursor)
-        cursor = conn.cursor (dictionary=True)
+        cursor = conn.cursor (dictionary=True, buffered=True)
 
-        cursor.execute ("""
-            insert into crossmatch_tns (
-               ra,
-               decl,
-               tns_prefix,
-               tns_name,
-               z,
-               hostz,
-               host_name,
-               disc_mag,
-               disc_mag_filter,
-               disc_instruments,
-               type,
-               public,
-               sender,
-               associated_groups,
-               classifying_groups,
-               discovering_groups,
-               class_instrument,
-               tnsid,
-               disc_int_name,
-               ext_catalogs,
-               disc_date,
-               tns_at,
-               htm16)
-            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (tnsEntry['ra'],
-                  tnsEntry['dec'],
-                  tnsEntry['prefix'],
-                  tnsEntry['suffix'],
-                  floatValue(tnsEntry['Redshift']),
-                  floatValue(tnsEntry['Host Redshift']),
-                  nullValue(tnsEntry['Host Name']),
-                  floatValue(tnsEntry['Discovery Mag/Flux']),
-                  nullValue(tnsEntry['Discovery Filter']),
-                  nullValue(tnsEntry['Disc. Instrument/s']),
-                  nullValue(tnsEntry['Obj. Type']),
-                  intValue(tnsEntry['Public']),
-                  nullValue(tnsEntry['Sender']),
-                  nullValue(tnsEntry['Associated Group/s']),
-                  nullValue(tnsEntry['Classifying Group/s']),
-                  nullValue(tnsEntry['Reporting Group/s']),
-                  nullValue(tnsEntry['Class. Instrument/s']),
-                  intValue(tnsEntry['ID']),
-                  nullValue(tnsEntry['Disc. Internal Name']),
-                  nullValue(tnsEntry['Ext. catalog/s']),
-                  nullValue(tnsEntry['Discovery Date (UT)']),
-                  intValue(tnsEntry['TNS AT']),
-                  tnsEntry['htm16']))
+# Can add these in when TNS provides them
+#       hostz,
+#       host_name,
+#       ext_catalogs,
+
+# This section exposes the names that we have for attributes
+        query = """
+        REPLACE INTO crossmatch_tns (
+           ra,
+           decl,
+           tns_name,
+           tns_prefix,
+           disc_mag,
+           disc_mag_filter,
+           type,
+           z,
+           disc_int_name,
+           disc_date,
+           lastmodified_date,
+           sender,
+           reporters,
+           source_group,
+           htm16)
+        VALUES (%s,%s,%s,%s,%s,  %s,%s,%s,%s,%s,  %s,%s,%s,%s,%s )
+        """
+
+# This section exposes the names that TNS has for attributes
+        query = query % (
+            e['ra'],
+            e['declination'],
+            e['name'],
+            e['name_prefix'],
+            e['discoverymag'],
+            e['filter'],
+            e['type'],
+            e['redshift'],
+            e['internal_names'],
+            e['discoverydate'],
+            e['lastmodified'],
+            e['reporting_group'],
+            e['reporters'],
+            e['source_group'],
+            e['htm16'])
+
+#        print(query)
+        cursor.execute (query)
         insertId = cursor.lastrowid
         cursor.close ()
 
     except MySQLdb.Error as e:
-        if e[0] == 1142: # Can't insert - don't have permission
-            print("ERROR in services/TNS/poll_tns: Can't insert.  User doesn't have permission.\n")
-        else:
-            print('ERROR in services/TNS/poll_tns', e)
+        print('ERROR in services/TNS/poll_tns', e)
+        print(tnsEntry)
+        print(e)
+        print(query)
         sys.stdout.flush()
 
-    #insertId = conn.insert_id()
-    return insertId
-
-
-def pollTNS(page=0, resultSize=50, inLastNumberDays=None):
-
-    from datetime import datetime, date, time, timedelta
-    if inLastNumberDays:
-        pastTime = datetime.now() - timedelta(days=inLastNumberDays)
-        pastTime = pastTime.strftime("%Y-%m-%d")
-    else:
-        pastTime = ""
-
-    try:
-        tns_user_agent = 'tns_marker{"tns_id":2297,"type": "user", "name":"TNSrobot"}'
-        response = requests.get(
-            url=settings.TNS_SEARCH_URL,
-            headers={ 'User-Agent': tns_user_agent},
-            params={
-                "page": page,
-                "name": "",
-                "name_like": "0",
-                "isTNS_AT": "all",
-                "public": "all",
-                "unclassified_at": "0",
-                "classified_sne": "0",
-                "ra": "",
-                "decl": "",
-                "radius": "",
-                "coords_unit": "arcsec",
-                "groupid[]": "null",
-                "type[]": "null",
-                "discoverer": "",
-                "date_start[date]": pastTime,
-                "date_end[date]": "2100-01-01",
-                "discovery_mag_min": "",
-                "discovery_mag_max": "",
-                "redshift_min": "",
-                "redshift_max": "",
-                "spectra_count": "",
-                "associated_groups[]": "null",
-                "display[redshift]": "1",
-                "display[hostname]": "1",
-                "display[host_redshift]": "1",
-                "display[source_group_name]": "1",
-                "display[programs_name]": "1",
-                "display[isTNS_AT]": "1",
-                "display[public]": "1",
-                "display[spectra_count]": "1",
-                "display[discoverymag]": "1",
-                "display[discmagfilter]": "1",
-                "display[discoverydate]": "1",
-                "display[discoverer]": "1",
-                "display[sources]": "1",
-                "display[bibcode]": "1",
-                "num_page": resultSize,
-                "edit[type]": "",
-                "edit[objname]": "",
-                "edit[id]": "",
-                "sort": "desc",
-                "order": "discoverydate",
-                "format": "csv"
-            },
-        )
-
-#        content = response.content
-        content = response.text
-        status_code = response.status_code
-    except requests.exceptions.RequestException:
-        print('ERROR in services/TNS/poll_tns: HTTP Request to TNS failed\n')
-        print(response.text)
-        sys.exit(0)
-
-    return status_code, content
-
 def getTNSData(opts, conn):
+    """
+    Fetch CSV file from TNS, either the daily update (daysAgo=1) 
+    or the whole thing (daysAgo=All).
+    """
+    from datetime import datetime, date, time, timedelta
     if type(opts) is dict:
         options = Struct(**opts)
     else:
         options = opts
 
-#    import yaml
-#    with open(options.configFile) as yaml_file:
-#        config = yaml.load(yaml_file)
-
     radius = 3.0 # arcseconds from crossmatch
     if options.radius:
         radius = float(options.radius)
 
-    inLastNumberOfDays = None
-    if options.inLastNumberOfDays:
-        inLastNumberOfDays = int(options.inLastNumberOfDays)
+    if options.daysAgo == 'All':
+        doingAll = True
+        # truncate the cables crossmatch_tns, and
+        #     watchlist_cones(TNS), watchlist_hits(TNS)
+        truncate_tns(conn)
 
-    status_code, content = pollTNS(page = int(options.pageNumber), resultSize = int(options.pageSize), inLastNumberDays = inLastNumberOfDays)
+        # get the data file from TNS
+        data = fetch_csv('All')
 
-#    csvEntries = csv.DictReader(content.splitlines(), delimiter=',')
-#    data = csvEntries
-    data = csv.DictReader(content.splitlines(), delimiter=',')
+#        data = data[:10]   reduce to 10 for testing
+    else:
+        doingAll = False
+        try:
+            daysAgo = int(options.daysAgo)
+        except:
+            daysAgo = 1
+            
+        if daysAgo <= 0:
+            print('ERROR in services/TNS/poll_tns: daysAgo must be >+1 or "All"')
+            return
+        pastTime = datetime.now() - timedelta(days=daysAgo)
+        pastTime = pastTime.strftime("%Y%m%d")
+
+        # get the data file from TNS
+        data = fetch_csv(pastTime)
+
+    # First row of the CSV is the header names
+    header = data[0]
     rowsAdded = 0
     rowsChanged = 0
-    for row in data:
-        if 'Name' in row:
-            name = row['Name'].strip().split()
-        else:
-            print(row)
-            sys.exit()
 
-        if len(name) != 2:
-            prefix = 'SN'
-            suffix = name[0]
-        else:
-            prefix = name[0]
-            suffix = name[1]
+    for row in data[1:]:
+        row_dict = {}
+        for i in range(len(header)):
+            row_dict[header[i]] = row[i]
 
-        if row['Discovery Date (UT)'].strip() == '0000-00-00 00:00:00':
-            # Set the discovery date to January of the suffix name.
-            discoveryDate = '%s-01-01 00:00:00' % suffix[0:4]
-            row['Discovery Date (UT)'] = discoveryDate
+        prefix =    row_dict['name_prefix']
+        name =      row_dict['name']
+        ra  = float(row_dict['ra'])
+        dec = float(row_dict['declination'])
 
-#        if not 'Type' in row:  # sometimes TNS does not supply Type -- RDW
-#            row['Type'] = 'null'
-
-        row['prefix'] = prefix
-        row['suffix'] = suffix
-        ra, dec = coords_sex_to_dec(row['RA'], row['DEC'])
-        if ra == 0 and dec == 0:
-            print("in services/TNS/poll_tns: Cannot store record for %s. No coordinates provided!\n" % row['Name'].strip())
-            continue
-
-        row['ra'] = ra
-        row['dec'] = dec
+        # Compute the HTM
         htm16 = htmCircle.htmID(16, ra, dec)
-        row['htm16'] = htm16
-        tnsEntry = getTNSRow(conn, suffix)
+        row_dict['htm16'] = htm16
+
+        if not doingAll:
+            tnsEntry = getTNSRow(conn, name)
+        else:
+            tnsEntry = None  # No point checking if we jus truncated the table
+
         if tnsEntry:
             if tnsEntry['tns_prefix'] != prefix:
                 # The entry has been updated on TNS - classified! Otherwise do nothing!
-                deleteTNSRow(conn, suffix)
-                insertTNS(conn, row)
-                logfile.write("Object %s has been updated\n" % row['suffix'])
+                insertTNS(conn, row_dict)
+                print("Object %s has been updated" % row_dict['name'])
                 rowsChanged += 1
         else:
-            insertTNS(conn, row)
-            logfile.write("Object %s has been added\n" % row['suffix'])
-            run_tns_crossmatch.tns_name_crossmatch(\
-                    conn, row['suffix'], ra, dec, radius)
-
+            insertTNS(conn, row_dict)
+            tns_crossmatch.tns_name_crossmatch(\
+                    conn, row_dict['name'], ra, dec, radius)
             rowsAdded += 1
-        #print prefix, suffix, ra, dec, htm16, row['Discovery Date (UT)']
 
-    logfile.write("Total rows added = %d, modified = %d\n" % (rowsAdded, rowsChanged))
+            if doingAll:
+                if rowsAdded % 1000 == 0:
+                    print(rowsAdded)
+            else:
+                print("Object %s has been added" % row_dict['name'])
 
+#        print(prefix, name, ra, dec, htm16)
+
+    print("Total rows added = %d, modified = %d\n" % (rowsAdded, rowsChanged))
+
+def truncate_tns(conn):
+    """ Delete all the cones, hits, and crossmatch_tns 
+    """
+    cursor  = conn.cursor(buffered=True, dictionary=True)
+    query = 'DELETE FROM watchlist_cones WHERE wl_id=%d' % settings.TNS_WATCHLIST_ID
+    cursor.execute(query)
+
+    query = 'DELETE FROM watchlist_hits WHERE wl_id=%d' % settings.TNS_WATCHLIST_ID
+    cursor.execute(query)
+    conn.commit()
+
+    query = 'TRUNCATE crossmatch_tns'
+    cursor.execute(query)
+    conn.commit()
 
 def get_db():
     username = settings.DB_USER_WRITE
     password = settings.DB_PASS_WRITE
     hostname = settings.DB_HOST
+    port     = settings.DB_PORT
     database = 'ztf'
-    conn = dbConnect(hostname, username, password, database)
+    conn = dbConnect(hostname, username, password, database, lport=port)
     if not conn:
         print("ERROR in services/TNS/poll_tns: Cannot connect to the database\n")
         return 1
     return conn
 
-def main():
+if __name__ == '__main__':
     opts = docopt(__doc__, version='0.1')
     opts = cleanOptions(opts)
     conn = get_db()
-
-    # Use utils.Struct to convert the dict into an object for compatibility with old optparse code.
     options = Struct(**opts)
-    getTNSData(options, conn)
-    countTNS = countTNSRow(conn)
-    conn.commit()
-    conn.close()
 
+    getTNSData(options, conn)
+
+    countTNS = countTNSRow(conn)
     ms = manage_status(settings.SYSTEM_STATUS)
     nid = date_nid.nid_now()
     ms.set({'countTNS':countTNS}, nid)
 
-if __name__ == '__main__':
-    global logfile
-    nid  = date_nid.nid_now()
-    date = date_nid.nid_to_date(nid)
-    logfile = open('/mnt/cephfs/lasair/services_log/' + date + '.log', 'a')
-    now = datetime.now()
-    logfile.write('\n-- poll_tns at %s\n' % now.strftime("%d/%m/%Y %H:%M:%S"))
-    main()
-    sys.exit(0)
+    conn.commit()
+    conn.close()
