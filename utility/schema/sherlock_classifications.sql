@@ -1,4 +1,3 @@
-USE ztf;
 CREATE TABLE IF NOT EXISTS sherlock_classifications(
 `objectId` varchar(16) CHARACTER SET utf8 COLLATE utf8_unicode_ci,
 `classification` varchar(16),
