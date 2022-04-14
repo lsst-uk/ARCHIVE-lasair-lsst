@@ -1,4 +1,3 @@
-USE ztf;
 CREATE TABLE IF NOT EXISTS annotations(
 `annotationID` int NOT NULL AUTO_INCREMENT,
 `objectId` varchar(16) NOT NULL,
