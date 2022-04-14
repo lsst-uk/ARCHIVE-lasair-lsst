@@ -8,7 +8,6 @@ import math
 import numpy as np
 import ephem
 from gkhtm import _gkhtm as htmCircle
-import settings
 
 def make_ema(candlist):
     """make_ema.
@@ -114,6 +113,13 @@ def create_insert_query(alert):
     else:                ss = 0
     return {'ss':ss, 'query':query}
 
+def good(cand):
+    if 'rb' in cand and cand['rb'] and cand['rb'] > 0.75:
+        return True
+    if 'drb' in cand and cand['drb'] and cand['drb'] > 0.75:
+        return True
+    return False
+
 def create_features(objectId, candlist):
     # version 1.0
     ema = make_ema(candlist)
@@ -188,7 +194,7 @@ def create_features(objectId, candlist):
         if not 'candid'in cand: 
             continue
 
-        if cand['rb'] > 0.75 and cand['isdiffpos'] == 't' and jdmax and cand['jd']:
+        if good(cand) and cand['isdiffpos'] == 't' and jdmax and cand['jd']:
             ncandgp += 1
             age = jdmax - cand['jd']
             if age < 7.0:  ncandgp_7 += 1
