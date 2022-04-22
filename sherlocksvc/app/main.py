@@ -18,8 +18,8 @@ api = Api(app)
 
 
 conf = {
-        'settings_file': 'settings.yaml',
-        'sherlock_settings': 'sherlock.yaml'
+        'settings_file': 'sherlock_service_settings.yaml',
+        'sherlock_settings': 'sherlock_settings.yaml'
         }
 
 class NotFoundException(Exception):
