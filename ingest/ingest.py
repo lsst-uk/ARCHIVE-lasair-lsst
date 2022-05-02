@@ -250,12 +250,16 @@ def main():
 
     nid = 0
     if len(sys.argv) > 1:
-        nid = int(sys.argv[1])
+        try:
+            nid = int(sys.argv[1])
+        except:
+            topic = sys.argv[1]
     else:
         nid  = date_nid.nid_now()
 
-    date = date_nid.nid_to_date(nid)
-    topic  = 'ztf_' + date + '_programid1'
+    if nid > 0:
+        date = date_nid.nid_to_date(nid)
+        topic  = 'ztf_' + date + '_programid1'
 
     maxalert = settings.KAFKA_MAXALERTS
     nprocess = settings.KAFKA_PROCESSES
