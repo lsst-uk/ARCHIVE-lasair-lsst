@@ -1,4 +1,3 @@
-USE ztf;
 CREATE TABLE IF NOT EXISTS crossmatch_tns(
 `ra` double,
 `decl` double,
