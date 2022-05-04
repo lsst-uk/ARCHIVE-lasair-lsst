@@ -1,8 +1,8 @@
 sample_watchlist.csv
-    the first 100 points from the ztf_test_1000 topic
+    the first 5 points from the ztf_test_100 topic
     within a fraction of arcsec
-    should provide 100 hits
+    should provide 5 hits
 
 sample_area.fits
-    MOC file 40<RA<50 and 10<dec<30
-    should be 92 hits with the ztf_test_1000
+    MOC file 165<RA<170 and -10<dec<-12
+    where much of the ztf_test_100 lies
