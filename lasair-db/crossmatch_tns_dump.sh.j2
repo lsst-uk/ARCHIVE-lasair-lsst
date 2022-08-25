@@ -1,6 +1,0 @@
-logfile='/mnt/cephfs/lasair/services_log/'$(date +'%Y%m%d')'.log'
-echo '\n-- dump crossmatch_tns master at' $(date) >> $logfile
-mysqldump -u root -p{{ settings.master_db_root_password }} --port={{ settings.master_db_port }} ztf crossmatch_tns > /mnt/cephfs/lasair/crossmatch_tns/crossmatch_tns.sql
-mysql -u root -p{{ settings.master_db_root_password }} --port={{ settings.master_db_port }} ztf -e 'select count(*) from crossmatch_tns' >> $logfile
-ls -l /mnt/cephfs/lasair/crossmatch_tns/crossmatch_tns.sql >> $logfile
-

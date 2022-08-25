@@ -1,16 +1,3 @@
-#  lasair-lsst
-
-
-Copyright 2022 The University of Edinburgh and Queen's University Belfast
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this code except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+# Lasair project management
+This repo has no code, it has the tickets that drive project management
+There is [another] (https://github.com/lsst-uk/lasair) like this

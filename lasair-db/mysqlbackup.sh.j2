@@ -1,4 +1,0 @@
-mysqldump -u root -p{{ settings.master_db_root_password }} --port={{ settings.master_db_port }} ztf > /data/backups/backup.sql
-
-scp -i /home/ubuntu/.ssh/id_rsa /data/backups/backup.sql roy@lasair-dev.roe.ac.uk:/data/somerville_backups
-
